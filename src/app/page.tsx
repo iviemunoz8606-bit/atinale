@@ -16,6 +16,15 @@ function CountUp({ target, duration = 2.5 }: { target: number, duration?: number
 }
 
 export default function Home() {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   return (
     <div style={{
       background: 'linear-gradient(160deg, #0A0F2E 0%, #0D0D1A 40%, #0A1628 100%)',
@@ -29,10 +38,10 @@ export default function Home() {
         borderBottom: '1px solid #1E2A4A',
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 2rem', height: 64,
+        padding: '0 1.25rem', height: 64,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ position: 'relative', width: 48, height: 48 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
             <motion.div
               animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
               transition={{ duration: 2.5, repeat: Infinity }}
@@ -41,12 +50,12 @@ export default function Home() {
             <div style={{
               position: 'absolute', top: '50%', left: '50%',
               transform: 'translate(-50%,-50%)',
-              width: 32, height: 32, borderRadius: '50%', border: '2px solid #7F77DD'
+              width: 26, height: 26, borderRadius: '50%', border: '2px solid #7F77DD'
             }}/>
             <div style={{
               position: 'absolute', top: '50%', left: '50%',
               transform: 'translate(-50%,-50%)',
-              width: 16, height: 16, borderRadius: '50%', background: '#534AB7'
+              width: 13, height: 13, borderRadius: '50%', background: '#534AB7'
             }}/>
             <motion.div
               animate={{ scale: [1, 1.3, 1] }}
@@ -54,32 +63,37 @@ export default function Home() {
               style={{
                 position: 'absolute', top: '50%', left: '50%',
                 transform: 'translate(-50%,-50%)',
-                width: 7, height: 7, borderRadius: '50%',
+                width: 6, height: 6, borderRadius: '50%',
                 background: '#EFC84A', boxShadow: '0 0 8px #EFC84A'
               }}/>
             {[
-              { top: 2, left: '50%', transform: 'translateX(-50%)', width: 2, height: 10 },
-              { bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 2, height: 10 },
-              { left: 2, top: '50%', transform: 'translateY(-50%)', width: 10, height: 2 },
-              { right: 2, top: '50%', transform: 'translateY(-50%)', width: 10, height: 2 },
+              { top: 2, left: '50%', transform: 'translateX(-50%)', width: 2, height: 8 },
+              { bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 2, height: 8 },
+              { left: 2, top: '50%', transform: 'translateY(-50%)', width: 8, height: 2 },
+              { right: 2, top: '50%', transform: 'translateY(-50%)', width: 8, height: 2 },
             ].map((s, i) => (
               <div key={i} style={{ position: 'absolute', background: '#EFC84A', borderRadius: 1, ...s as any }}/>
             ))}
           </div>
           <div>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, color: '#fff', letterSpacing: '3px', lineHeight: 1 }}>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: isMobile ? 22 : 30, color: '#fff', letterSpacing: '3px', lineHeight: 1 }}>
               ATÍNALE
             </div>
-            <div style={{ fontSize: 9, color: '#7F77DD', letterSpacing: '3px' }}>QUINIELAS DEPORTIVAS</div>
+            {!isMobile && (
+              <div style={{ fontSize: 9, color: '#7F77DD', letterSpacing: '3px' }}>QUINIELAS DEPORTIVAS</div>
+            )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ color: '#AFA9EC', fontSize: 15, cursor: 'pointer', fontWeight: 500 }}>¿Cómo funciona?</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {!isMobile && (
+            <span style={{ color: '#AFA9EC', fontSize: 15, cursor: 'pointer', fontWeight: 500 }}>¿Cómo funciona?</span>
+          )}
           <motion.button
             whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
             style={{
               background: '#534AB7', color: '#fff', border: 'none',
-              borderRadius: 50, padding: '10px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer'
+              borderRadius: 50, padding: isMobile ? '8px 16px' : '10px 24px',
+              fontSize: isMobile ? 13 : 15, fontWeight: 600, cursor: 'pointer'
             }}>Entrar →</motion.button>
         </div>
       </nav>
@@ -87,78 +101,81 @@ export default function Home() {
       {/* ══ HERO ══ */}
       <section style={{
         minHeight: '100vh',
-        display: 'grid', gridTemplateColumns: '1fr 1.1fr',
-        alignItems: 'center', gap: 48,
-        padding: '100px 5% 60px',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
+        gap: isMobile ? 24 : 48,
+        padding: isMobile ? '80px 5% 48px' : '100px 5% 60px',
         maxWidth: 1200, margin: '0 auto',
       }}>
 
         {/* IZQUIERDA */}
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+        <motion.div
+          initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          style={{ flex: 1 }}>
 
-          <p style={{ color: '#AFA9EC', fontSize: 13, letterSpacing: 4, marginBottom: 20, fontWeight: 700 }}>
+          <p style={{ color: '#AFA9EC', fontSize: isMobile ? 11 : 13, letterSpacing: 4, marginBottom: 16, fontWeight: 700 }}>
             🏆 FIFA WORLD CUP 2026 · QUINIELA ACTIVA
           </p>
 
           <h2 style={{
             fontFamily: "'Bebas Neue', sans-serif",
-            color: '#EFC84A', fontSize: 96,
+            color: '#EFC84A', fontSize: isMobile ? 64 : 96,
             lineHeight: 0.9, letterSpacing: '2px', marginBottom: 10
           }}>CÓBRATE.</h2>
 
           <h1 style={{
             fontFamily: "'Bebas Neue', sans-serif",
-            color: '#ffffff', fontSize: 64,
-            lineHeight: 1, letterSpacing: '2px', marginBottom: 32
+            color: '#ffffff', fontSize: isMobile ? 42 : 64,
+            lineHeight: 1, letterSpacing: '2px', marginBottom: 28
           }}>
             ¿CUÁNTO SABES<br />DE FÚTBOL?
           </h1>
 
-          {/* Beneficios — compactos, blancos */}
-          <div style={{ marginBottom: 36 }}>
+          <div style={{ marginBottom: 28 }}>
             {[
               { icon: '💰', text: 'Predice marcadores y acumula puntos' },
               { icon: '🎯', text: 'El que más acierta gana el pozo' },
               { icon: '👥', text: 'Refiere amigos y gana puntos extra' },
               { icon: '🔒', text: 'Comisión 10% visible para todos' },
             ].map((item, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center',
-                gap: 12, marginBottom: 10
-              }}>
-                <span style={{ fontSize: 24, flexShrink: 0 }}>{item.icon}</span>
-                <p style={{ color: '#ffffff', fontSize: 18, fontWeight: 600, lineHeight: 1.2 }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
+                <p style={{ color: '#ffffff', fontSize: isMobile ? 15 : 18, fontWeight: 600, lineHeight: 1.2 }}>
                   {item.text}
                 </p>
               </div>
             ))}
           </div>
 
-          {/* CTAs */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
             <motion.button
               whileHover={{ scale: 1.05, boxShadow: '0 0 28px #EFC84A60' }}
               whileTap={{ scale: 0.97 }}
               style={{
                 background: '#EFC84A', color: '#0D0D1A', border: 'none',
-                borderRadius: 50, padding: '20px 44px',
-                fontSize: 18, fontWeight: 800, cursor: 'pointer',
+                borderRadius: 50, padding: isMobile ? '16px 32px' : '20px 44px',
+                fontSize: isMobile ? 16 : 18, fontWeight: 800, cursor: 'pointer',
+                width: isMobile ? '100%' : 'auto'
               }}>
               🏆 Quiero ganar el pozo
             </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              style={{
-                background: 'transparent', color: '#ffffff',
-                border: '1px solid #534AB7', borderRadius: 50,
-                padding: '20px 32px', fontSize: 16,
-                cursor: 'pointer', fontWeight: 600
-              }}>
-              ¿Cómo funciona?
-            </motion.button>
+            {!isMobile && (
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                style={{
+                  background: 'transparent', color: '#ffffff',
+                  border: '1px solid #534AB7', borderRadius: 50,
+                  padding: '20px 32px', fontSize: 16,
+                  cursor: 'pointer', fontWeight: 600
+                }}>
+                ¿Cómo funciona?
+              </motion.button>
+            )}
           </div>
 
-          <p style={{ color: '#7F8EA8', fontSize: 14 }}>
+          <p style={{ color: '#7F8EA8', fontSize: 13 }}>
             Entra con{' '}
             <span style={{ color: '#AFA9EC', cursor: 'pointer', fontWeight: 700 }}>Google</span>
             {' '}o{' '}
@@ -167,22 +184,21 @@ export default function Home() {
           </p>
         </motion.div>
 
-        {/* DERECHA — Premio + Partido juntos */}
+        {/* DERECHA */}
         <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, x: isMobile ? 0 : 30, y: isMobile ? 20 : 0 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          style={{ flex: isMobile ? 'none' : 1.1, display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-          {/* Premio centrado */}
+          {/* Premio */}
           <motion.div
             whileHover={{ scale: 1.01 }}
             style={{
               background: 'linear-gradient(135deg, #1A1050 0%, #0F1A3A 100%)',
               border: '1px solid #534AB7',
-              borderRadius: 24, padding: '1.75rem 2rem',
-              position: 'relative', overflow: 'hidden',
-              textAlign: 'center'
+              borderRadius: 24, padding: isMobile ? '1.25rem' : '1.75rem 2rem',
+              position: 'relative', overflow: 'hidden', textAlign: 'center'
             }}>
             <div style={{
               position: 'absolute', top: -60, left: '50%',
@@ -190,27 +206,21 @@ export default function Home() {
               width: 300, height: 200, borderRadius: '50%',
               background: '#EFC84A08', filter: 'blur(40px)'
             }}/>
-
-            <p style={{ color: '#AFA9EC', fontSize: 12, letterSpacing: 5, marginBottom: 8, fontWeight: 700 }}>
+            <p style={{ color: '#AFA9EC', fontSize: 11, letterSpacing: 4, marginBottom: 8, fontWeight: 700 }}>
               💵 PREMIO NETO · QUINIELA ACTIVA
             </p>
-
             <div style={{
               fontFamily: "'Bebas Neue', sans-serif",
-              color: '#EFC84A', fontSize: 96,
+              color: '#EFC84A', fontSize: isMobile ? 72 : 96,
               lineHeight: 1, letterSpacing: '2px', marginBottom: 2,
               textShadow: '0 0 40px #EFC84A50'
             }}>
               $<CountUp target={5400} duration={2.5} />
             </div>
-
-            <p style={{ color: '#AFA9EC', fontSize: 14, marginBottom: 16, fontWeight: 700, letterSpacing: 3 }}>
-              MXN
-            </p>
-
+            <p style={{ color: '#AFA9EC', fontSize: 13, marginBottom: 14, fontWeight: 700, letterSpacing: 3 }}>MXN</p>
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(3,1fr)',
-              borderTop: '1px solid #2A2050', paddingTop: 14, gap: 0
+              borderTop: '1px solid #2A2050', paddingTop: 14
             }}>
               {[
                 { label: 'Pozo total', value: '$6,000', sub: '30 × $200' },
@@ -220,77 +230,78 @@ export default function Home() {
                 <div key={i} style={{
                   textAlign: 'center',
                   borderRight: i < 2 ? '1px solid #2A2050' : 'none',
-                  padding: '0 8px'
+                  padding: '0 4px'
                 }}>
-                  <p style={{ color: '#AFA9EC', fontSize: 12, marginBottom: 4, fontWeight: 600 }}>{s.label}</p>
-                  <p style={{ color: '#ffffff', fontSize: 22, fontWeight: 800, marginBottom: 2 }}>{s.value}</p>
-                  <p style={{ color: '#5F6E8A', fontSize: 11 }}>{s.sub}</p>
+                  <p style={{ color: '#AFA9EC', fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{s.label}</p>
+                  <p style={{ color: '#ffffff', fontSize: isMobile ? 18 : 22, fontWeight: 800, marginBottom: 2 }}>{s.value}</p>
+                  <p style={{ color: '#5F6E8A', fontSize: 10 }}>{s.sub}</p>
                 </div>
               ))}
             </div>
           </motion.div>
 
-          {/* Partido inaugural pegado abajo */}
+          {/* Partido inaugural */}
           <div style={{
             background: '#111827', border: '1px solid #1E2A4A',
             borderRadius: 24, overflow: 'hidden'
           }}>
             <div style={{
-              background: '#0A0F1E', padding: '0.75rem 1.5rem',
+              background: '#0A0F1E', padding: '0.75rem 1.25rem',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               borderBottom: '1px solid #1E2A4A'
             }}>
-              <span style={{ color: '#AFA9EC', fontSize: 13, letterSpacing: 3, fontWeight: 700 }}>
+              <span style={{ color: '#AFA9EC', fontSize: isMobile ? 11 : 13, letterSpacing: 2, fontWeight: 700 }}>
                 ⚽ PARTIDO INAUGURAL
               </span>
               <span style={{
                 background: '#EFC84A15', color: '#EFC84A',
-                fontSize: 13, padding: '4px 14px', borderRadius: 20,
+                fontSize: isMobile ? 11 : 13, padding: '4px 12px', borderRadius: 20,
                 fontWeight: 700, border: '1px solid #EFC84A30'
               }}>11 jun · 17:00 CST</span>
             </div>
 
-            <div style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ padding: '1rem 1.25rem' }}>
               <div style={{
                 display: 'flex', alignItems: 'center',
-                justifyContent: 'space-between', marginBottom: 16
+                justifyContent: 'space-between', marginBottom: 14
               }}>
                 {/* México */}
                 <div style={{ textAlign: 'center', flex: 1 }}>
                   <motion.div whileHover={{ scale: 1.05 }} style={{
-                    width: 72, height: 72, borderRadius: '50%',
-                    overflow: 'hidden', margin: '0 auto 10px',
+                    width: isMobile ? 56 : 72, height: isMobile ? 56 : 72,
+                    borderRadius: '50%', overflow: 'hidden',
+                    margin: '0 auto 8px',
                     border: '3px solid #534AB7', boxShadow: '0 0 20px #534AB760'
                   }}>
                     <img src="https://flagcdn.com/w160/mx.png" alt="México"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
                   </motion.div>
-                  <p style={{ color: '#ffffff', fontSize: 17, fontWeight: 800 }}>México</p>
-                  <p style={{ color: '#AFA9EC', fontSize: 12, fontWeight: 600 }}>EL TRI</p>
+                  <p style={{ color: '#ffffff', fontSize: isMobile ? 14 : 17, fontWeight: 800 }}>México</p>
+                  <p style={{ color: '#AFA9EC', fontSize: 11, fontWeight: 600 }}>EL TRI</p>
                 </div>
 
                 <div style={{ textAlign: 'center', padding: '0 0.5rem' }}>
                   <div style={{
                     background: '#0A0F1E', border: '2px solid #534AB7',
-                    borderRadius: 12, padding: '8px 14px', marginBottom: 4
+                    borderRadius: 10, padding: '6px 12px', marginBottom: 4
                   }}>
-                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#534AB7', fontSize: 22, letterSpacing: '2px' }}>VS</span>
+                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#534AB7', fontSize: 20, letterSpacing: '2px' }}>VS</span>
                   </div>
-                  <p style={{ color: '#5F6E8A', fontSize: 11 }}>Ciudad de México</p>
+                  <p style={{ color: '#5F6E8A', fontSize: 10 }}>Ciudad de México</p>
                 </div>
 
                 {/* Sudáfrica */}
                 <div style={{ textAlign: 'center', flex: 1 }}>
                   <motion.div whileHover={{ scale: 1.05 }} style={{
-                    width: 72, height: 72, borderRadius: '50%',
-                    overflow: 'hidden', margin: '0 auto 10px',
-                    border: '3px solid #1E2A4A'
+                    width: isMobile ? 56 : 72, height: isMobile ? 56 : 72,
+                    borderRadius: '50%', overflow: 'hidden',
+                    margin: '0 auto 8px', border: '3px solid #1E2A4A'
                   }}>
                     <img src="https://flagcdn.com/w160/za.png" alt="Sudáfrica"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
                   </motion.div>
-                  <p style={{ color: '#ffffff', fontSize: 17, fontWeight: 800 }}>Sudáfrica</p>
-                  <p style={{ color: '#5F6E8A', fontSize: 12, fontWeight: 600 }}>BAFANA BAFANA</p>
+                  <p style={{ color: '#ffffff', fontSize: isMobile ? 14 : 17, fontWeight: 800 }}>Sudáfrica</p>
+                  <p style={{ color: '#5F6E8A', fontSize: 11, fontWeight: 600 }}>BAFANA BAFANA</p>
                 </div>
               </div>
 
@@ -305,11 +316,11 @@ export default function Home() {
                   { pts: '0 PTS', label: '✗ Fallo', color: '#3A4A6A' },
                 ].map((item, i) => (
                   <div key={i} style={{
-                    textAlign: 'center', padding: '0.875rem 0',
+                    textAlign: 'center', padding: '0.75rem 0',
                     borderRight: i < 2 ? '1px solid #1E2A4A' : 'none'
                   }}>
-                    <p style={{ fontFamily: "'Bebas Neue', sans-serif", color: item.color, fontSize: 22 }}>{item.pts}</p>
-                    <p style={{ color: '#AFA9EC', fontSize: 13, fontWeight: 600 }}>{item.label}</p>
+                    <p style={{ fontFamily: "'Bebas Neue', sans-serif", color: item.color, fontSize: 18 }}>{item.pts}</p>
+                    <p style={{ color: '#AFA9EC', fontSize: isMobile ? 11 : 13, fontWeight: 600 }}>{item.label}</p>
                   </div>
                 ))}
               </div>
@@ -320,38 +331,41 @@ export default function Home() {
 
       {/* ══ 3 PASOS ══ */}
       <section style={{
-        padding: '5rem 5%', maxWidth: 1200,
-        margin: '0 auto', borderTop: '1px solid #1E2A4A'
+        padding: isMobile ? '3rem 5%' : '5rem 5%',
+        maxWidth: 1200, margin: '0 auto',
+        borderTop: '1px solid #1E2A4A'
       }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ textAlign: 'center', marginBottom: 56 }}>
-          <p style={{ color: '#AFA9EC', fontSize: 13, letterSpacing: 5, marginBottom: 12, fontWeight: 700 }}>
+          style={{ textAlign: 'center', marginBottom: isMobile ? 36 : 56 }}>
+          <p style={{ color: '#AFA9EC', fontSize: 12, letterSpacing: 5, marginBottom: 12, fontWeight: 700 }}>
             ⚡ ASÍ DE FÁCIL
           </p>
           <h3 style={{
             fontFamily: "'Bebas Neue', sans-serif",
-            color: '#fff', fontSize: 72,
+            color: '#fff', fontSize: isMobile ? 48 : 72,
             letterSpacing: '3px', lineHeight: 1, marginBottom: 16
           }}>
             3 PASOS PARA<br />
             <span style={{ color: '#EFC84A' }}>GANAR EL POZO</span>
           </h3>
-          <p style={{ color: '#AFA9EC', fontSize: 18, fontWeight: 600 }}>
+          <p style={{ color: '#AFA9EC', fontSize: isMobile ? 15 : 18, fontWeight: 600 }}>
             Sin complicaciones — predice, compite y cobra
           </p>
         </motion.div>
 
-        {/* Tarjetas con flechas */}
+        {/* Cards — stack en mobile, row en desktop */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 48px 1fr 48px 1fr',
-          alignItems: 'center', gap: 0, marginBottom: 56
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 48px 1fr 48px 1fr',
+          gap: isMobile ? 16 : 0,
+          alignItems: 'center',
+          marginBottom: 48
         }}>
           {[
             {
               num: '01', icon: '💳', word: 'REGÍSTRATE',
-              desc: 'Crea tu cuenta, elige tu quiniela y paga $100 o $200 vía Mercado Pago. Listo.',
+              desc: 'Crea tu cuenta, elige tu quiniela y paga $100 o $200 vía Mercado Pago.',
               color: '#534AB7'
             },
             null,
@@ -363,18 +377,22 @@ export default function Home() {
             null,
             {
               num: '03', icon: '🏆', word: 'GANA',
-              desc: 'El que más puntos acumule se lleva el pozo. El ranking se actualiza en tiempo real.',
+              desc: 'El que más puntos acumule se lleva el pozo. Ranking en tiempo real.',
               color: '#1D9E75'
             },
           ].map((step, i) => {
-            if (step === null) return (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <motion.div
-                  animate={{ x: [0, 6, 0] }}
-                  transition={{ duration: 1.2, repeat: Infinity }}
-                  style={{ color: '#534AB760', fontSize: 36 }}>→</motion.div>
-              </div>
-            )
+            // Flechas — solo en desktop
+            if (step === null) {
+              if (isMobile) return null
+              return (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <motion.div
+                    animate={{ x: [0, 6, 0] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                    style={{ color: '#534AB760', fontSize: 36 }}>→</motion.div>
+                </div>
+              )
+            }
             return (
               <motion.div
                 key={i}
@@ -386,8 +404,13 @@ export default function Home() {
                   background: '#111827',
                   border: `1px solid ${step.color}40`,
                   borderTop: `4px solid ${step.color}`,
-                  borderRadius: 24, padding: '2rem 1.75rem',
-                  textAlign: 'center', position: 'relative', overflow: 'hidden',
+                  borderRadius: 24,
+                  padding: isMobile ? '1.5rem' : '2rem 1.75rem',
+                  textAlign: 'center',
+                  position: 'relative', overflow: 'hidden',
+                  display: isMobile ? 'flex' : 'block',
+                  alignItems: isMobile ? 'center' : 'initial',
+                  gap: isMobile ? 16 : 0,
                 }}>
                 {/* Número fondo */}
                 <div style={{
@@ -397,36 +420,35 @@ export default function Home() {
                   opacity: 0.05, lineHeight: 1, userSelect: 'none'
                 }}>{step.num}</div>
 
-                {/* Emoji grande */}
-                <div style={{ fontSize: 80, lineHeight: 1, marginBottom: 16 }}>
+                {/* Emoji */}
+                <div style={{ fontSize: isMobile ? 48 : 80, lineHeight: 1, marginBottom: isMobile ? 0 : 16, flexShrink: 0 }}>
                   {step.icon}
                 </div>
 
-                {/* Palabra clave */}
-                <div style={{
-                  fontFamily: "'Bebas Neue', sans-serif",
-                  color: '#ffffff', fontSize: 44,
-                  letterSpacing: '3px', marginBottom: 12
-                }}>{step.word}</div>
-
-                {/* Descripción corta — blanca y legible */}
-                <p style={{
-                  color: '#ffffff', fontSize: 15,
-                  fontWeight: 500, lineHeight: 1.5,
-                  marginBottom: 16, opacity: 0.85
-                }}>{step.desc}</p>
-
-                {/* Badge */}
-                <div style={{
-                  display: 'inline-block',
-                  background: `${step.color}20`,
-                  border: `1px solid ${step.color}60`,
-                  borderRadius: 50, padding: '5px 18px',
-                }}>
-                  <span style={{
+                <div style={{ textAlign: isMobile ? 'left' : 'center' }}>
+                  <div style={{
                     fontFamily: "'Bebas Neue', sans-serif",
-                    color: step.color, fontSize: 16, letterSpacing: '2px'
-                  }}>PASO {step.num}</span>
+                    color: '#ffffff', fontSize: isMobile ? 32 : 44,
+                    letterSpacing: '3px', marginBottom: 8
+                  }}>{step.word}</div>
+
+                  <p style={{
+                    color: '#ffffff', fontSize: isMobile ? 14 : 15,
+                    fontWeight: 500, lineHeight: 1.5,
+                    marginBottom: 12, opacity: 0.85
+                  }}>{step.desc}</p>
+
+                  <div style={{
+                    display: 'inline-block',
+                    background: `${step.color}20`,
+                    border: `1px solid ${step.color}60`,
+                    borderRadius: 50, padding: '4px 16px',
+                  }}>
+                    <span style={{
+                      fontFamily: "'Bebas Neue', sans-serif",
+                      color: step.color, fontSize: 14, letterSpacing: '2px'
+                    }}>PASO {step.num}</span>
+                  </div>
                 </div>
               </motion.div>
             )
@@ -441,10 +463,12 @@ export default function Home() {
             style={{
               background: '#EFC84A', color: '#0D0D1A',
               border: 'none', borderRadius: 50,
-              padding: '22px 72px', fontSize: 24,
+              padding: isMobile ? '18px 48px' : '22px 72px',
+              fontSize: isMobile ? 20 : 24,
               fontWeight: 800, cursor: 'pointer',
               fontFamily: "'Bebas Neue', sans-serif",
-              letterSpacing: '2px'
+              letterSpacing: '2px',
+              width: isMobile ? '100%' : 'auto'
             }}>
             🏆 QUIERO GANAR EL POZO →
           </motion.button>

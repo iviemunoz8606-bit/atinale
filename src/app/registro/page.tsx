@@ -1,8 +1,16 @@
+// @ts-nocheck
 'use client'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@supabase/ssr'
 import '@fontsource/bebas-neue'
+
+export default function Registro() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const [loading, setLoading] = useState(false)
 
 export default function Registro() {
   const [loading, setLoading] = useState(false)

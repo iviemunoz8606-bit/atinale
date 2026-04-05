@@ -158,7 +158,7 @@ export default function Dashboard() {
         `)
         .eq('user_id', session.user.id)
 
-      setMyPools(memberData || [])
+      setMyPools((memberData as any) || [])
 
       // 5. Predicciones recientes
       const { data: predsData } = await supabase

@@ -25,6 +25,20 @@ export default function Home() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  async function handleLogin() {
+    const { createBrowserClient } = await import('@supabase/ssr')
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
+  }
+
   return (
     <div style={{
       background: 'linear-gradient(160deg, #0A0F2E 0%, #0D0D1A 40%, #0A1628 100%)',
@@ -89,6 +103,7 @@ export default function Home() {
             <span style={{ color: '#AFA9EC', fontSize: 15, cursor: 'pointer', fontWeight: 500 }}>¿Cómo funciona?</span>
           )}
           <motion.button
+            onClick={handleLogin}
             whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
             style={{
               background: '#534AB7', color: '#fff', border: 'none',
@@ -151,6 +166,7 @@ export default function Home() {
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
             <motion.button
+              onClick={handleLogin}
               whileHover={{ scale: 1.05, boxShadow: '0 0 28px #EFC84A60' }}
               whileTap={{ scale: 0.97 }}
               style={{
@@ -177,7 +193,7 @@ export default function Home() {
 
           <p style={{ color: '#7F8EA8', fontSize: 13 }}>
             Entra con{' '}
-            <span style={{ color: '#AFA9EC', cursor: 'pointer', fontWeight: 700 }}>Google</span>
+            <span onClick={handleLogin} style={{ color: '#AFA9EC', cursor: 'pointer', fontWeight: 700 }}>Google</span>
             {' '}o{' '}
             <span style={{ color: '#AFA9EC', cursor: 'pointer', fontWeight: 700 }}>Facebook</span>
             {' '}— solo toma 15 segundos
@@ -265,7 +281,6 @@ export default function Home() {
                 display: 'flex', alignItems: 'center',
                 justifyContent: 'space-between', marginBottom: 14
               }}>
-                {/* México */}
                 <div style={{ textAlign: 'center', flex: 1 }}>
                   <motion.div whileHover={{ scale: 1.05 }} style={{
                     width: isMobile ? 56 : 72, height: isMobile ? 56 : 72,
@@ -290,7 +305,6 @@ export default function Home() {
                   <p style={{ color: '#5F6E8A', fontSize: 10 }}>Ciudad de México</p>
                 </div>
 
-                {/* Sudáfrica */}
                 <div style={{ textAlign: 'center', flex: 1 }}>
                   <motion.div whileHover={{ scale: 1.05 }} style={{
                     width: isMobile ? 56 : 72, height: isMobile ? 56 : 72,
@@ -305,7 +319,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Puntos */}
               <div style={{
                 display: 'grid', gridTemplateColumns: 'repeat(3,1fr)',
                 background: '#0A0F1E', borderRadius: 12, overflow: 'hidden'
@@ -354,7 +367,6 @@ export default function Home() {
           </p>
         </motion.div>
 
-        {/* Cards — stack en mobile, row en desktop */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : '1fr 48px 1fr 48px 1fr',
@@ -381,7 +393,6 @@ export default function Home() {
               color: '#1D9E75'
             },
           ].map((step, i) => {
-            // Flechas — solo en desktop
             if (step === null) {
               if (isMobile) return null
               return (
@@ -412,32 +423,26 @@ export default function Home() {
                   alignItems: isMobile ? 'center' : 'initial',
                   gap: isMobile ? 16 : 0,
                 }}>
-                {/* Número fondo */}
                 <div style={{
                   position: 'absolute', bottom: -20, right: 10,
                   fontFamily: "'Bebas Neue', sans-serif",
                   color: step.color, fontSize: 120,
                   opacity: 0.05, lineHeight: 1, userSelect: 'none'
                 }}>{step.num}</div>
-
-                {/* Emoji */}
                 <div style={{ fontSize: isMobile ? 48 : 80, lineHeight: 1, marginBottom: isMobile ? 0 : 16, flexShrink: 0 }}>
                   {step.icon}
                 </div>
-
                 <div style={{ textAlign: isMobile ? 'left' : 'center' }}>
                   <div style={{
                     fontFamily: "'Bebas Neue', sans-serif",
                     color: '#ffffff', fontSize: isMobile ? 32 : 44,
                     letterSpacing: '3px', marginBottom: 8
                   }}>{step.word}</div>
-
                   <p style={{
                     color: '#ffffff', fontSize: isMobile ? 14 : 15,
                     fontWeight: 500, lineHeight: 1.5,
                     marginBottom: 12, opacity: 0.85
                   }}>{step.desc}</p>
-
                   <div style={{
                     display: 'inline-block',
                     background: `${step.color}20`,
@@ -455,9 +460,9 @@ export default function Home() {
           })}
         </div>
 
-        {/* CTA final */}
         <div style={{ textAlign: 'center' }}>
           <motion.button
+            onClick={handleLogin}
             whileHover={{ scale: 1.05, boxShadow: '0 0 40px #EFC84A50' }}
             whileTap={{ scale: 0.97 }}
             style={{

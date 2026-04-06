@@ -1,0 +1,586 @@
+// @ts-nocheck
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+
+type Match = {
+  id: string
+  match_number: number
+  home_team: string
+  away_team: string
+  home_flag: string
+  away_flag: string
+  scheduled_at: string
+  status: string
+  home_score: number | null
+  away_score: number | null
+  round: string
+  group_name: string | null
+  venue: string
+  city: string
+}
+
+type Prediction = {
+  id: string
+  match_id: string
+  predicted_home: number
+  predicted_away: number
+  points_earned: number
+}
+
+type Pool = {
+  id: string
+  name: string
+  competition: string
+  entry_fee: number
+  total_pot: number
+  current_participants: number
+  status: string
+  registration_closes_at: string
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('es-MX', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City'
+  })
+}
+
+function isLocked(scheduledAt: string, status: string) {
+  if (status === 'live' || status === 'finished') return true
+  return new Date(scheduledAt).getTime() <= Date.now()
+}
+
+export default function QuinielaPredictions() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const router = useRouter()
+  const params = useParams()
+  const poolId = params?.id as string
+
+  const [pool, setPool] = useState<Pool | null>(null)
+  const [matches, setMatches] = useState<Match[]>([])
+  const [predictions, setPredictions] = useState<Record<string, Prediction>>({})
+  const [drafts, setDrafts] = useState<Record<string, { home: string; away: string }>>({})
+  const [userId, setUserId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeGroup, setActiveGroup] = useState<string>('A')
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
+
+  useEffect(() => { loadData() }, [poolId])
+
+  async function loadData() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.push('/'); return }
+    setUserId(session.user.id)
+
+    const { data: poolData } = await supabase
+      .from('pools').select('*').eq('id', poolId).single()
+    setPool(poolData)
+
+    // Solo partidos de grupos
+    const { data: matchData } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('round', 'Fase de Grupos')
+      .order('scheduled_at', { ascending: true })
+
+    setMatches(matchData || [])
+
+    const { data: predData } = await supabase
+      .from('predictions')
+      .select('*')
+      .eq('pool_id', poolId)
+      .eq('user_id', session.user.id)
+
+    const predMap: Record<string, Prediction> = {}
+    const draftMap: Record<string, { home: string; away: string }> = {}
+    for (const p of predData || []) {
+      predMap[p.match_id] = p
+      draftMap[p.match_id] = { home: String(p.predicted_home), away: String(p.predicted_away) }
+    }
+    setPredictions(predMap)
+    setDrafts(draftMap)
+    setLoading(false)
+  }
+
+  function showToast(msg: string, type: 'ok' | 'err') {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 2800)
+  }
+
+  // Detectar cuántas predicciones hay pendientes de guardar
+  const pendingDrafts = Object.entries(drafts).filter(([matchId, draft]) => {
+    if (draft.home === '' || draft.away === '') return false
+    const existing = predictions[matchId]
+    if (!existing) return true
+    return existing.predicted_home !== parseInt(draft.home) ||
+           existing.predicted_away !== parseInt(draft.away)
+  })
+
+  async function saveAll() {
+    if (pendingDrafts.length === 0) return
+    setSaving(true)
+
+    let errorCount = 0
+
+    for (const [matchId, draft] of pendingDrafts) {
+      const home = parseInt(draft.home)
+      const away = parseInt(draft.away)
+      if (isNaN(home) || isNaN(away) || home < 0 || away < 0) continue
+
+      const existing = predictions[matchId]
+
+      if (existing?.id) {
+        // Actualizar la existente
+        const { error } = await supabase
+          .from('predictions')
+          .update({ predicted_home: home, predicted_away: away })
+          .eq('id', existing.id)
+        if (error) errorCount++
+      } else {
+        // Insertar nueva
+        const { error } = await supabase
+          .from('predictions')
+          .insert({
+            pool_id: poolId,
+            match_id: matchId,
+            user_id: userId,
+            predicted_home: home,
+            predicted_away: away,
+            points_earned: 0
+          })
+        if (error) errorCount++
+      }
+    }
+
+    setSaving(false)
+
+    if (errorCount > 0) {
+      showToast(`❌ ${errorCount} predicciones no se guardaron`, 'err')
+    } else {
+      showToast(`✅ ${pendingDrafts.length} predicciones guardadas`, 'ok')
+      // Recargar predicciones desde BD
+      const { data: predData } = await supabase
+        .from('predictions')
+        .select('*')
+        .eq('pool_id', poolId)
+        .eq('user_id', userId)
+
+      const predMap: Record<string, Prediction> = {}
+      const draftMap: Record<string, { home: string; away: string }> = {}
+      for (const p of predData || []) {
+        predMap[p.match_id] = p
+        draftMap[p.match_id] = { home: String(p.predicted_home), away: String(p.predicted_away) }
+      }
+      setPredictions(predMap)
+      setDrafts(draftMap)
+    }
+  }
+
+  // Agrupar por grupo A-L
+  const groups: Record<string, Match[]> = {}
+  for (const m of matches) {
+    const g = m.group_name || 'A'
+    if (!groups[g]) groups[g] = []
+    groups[g].push(m)
+  }
+  const groupKeys = Object.keys(groups).sort()
+
+  const totalGroup = matches.filter(m => !isLocked(m.scheduled_at, m.status)).length
+  const predictedCount = Object.keys(predictions).length
+  const pct = totalGroup > 0 ? Math.round((predictedCount / totalGroup) * 100) : 0
+
+  if (loading) return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', background: '#0A0D12', flexDirection: 'column', gap: 16
+    }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: '50%',
+        border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731',
+        animation: 'spin 0.8s linear infinite'
+      }} />
+      <p style={{ color: '#6B7280', fontSize: 14, fontFamily: 'sans-serif' }}>Cargando partidos...</p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+
+  return (
+    <div style={{
+      background: '#0A0D12', minHeight: '100vh',
+      fontFamily: "'Outfit', 'Helvetica Neue', sans-serif", color: '#F0F2F8'
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(16px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }
+        @keyframes floatIn { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+        .score-input::-webkit-inner-spin-button,
+        .score-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .score-input { -moz-appearance: textfield; }
+        .score-input:focus { background: rgba(245,183,49,0.18) !important; border-color: rgba(245,183,49,0.5) !important; outline: none; }
+        .group-tab:hover { color: #F0F2F8 !important; }
+        .match-card { transition: border-color 0.25s; }
+        .match-card:hover { border-color: rgba(245,183,49,0.25) !important; }
+        .save-all-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(245,183,49,0.5) !important; }
+        .save-all-btn:active { transform: scale(0.97); }
+        ::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 100, left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 999, padding: '13px 28px', borderRadius: 50,
+          background: toast.type === 'ok' ? '#00C46A' : '#FF4D6D',
+          color: '#fff', fontWeight: 700, fontSize: 14,
+          boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+          animation: 'toastIn 0.3s ease both', whiteSpace: 'nowrap'
+        }}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* BOTÓN FLOTANTE GUARDAR TODO */}
+      {pendingDrafts.length > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 90, right: 16, zIndex: 200,
+          animation: 'floatIn 0.3s ease both'
+        }}>
+          <button
+            className="save-all-btn"
+            onClick={saveAll}
+            disabled={saving}
+            style={{
+              padding: '14px 22px', borderRadius: 50, border: 'none', cursor: 'pointer',
+              background: 'linear-gradient(135deg, #F5B731, #C9930A)',
+              color: '#0A0D12', fontFamily: "'Outfit', sans-serif",
+              fontWeight: 800, fontSize: 15,
+              boxShadow: '0 8px 25px rgba(245,183,49,0.4)',
+              transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 8,
+              opacity: saving ? 0.8 : 1
+            }}
+          >
+            {saving ? (
+              <>
+                <div style={{
+                  width: 16, height: 16, borderRadius: '50%',
+                  border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#0A0D12',
+                  animation: 'spin 0.7s linear infinite'
+                }} />
+                Guardando...
+              </>
+            ) : (
+              <>
+                💾 Guardar {pendingDrafts.length} {pendingDrafts.length === 1 ? 'predicción' : 'predicciones'}
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* HEADER */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        background: 'rgba(10,13,18,0.95)', backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        padding: '14px 16px'
+      }}>
+        <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10,
+              background: 'rgba(255,255,255,0.06)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, cursor: 'pointer'
+            }}>←</div>
+          </Link>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 1,
+              background: 'linear-gradient(135deg, #F5B731, #00C46A)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1
+            }}>
+              {pool?.name || 'Quiniela'}
+            </div>
+            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+              Fase de Grupos · 48 partidos
+            </div>
+          </div>
+          {/* Mini progreso en header */}
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: pct === 100 ? '#00C46A' : '#F5B731', lineHeight: 1 }}>
+              {pct}%
+            </div>
+            <div style={{ fontSize: 10, color: '#6B7280' }}>{predictedCount}/{totalGroup}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '14px 14px 140px' }}>
+
+        {/* BARRA DE PROGRESO */}
+        <div style={{
+          background: '#111520', border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 16, padding: '14px 16px', marginBottom: 14,
+          animation: 'fadeUp 0.4s ease both'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Tu progreso</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                {predictedCount} de {totalGroup} partidos predichos
+              </div>
+            </div>
+            {pendingDrafts.length > 0 && (
+              <div style={{
+                fontSize: 11, color: '#F5B731', fontWeight: 600,
+                background: 'rgba(245,183,49,0.1)', padding: '4px 10px',
+                borderRadius: 20, display: 'flex', alignItems: 'center', gap: 4
+              }}>
+                ✏️ {pendingDrafts.length} sin guardar
+              </div>
+            )}
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 6, height: 7, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', borderRadius: 6,
+              width: `${Math.min(pct, 100)}%`,
+              background: pct === 100 ? 'linear-gradient(90deg, #00C46A, #00864A)' : 'linear-gradient(90deg, #F5B731, #00C46A)',
+              transition: 'width 0.8s ease'
+            }} />
+          </div>
+        </div>
+
+        {/* TABS GRUPOS A-L */}
+        <div style={{
+          display: 'flex', gap: 6, marginBottom: 14,
+          overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none'
+        }}>
+          {groupKeys.map(g => {
+            const groupMatches = groups[g] || []
+            const groupPredicted = groupMatches.filter(m => predictions[m.id]).length
+            const allPredicted = groupPredicted === groupMatches.length
+            return (
+              <button
+                key={g}
+                className="group-tab"
+                onClick={() => setActiveGroup(g)}
+                style={{
+                  padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                  whiteSpace: 'nowrap', fontFamily: "'Outfit', sans-serif",
+                  fontWeight: 700, fontSize: 13, flexShrink: 0,
+                  background: activeGroup === g
+                    ? 'linear-gradient(135deg, #F5B731, #C9930A)'
+                    : allPredicted
+                      ? 'rgba(0,196,106,0.12)'
+                      : 'rgba(255,255,255,0.05)',
+                  color: activeGroup === g ? '#0A0D12' : allPredicted ? '#00C46A' : '#6B7280',
+                  transition: 'all 0.2s',
+                  border: allPredicted && activeGroup !== g ? '1px solid rgba(0,196,106,0.2)' : '1px solid transparent'
+                }}
+              >
+                {allPredicted && activeGroup !== g ? '✓ ' : ''}Grupo {g}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* PARTIDOS DEL GRUPO ACTIVO */}
+        {(groups[activeGroup] || []).map((match, i) => {
+          const locked = isLocked(match.scheduled_at, match.status)
+          const pred = predictions[match.id]
+          const draft = drafts[match.id] || { home: '', away: '' }
+          const hasDraft = draft.home !== '' && draft.away !== ''
+          const isChanged = hasDraft && (
+            !pred ||
+            pred.predicted_home !== parseInt(draft.home) ||
+            pred.predicted_away !== parseInt(draft.away)
+          )
+
+          return (
+            <div
+              key={match.id}
+              className="match-card"
+              style={{
+                background: '#111520',
+                border: `1px solid ${pred && !isChanged ? 'rgba(0,196,106,0.3)' : isChanged ? 'rgba(245,183,49,0.3)' : 'rgba(255,255,255,0.07)'}`,
+                borderRadius: 16, marginBottom: 10, overflow: 'hidden',
+                animation: `fadeUp 0.35s ease ${i * 0.03}s both`,
+                opacity: locked && !pred ? 0.55 : 1
+              }}
+            >
+              {/* Fecha + ciudad */}
+              <div style={{
+                padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                background: locked ? 'rgba(255,255,255,0.015)' : 'transparent'
+              }}>
+                <div style={{ fontSize: 11, color: '#6B7280', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🕐 {formatDate(match.scheduled_at)}
+                  {match.city && (
+                    <span style={{ color: '#444E60' }}>· 📍 {match.city}</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {pred && !isChanged && (
+                    <div style={{
+                      fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                      background: 'rgba(0,196,106,0.15)', color: '#00C46A', fontWeight: 600
+                    }}>✓ Guardado</div>
+                  )}
+                  {isChanged && (
+                    <div style={{
+                      fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                      background: 'rgba(245,183,49,0.15)', color: '#F5B731', fontWeight: 600
+                    }}>✏️ Editado</div>
+                  )}
+                  {locked && (
+                    <div style={{
+                      fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                      background: 'rgba(107,114,128,0.15)', color: '#6B7280', fontWeight: 600
+                    }}>🔒</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Equipos + inputs */}
+              <div style={{ padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+
+                {/* Local */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <img
+                    src={match.home_flag}
+                    alt={match.home_team}
+                    style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                  />
+                  <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>
+                    {match.home_team}
+                  </div>
+                </div>
+
+                {/* Marcadores */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    type="number" min="0" max="20"
+                    className="score-input"
+                    disabled={locked}
+                    value={draft.home}
+                    onChange={e => setDrafts(prev => ({
+                      ...prev,
+                      [match.id]: { home: e.target.value, away: prev[match.id]?.away ?? '' }
+                    }))}
+                    placeholder="–"
+                    style={{
+                      width: 54, height: 54, borderRadius: 12,
+                      background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(245,183,49,0.08)',
+                      color: locked ? '#4B5563' : '#F5B731',
+                      fontFamily: "'Bebas Neue', sans-serif", fontSize: 32,
+                      textAlign: 'center', border: '1px solid',
+                      borderColor: locked ? 'rgba(255,255,255,0.05)' : isChanged ? 'rgba(245,183,49,0.4)' : 'rgba(245,183,49,0.15)',
+                      cursor: locked ? 'not-allowed' : 'text',
+                      transition: 'all 0.2s'
+                    }}
+                  />
+                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: '#374151' }}>-</div>
+                  <input
+                    type="number" min="0" max="20"
+                    className="score-input"
+                    disabled={locked}
+                    value={draft.away}
+                    onChange={e => setDrafts(prev => ({
+                      ...prev,
+                      [match.id]: { home: prev[match.id]?.home ?? '', away: e.target.value }
+                    }))}
+                    placeholder="–"
+                    style={{
+                      width: 54, height: 54, borderRadius: 12,
+                      background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(245,183,49,0.08)',
+                      color: locked ? '#4B5563' : '#F5B731',
+                      fontFamily: "'Bebas Neue', sans-serif", fontSize: 32,
+                      textAlign: 'center', border: '1px solid',
+                      borderColor: locked ? 'rgba(255,255,255,0.05)' : isChanged ? 'rgba(245,183,49,0.4)' : 'rgba(245,183,49,0.15)',
+                      cursor: locked ? 'not-allowed' : 'text',
+                      transition: 'all 0.2s'
+                    }}
+                  />
+                </div>
+
+                {/* Visitante */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <img
+                    src={match.away_flag}
+                    alt={match.away_team}
+                    style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                  />
+                  <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>
+                    {match.away_team}
+                  </div>
+                </div>
+              </div>
+
+              {/* Predicción guardada en partido bloqueado */}
+              {locked && pred && (
+                <div style={{
+                  padding: '8px 14px 12px',
+                  display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8
+                }}>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Tu predicción:</div>
+                  <div style={{
+                    fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: '#F5B731',
+                    background: 'rgba(245,183,49,0.1)', padding: '3px 14px', borderRadius: 8
+                  }}>
+                    {pred.predicted_home} - {pred.predicted_away}
+                  </div>
+                  {pred.points_earned > 0 && (
+                    <div style={{
+                      fontSize: 13, fontWeight: 700, color: '#00C46A',
+                      background: 'rgba(0,196,106,0.15)', padding: '3px 10px', borderRadius: 8
+                    }}>
+                      +{pred.points_earned} pts 🎯
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+      </div>
+
+      {/* BOTTOM NAV */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
+        background: 'rgba(10,13,18,0.95)', backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex', padding: '8px 0 20px'
+      }}>
+        {[
+          { icon: '🏠', label: 'Inicio', href: '/dashboard' },
+          { icon: '⭐', label: 'Quinielas', href: '/dashboard' },
+          { icon: '🎯', label: 'Predecir', href: '#' },
+          { icon: '🏆', label: 'Ranking', href: '/ranking' },
+          { icon: '👤', label: 'Perfil', href: '/perfil' },
+        ].map((item) => (
+          <Link key={item.label} href={item.href} style={{ flex: 1, textDecoration: 'none' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 6 }}>
+              <div style={{ fontSize: 22 }}>{item.icon}</div>
+              <div style={{ fontSize: 10, color: item.href === '#' ? '#F5B731' : '#6B7280' }}>{item.label}</div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}

@@ -548,14 +548,22 @@ export default function Dashboard() {
                   transition: 'background 0.2s'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                    <span style={{ fontSize: 22 }}>{pred.match?.home_flag || '🏳️'}</span>
+                    <img 
+                      src={pred.match?.home_flag} 
+                      alt=""
+                      style={{ width: 32, height: 22, objectFit: 'cover', borderRadius: 3 }}
+                    />
                     <div style={{
                       fontFamily: "'Bebas Neue', sans-serif", fontSize: 20,
                       padding: '3px 10px', background: '#181E2C', borderRadius: 8
                     }}>
                       {pred.predicted_home} - {pred.predicted_away}
                     </div>
-                    <span style={{ fontSize: 22 }}>{pred.match?.away_flag || '🏳️'}</span>
+                    <img 
+                      src={pred.match?.away_flag} 
+                      alt=""
+                      style={{ width: 32, height: 22, objectFit: 'cover', borderRadius: 3 }}
+                    />
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{

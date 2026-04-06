@@ -241,6 +241,8 @@ export default function Dashboard() {
         <JoinPoolModal
           pool={modalPool}
           userId={user.id}
+          userEmail={user.email}
+          userName={user.name}
           onClose={() => setModalPool(null)}
           onSuccess={handleModalSuccess}
         />

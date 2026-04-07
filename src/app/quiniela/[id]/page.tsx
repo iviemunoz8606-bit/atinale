@@ -55,6 +55,179 @@ function isLocked(scheduledAt: string, status: string) {
   return new Date(scheduledAt).getTime() <= Date.now()
 }
 
+// ─── PANTALLA DE BLOQUEO ─────────────────────────────────────────────────────
+function PaywallScreen({ pool, onPay, paying }: {
+  pool: Pool | null
+  onPay: () => void
+  paying: boolean
+}) {
+  return (
+    <div style={{
+      minHeight: '100vh', background: '#0A0D12',
+      fontFamily: "'Outfit', 'Helvetica Neue', sans-serif",
+      display: 'flex', flexDirection: 'column'
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.6 } }
+        .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(245,183,49,0.5) !important; }
+        .pay-btn:active { transform: scale(0.97); }
+        .back-btn:hover { background: rgba(255,255,255,0.08) !important; }
+      `}</style>
+
+      {/* Header mínimo */}
+      <div style={{
+        padding: '16px 20px',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex', alignItems: 'center', gap: 12
+      }}>
+        <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+          <div className="back-btn" style={{
+            width: 38, height: 38, borderRadius: 10,
+            background: 'rgba(255,255,255,0.06)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, cursor: 'pointer', color: '#fff',
+            transition: 'background 0.2s'
+          }}>←</div>
+        </Link>
+        <div style={{
+          fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 1,
+          background: 'linear-gradient(135deg, #F5B731, #00C46A)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+        }}>
+          {pool?.name || 'Quiniela'}
+        </div>
+      </div>
+
+      {/* Contenido central */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '32px 24px', gap: 0,
+        animation: 'fadeUp 0.5s ease both'
+      }}>
+
+        {/* Ícono candado */}
+        <div style={{
+          width: 80, height: 80, borderRadius: '50%',
+          background: 'rgba(245,183,49,0.08)',
+          border: '1.5px solid rgba(245,183,49,0.25)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 24, fontSize: 34
+        }}>
+          🔒
+        </div>
+
+        {/* Título */}
+        <div style={{
+          fontFamily: "'Bebas Neue', sans-serif",
+          fontSize: 28, letterSpacing: 1, color: '#fff',
+          textAlign: 'center', marginBottom: 10
+        }}>
+          Esta quiniela requiere pago
+        </div>
+
+        {/* Subtítulo */}
+        <div style={{
+          fontSize: 14, color: '#6B7280', textAlign: 'center',
+          lineHeight: 1.6, maxWidth: 280, marginBottom: 28
+        }}>
+          Únete para hacer tus predicciones y competir por el premio
+        </div>
+
+        {/* Card info del pozo */}
+        <div style={{
+          background: '#111520', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16, padding: '20px 28px', marginBottom: 28,
+          width: '100%', maxWidth: 340, textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Pozo acumulado</div>
+          <div style={{
+            fontFamily: "'Bebas Neue', sans-serif", fontSize: 36,
+            color: '#F5B731', letterSpacing: 1, lineHeight: 1
+          }}>
+            ${((pool?.total_pot || 0) * 0.9).toLocaleString('es-MX')}
+          </div>
+          <div style={{ fontSize: 11, color: '#444E60', marginTop: 4 }}>
+            Premio neto (90% del pozo total)
+          </div>
+
+          <div style={{
+            marginTop: 16, paddingTop: 16,
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex', justifyContent: 'space-between', gap: 16
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
+                {pool?.current_participants || 0}
+              </div>
+              <div style={{ fontSize: 11, color: '#6B7280' }}>Participantes</div>
+            </div>
+            <div style={{ width: '1px', background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#00C46A' }}>
+                ${(pool?.entry_fee || 0).toLocaleString('es-MX')}
+              </div>
+              <div style={{ fontSize: 11, color: '#6B7280' }}>Costo de entrada</div>
+            </div>
+            <div style={{ width: '1px', background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>10%</div>
+              <div style={{ fontSize: 11, color: '#6B7280' }}>Comisión</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Botón pagar */}
+        <button
+          className="pay-btn"
+          onClick={onPay}
+          disabled={paying}
+          style={{
+            width: '100%', maxWidth: 340,
+            padding: '18px 24px', borderRadius: 14, border: 'none',
+            background: paying ? 'rgba(245,183,49,0.4)' : 'linear-gradient(135deg, #F5B731, #C9930A)',
+            color: '#0A0D12', fontFamily: "'Outfit', sans-serif",
+            fontWeight: 800, fontSize: 17, cursor: paying ? 'not-allowed' : 'pointer',
+            boxShadow: '0 8px 28px rgba(245,183,49,0.35)',
+            transition: 'all 0.25s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10
+          }}
+        >
+          {paying ? (
+            <>
+              <div style={{
+                width: 18, height: 18, borderRadius: '50%',
+                border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#0A0D12',
+                animation: 'spin 0.7s linear infinite'
+              }} />
+              Abriendo pago...
+            </>
+          ) : (
+            <>
+              💳 Pagar ${(pool?.entry_fee || 0).toLocaleString('es-MX')} con Mercado Pago
+            </>
+          )}
+        </button>
+
+        {/* Nota transparencia */}
+        <div style={{
+          marginTop: 16, fontSize: 11, color: '#444E60',
+          textAlign: 'center', lineHeight: 1.6
+        }}>
+          El pago se procesa de forma segura con Mercado Pago.<br />
+          La comisión del 10% siempre es visible para todos.
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
+// ─── PÁGINA PRINCIPAL ────────────────────────────────────────────────────────
 export default function QuinielaPredictions() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,6 +246,8 @@ export default function QuinielaPredictions() {
   const [activeGroup, setActiveGroup] = useState<string>('A')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null) // null = cargando
+  const [paying, setPaying] = useState(false)
 
   useEffect(() => { loadData() }, [poolId])
 
@@ -81,11 +256,29 @@ export default function QuinielaPredictions() {
     if (!session) { router.push('/'); return }
     setUserId(session.user.id)
 
+    // Cargar pool
     const { data: poolData } = await supabase
       .from('pools').select('*').eq('id', poolId).single()
     setPool(poolData)
 
-    // Solo partidos de grupos
+    // ── VERIFICAR PAGO ──────────────────────────────────────────────────────
+    const { data: memberData } = await supabase
+      .from('pool_members')
+      .select('payment_status')
+      .eq('pool_id', poolId)
+      .eq('user_id', session.user.id)
+      .single()
+
+    const status = memberData?.payment_status ?? 'none'
+    setPaymentStatus(status)
+
+    // Si no está aprobado, no necesitamos cargar partidos aún
+    if (status !== 'approved') {
+      setLoading(false)
+      return
+    }
+
+    // Cargar partidos solo si el pago está aprobado
     const { data: matchData } = await supabase
       .from('matches')
       .select('*')
@@ -111,12 +304,46 @@ export default function QuinielaPredictions() {
     setLoading(false)
   }
 
+  // ── INICIAR PAGO CON MERCADO PAGO ─────────────────────────────────────────
+  async function handlePay() {
+    if (!pool || !userId) return
+    setPaying(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const res = await fetch('/api/mp/crear-preferencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pool_id: poolId,
+          user_id: userId,
+          pool_name: pool.name,
+          entry_fee: pool.entry_fee,
+          user_email: session?.user?.email || ''
+        })
+      })
+
+      const data = await res.json()
+
+      if (data.init_point) {
+        // Redirigir a Mercado Pago
+        window.location.href = data.init_point
+      } else {
+        throw new Error('No se obtuvo init_point')
+      }
+    } catch (err) {
+      console.error('Error al crear preferencia:', err)
+      showToast('❌ Error al iniciar el pago. Intenta de nuevo.', 'err')
+      setPaying(false)
+    }
+  }
+
   function showToast(msg: string, type: 'ok' | 'err') {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 2800)
   }
 
-  // Detectar cuántas predicciones hay pendientes de guardar
   const pendingDrafts = Object.entries(drafts).filter(([matchId, draft]) => {
     if (draft.home === '' || draft.away === '') return false
     const existing = predictions[matchId]
@@ -128,7 +355,6 @@ export default function QuinielaPredictions() {
   async function saveAll() {
     if (pendingDrafts.length === 0) return
     setSaving(true)
-
     let errorCount = 0
 
     for (const [matchId, draft] of pendingDrafts) {
@@ -137,25 +363,18 @@ export default function QuinielaPredictions() {
       if (isNaN(home) || isNaN(away) || home < 0 || away < 0) continue
 
       const existing = predictions[matchId]
-
       if (existing?.id) {
-        // Actualizar la existente
         const { error } = await supabase
           .from('predictions')
           .update({ predicted_home: home, predicted_away: away })
           .eq('id', existing.id)
         if (error) errorCount++
       } else {
-        // Insertar nueva
         const { error } = await supabase
           .from('predictions')
           .insert({
-            pool_id: poolId,
-            match_id: matchId,
-            user_id: userId,
-            predicted_home: home,
-            predicted_away: away,
-            points_earned: 0
+            pool_id: poolId, match_id: matchId, user_id: userId,
+            predicted_home: home, predicted_away: away, points_earned: 0
           })
         if (error) errorCount++
       }
@@ -167,12 +386,9 @@ export default function QuinielaPredictions() {
       showToast(`❌ ${errorCount} predicciones no se guardaron`, 'err')
     } else {
       showToast(`✅ ${pendingDrafts.length} predicciones guardadas`, 'ok')
-      // Recargar predicciones desde BD
       const { data: predData } = await supabase
-        .from('predictions')
-        .select('*')
-        .eq('pool_id', poolId)
-        .eq('user_id', userId)
+        .from('predictions').select('*')
+        .eq('pool_id', poolId).eq('user_id', userId)
 
       const predMap: Record<string, Prediction> = {}
       const draftMap: Record<string, { home: string; away: string }> = {}
@@ -185,7 +401,6 @@ export default function QuinielaPredictions() {
     }
   }
 
-  // Agrupar por grupo A-L
   const groups: Record<string, Match[]> = {}
   for (const m of matches) {
     const g = m.group_name || 'A'
@@ -193,11 +408,11 @@ export default function QuinielaPredictions() {
     groups[g].push(m)
   }
   const groupKeys = Object.keys(groups).sort()
-
   const totalGroup = matches.filter(m => !isLocked(m.scheduled_at, m.status)).length
   const predictedCount = Object.keys(predictions).length
   const pct = totalGroup > 0 ? Math.round((predictedCount / totalGroup) * 100) : 0
 
+  // ── ESTADOS DE CARGA ──────────────────────────────────────────────────────
   if (loading) return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center',
@@ -208,11 +423,34 @@ export default function QuinielaPredictions() {
         border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731',
         animation: 'spin 0.8s linear infinite'
       }} />
-      <p style={{ color: '#6B7280', fontSize: 14, fontFamily: 'sans-serif' }}>Cargando partidos...</p>
+      <p style={{ color: '#6B7280', fontSize: 14, fontFamily: 'sans-serif' }}>Verificando acceso...</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 
+  // ── GUARD: SIN PAGO APROBADO ──────────────────────────────────────────────
+  if (paymentStatus !== 'approved') {
+    return (
+      <>
+        {toast && (
+          <div style={{
+            position: 'fixed', bottom: 32, left: '50%',
+            transform: 'translateX(-50%)', zIndex: 999,
+            padding: '13px 28px', borderRadius: 50,
+            background: '#FF4D6D', color: '#fff',
+            fontWeight: 700, fontSize: 14,
+            boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+            whiteSpace: 'nowrap'
+          }}>
+            {toast.msg}
+          </div>
+        )}
+        <PaywallScreen pool={pool} onPay={handlePay} paying={paying} />
+      </>
+    )
+  }
+
+  // ── PÁGINA NORMAL DE PREDICCIONES (solo si pago aprobado) ─────────────────
   return (
     <div style={{
       background: '#0A0D12', minHeight: '100vh',
@@ -237,12 +475,11 @@ export default function QuinielaPredictions() {
         ::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* TOAST */}
       {toast && (
         <div style={{
           position: 'fixed', bottom: 100, left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 999, padding: '13px 28px', borderRadius: 50,
+          transform: 'translateX(-50%)', zIndex: 999,
+          padding: '13px 28px', borderRadius: 50,
           background: toast.type === 'ok' ? '#00C46A' : '#FF4D6D',
           color: '#fff', fontWeight: 700, fontSize: 14,
           boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
@@ -252,12 +489,8 @@ export default function QuinielaPredictions() {
         </div>
       )}
 
-      {/* BOTÓN FLOTANTE GUARDAR TODO */}
       {pendingDrafts.length > 0 && (
-        <div style={{
-          position: 'fixed', bottom: 90, right: 16, zIndex: 200,
-          animation: 'floatIn 0.3s ease both'
-        }}>
+        <div style={{ position: 'fixed', bottom: 90, right: 16, zIndex: 200, animation: 'floatIn 0.3s ease both' }}>
           <button
             className="save-all-btn"
             onClick={saveAll}
@@ -273,29 +506,18 @@ export default function QuinielaPredictions() {
             }}
           >
             {saving ? (
-              <>
-                <div style={{
-                  width: 16, height: 16, borderRadius: '50%',
-                  border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#0A0D12',
-                  animation: 'spin 0.7s linear infinite'
-                }} />
-                Guardando...
-              </>
+              <><div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#0A0D12', animation: 'spin 0.7s linear infinite' }} />Guardando...</>
             ) : (
-              <>
-                💾 Guardar {pendingDrafts.length} {pendingDrafts.length === 1 ? 'predicción' : 'predicciones'}
-              </>
+              <>💾 Guardar {pendingDrafts.length} {pendingDrafts.length === 1 ? 'predicción' : 'predicciones'}</>
             )}
           </button>
         </div>
       )}
 
-      {/* HEADER */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 100,
         background: 'rgba(10,13,18,0.95)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-        padding: '14px 16px'
+        borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 16px'
       }}>
         <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link href="/dashboard" style={{ textDecoration: 'none' }}>
@@ -314,15 +536,10 @@ export default function QuinielaPredictions() {
             }}>
               {pool?.name || 'Quiniela'}
             </div>
-            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
-              Fase de Grupos · 48 partidos
-            </div>
+            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>Fase de Grupos · 48 partidos</div>
           </div>
-          {/* Mini progreso en header */}
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: pct === 100 ? '#00C46A' : '#F5B731', lineHeight: 1 }}>
-              {pct}%
-            </div>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: pct === 100 ? '#00C46A' : '#F5B731', lineHeight: 1 }}>{pct}%</div>
             <div style={{ fontSize: 10, color: '#6B7280' }}>{predictedCount}/{totalGroup}</div>
           </div>
         </div>
@@ -330,7 +547,6 @@ export default function QuinielaPredictions() {
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '14px 14px 140px' }}>
 
-        {/* BARRA DE PROGRESO */}
         <div style={{
           background: '#111520', border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 16, padding: '14px 16px', marginBottom: 14,
@@ -339,53 +555,36 @@ export default function QuinielaPredictions() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 14 }}>Tu progreso</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-                {predictedCount} de {totalGroup} partidos predichos
-              </div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{predictedCount} de {totalGroup} partidos predichos</div>
             </div>
             {pendingDrafts.length > 0 && (
-              <div style={{
-                fontSize: 11, color: '#F5B731', fontWeight: 600,
-                background: 'rgba(245,183,49,0.1)', padding: '4px 10px',
-                borderRadius: 20, display: 'flex', alignItems: 'center', gap: 4
-              }}>
+              <div style={{ fontSize: 11, color: '#F5B731', fontWeight: 600, background: 'rgba(245,183,49,0.1)', padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 4 }}>
                 ✏️ {pendingDrafts.length} sin guardar
               </div>
             )}
           </div>
           <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 6, height: 7, overflow: 'hidden' }}>
             <div style={{
-              height: '100%', borderRadius: 6,
-              width: `${Math.min(pct, 100)}%`,
+              height: '100%', borderRadius: 6, width: `${Math.min(pct, 100)}%`,
               background: pct === 100 ? 'linear-gradient(90deg, #00C46A, #00864A)' : 'linear-gradient(90deg, #F5B731, #00C46A)',
               transition: 'width 0.8s ease'
             }} />
           </div>
         </div>
 
-        {/* TABS GRUPOS A-L */}
-        <div style={{
-          display: 'flex', gap: 6, marginBottom: 14,
-          overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none'
-        }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
           {groupKeys.map(g => {
             const groupMatches = groups[g] || []
             const groupPredicted = groupMatches.filter(m => predictions[m.id]).length
             const allPredicted = groupPredicted === groupMatches.length
             return (
               <button
-                key={g}
-                className="group-tab"
-                onClick={() => setActiveGroup(g)}
+                key={g} className="group-tab" onClick={() => setActiveGroup(g)}
                 style={{
                   padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
                   whiteSpace: 'nowrap', fontFamily: "'Outfit', sans-serif",
                   fontWeight: 700, fontSize: 13, flexShrink: 0,
-                  background: activeGroup === g
-                    ? 'linear-gradient(135deg, #F5B731, #C9930A)'
-                    : allPredicted
-                      ? 'rgba(0,196,106,0.12)'
-                      : 'rgba(255,255,255,0.05)',
+                  background: activeGroup === g ? 'linear-gradient(135deg, #F5B731, #C9930A)' : allPredicted ? 'rgba(0,196,106,0.12)' : 'rgba(255,255,255,0.05)',
                   color: activeGroup === g ? '#0A0D12' : allPredicted ? '#00C46A' : '#6B7280',
                   transition: 'all 0.2s',
                   border: allPredicted && activeGroup !== g ? '1px solid rgba(0,196,106,0.2)' : '1px solid transparent'
@@ -397,31 +596,21 @@ export default function QuinielaPredictions() {
           })}
         </div>
 
-        {/* PARTIDOS DEL GRUPO ACTIVO */}
         {(groups[activeGroup] || []).map((match, i) => {
           const locked = isLocked(match.scheduled_at, match.status)
           const pred = predictions[match.id]
           const draft = drafts[match.id] || { home: '', away: '' }
           const hasDraft = draft.home !== '' && draft.away !== ''
-          const isChanged = hasDraft && (
-            !pred ||
-            pred.predicted_home !== parseInt(draft.home) ||
-            pred.predicted_away !== parseInt(draft.away)
-          )
+          const isChanged = hasDraft && (!pred || pred.predicted_home !== parseInt(draft.home) || pred.predicted_away !== parseInt(draft.away))
 
           return (
-            <div
-              key={match.id}
-              className="match-card"
-              style={{
-                background: '#111520',
-                border: `1px solid ${pred && !isChanged ? 'rgba(0,196,106,0.3)' : isChanged ? 'rgba(245,183,49,0.3)' : 'rgba(255,255,255,0.07)'}`,
-                borderRadius: 16, marginBottom: 10, overflow: 'hidden',
-                animation: `fadeUp 0.35s ease ${i * 0.03}s both`,
-                opacity: locked && !pred ? 0.55 : 1
-              }}
-            >
-              {/* Fecha + ciudad */}
+            <div key={match.id} className="match-card" style={{
+              background: '#111520',
+              border: `1px solid ${pred && !isChanged ? 'rgba(0,196,106,0.3)' : isChanged ? 'rgba(245,183,49,0.3)' : 'rgba(255,255,255,0.07)'}`,
+              borderRadius: 16, marginBottom: 10, overflow: 'hidden',
+              animation: `fadeUp 0.35s ease ${i * 0.03}s both`,
+              opacity: locked && !pred ? 0.55 : 1
+            }}>
               <div style={{
                 padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
@@ -429,125 +618,51 @@ export default function QuinielaPredictions() {
               }}>
                 <div style={{ fontSize: 11, color: '#6B7280', display: 'flex', alignItems: 'center', gap: 6 }}>
                   🕐 {formatDate(match.scheduled_at)}
-                  {match.city && (
-                    <span style={{ color: '#444E60' }}>· 📍 {match.city}</span>
-                  )}
+                  {match.city && <span style={{ color: '#444E60' }}>· 📍 {match.city}</span>}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {pred && !isChanged && (
-                    <div style={{
-                      fontSize: 10, padding: '2px 8px', borderRadius: 20,
-                      background: 'rgba(0,196,106,0.15)', color: '#00C46A', fontWeight: 600
-                    }}>✓ Guardado</div>
-                  )}
-                  {isChanged && (
-                    <div style={{
-                      fontSize: 10, padding: '2px 8px', borderRadius: 20,
-                      background: 'rgba(245,183,49,0.15)', color: '#F5B731', fontWeight: 600
-                    }}>✏️ Editado</div>
-                  )}
-                  {locked && (
-                    <div style={{
-                      fontSize: 10, padding: '2px 8px', borderRadius: 20,
-                      background: 'rgba(107,114,128,0.15)', color: '#6B7280', fontWeight: 600
-                    }}>🔒</div>
-                  )}
+                  {pred && !isChanged && <div style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: 'rgba(0,196,106,0.15)', color: '#00C46A', fontWeight: 600 }}>✓ Guardado</div>}
+                  {isChanged && <div style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: 'rgba(245,183,49,0.15)', color: '#F5B731', fontWeight: 600 }}>✏️ Editado</div>}
+                  {locked && <div style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: 'rgba(107,114,128,0.15)', color: '#6B7280', fontWeight: 600 }}>🔒</div>}
                 </div>
               </div>
 
-              {/* Equipos + inputs */}
               <div style={{ padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-
-                {/* Local */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <img
-                    src={match.home_flag}
-                    alt={match.home_team}
-                    style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-                  />
-                  <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>
-                    {match.home_team}
-                  </div>
+                  <img src={match.home_flag} alt={match.home_team} style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
+                  <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>{match.home_team}</div>
                 </div>
 
-                {/* Marcadores */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input
-                    type="number" min="0" max="20"
-                    className="score-input"
-                    disabled={locked}
+                  <input type="number" min="0" max="20" className="score-input" disabled={locked}
                     value={draft.home}
-                    onChange={e => setDrafts(prev => ({
-                      ...prev,
-                      [match.id]: { home: e.target.value, away: prev[match.id]?.away ?? '' }
-                    }))}
+                    onChange={e => setDrafts(prev => ({ ...prev, [match.id]: { home: e.target.value, away: prev[match.id]?.away ?? '' } }))}
                     placeholder="–"
-                    style={{
-                      width: 54, height: 54, borderRadius: 12,
-                      background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(245,183,49,0.08)',
-                      color: locked ? '#4B5563' : '#F5B731',
-                      fontFamily: "'Bebas Neue', sans-serif", fontSize: 32,
-                      textAlign: 'center', border: '1px solid',
-                      borderColor: locked ? 'rgba(255,255,255,0.05)' : isChanged ? 'rgba(245,183,49,0.4)' : 'rgba(245,183,49,0.15)',
-                      cursor: locked ? 'not-allowed' : 'text',
-                      transition: 'all 0.2s'
-                    }}
+                    style={{ width: 54, height: 54, borderRadius: 12, background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(245,183,49,0.08)', color: locked ? '#4B5563' : '#F5B731', fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, textAlign: 'center', border: '1px solid', borderColor: locked ? 'rgba(255,255,255,0.05)' : isChanged ? 'rgba(245,183,49,0.4)' : 'rgba(245,183,49,0.15)', cursor: locked ? 'not-allowed' : 'text', transition: 'all 0.2s' }}
                   />
                   <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: '#374151' }}>-</div>
-                  <input
-                    type="number" min="0" max="20"
-                    className="score-input"
-                    disabled={locked}
+                  <input type="number" min="0" max="20" className="score-input" disabled={locked}
                     value={draft.away}
-                    onChange={e => setDrafts(prev => ({
-                      ...prev,
-                      [match.id]: { home: prev[match.id]?.home ?? '', away: e.target.value }
-                    }))}
+                    onChange={e => setDrafts(prev => ({ ...prev, [match.id]: { home: prev[match.id]?.home ?? '', away: e.target.value } }))}
                     placeholder="–"
-                    style={{
-                      width: 54, height: 54, borderRadius: 12,
-                      background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(245,183,49,0.08)',
-                      color: locked ? '#4B5563' : '#F5B731',
-                      fontFamily: "'Bebas Neue', sans-serif", fontSize: 32,
-                      textAlign: 'center', border: '1px solid',
-                      borderColor: locked ? 'rgba(255,255,255,0.05)' : isChanged ? 'rgba(245,183,49,0.4)' : 'rgba(245,183,49,0.15)',
-                      cursor: locked ? 'not-allowed' : 'text',
-                      transition: 'all 0.2s'
-                    }}
+                    style={{ width: 54, height: 54, borderRadius: 12, background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(245,183,49,0.08)', color: locked ? '#4B5563' : '#F5B731', fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, textAlign: 'center', border: '1px solid', borderColor: locked ? 'rgba(255,255,255,0.05)' : isChanged ? 'rgba(245,183,49,0.4)' : 'rgba(245,183,49,0.15)', cursor: locked ? 'not-allowed' : 'text', transition: 'all 0.2s' }}
                   />
                 </div>
 
-                {/* Visitante */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <img
-                    src={match.away_flag}
-                    alt={match.away_team}
-                    style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-                  />
-                  <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>
-                    {match.away_team}
-                  </div>
+                  <img src={match.away_flag} alt={match.away_team} style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
+                  <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>{match.away_team}</div>
                 </div>
               </div>
 
-              {/* Predicción guardada en partido bloqueado */}
               {locked && pred && (
-                <div style={{
-                  padding: '8px 14px 12px',
-                  display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8
-                }}>
+                <div style={{ padding: '8px 14px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
                   <div style={{ fontSize: 11, color: '#6B7280' }}>Tu predicción:</div>
-                  <div style={{
-                    fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: '#F5B731',
-                    background: 'rgba(245,183,49,0.1)', padding: '3px 14px', borderRadius: 8
-                  }}>
+                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: '#F5B731', background: 'rgba(245,183,49,0.1)', padding: '3px 14px', borderRadius: 8 }}>
                     {pred.predicted_home} - {pred.predicted_away}
                   </div>
                   {pred.points_earned > 0 && (
-                    <div style={{
-                      fontSize: 13, fontWeight: 700, color: '#00C46A',
-                      background: 'rgba(0,196,106,0.15)', padding: '3px 10px', borderRadius: 8
-                    }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#00C46A', background: 'rgba(0,196,106,0.15)', padding: '3px 10px', borderRadius: 8 }}>
                       +{pred.points_earned} pts 🎯
                     </div>
                   )}
@@ -556,10 +671,8 @@ export default function QuinielaPredictions() {
             </div>
           )
         })}
-
       </div>
 
-      {/* BOTTOM NAV */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
         background: 'rgba(10,13,18,0.95)', backdropFilter: 'blur(20px)',

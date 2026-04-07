@@ -152,7 +152,7 @@ export default function Dashboard() {
         loadLeaderboard(poolsData[0].id)
       }
     } catch (error) {
-      console.error('Error cargando dashboard:', error)
+      console.error('Error cargando :', error)
     } finally {
       setLoading(false)
     }
@@ -208,7 +208,7 @@ export default function Dashboard() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A0D12', flexDirection: 'column', gap: 16 }}>
         <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731', animation: 'spin 0.8s linear infinite' }} />
-        <p style={{ color: '#6B7280', fontSize: 14 }}>Cargando tu dashboard...</p>
+        <p style={{ color: '#6B7280', fontSize: 14 }}>Cargando...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )

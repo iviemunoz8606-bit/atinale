@@ -1,366 +1,182 @@
-# 📋 BITÁCORA — ATÍNALE
-### Plataforma de Quinielas Deportivas · FIFA 2026
+# ATÍNALE — BITACORA DEL PROYECTO
+
+Registro acumulado de sesiones — Actualizado el 7 de abril de 2026
 
 ---
 
-## 🎯 DATOS DEL PROYECTO
+## DATOS DEL PROYECTO
 
-| Campo | Detalle |
-|-------|---------|
-| **Nombre** | Atínale |
-| **Descripción** | Plataforma web de quinielas deportivas multideporte |
-| **URL producción** | https://atinale-ecru.vercel.app |
-| **GitHub** | https://github.com/iviemunoz8606-bit/atinale |
-| **Stack** | Next.js 16.2 + Supabase + Vercel + Mercado Pago (pendiente) |
-| **Sistema operativo** | Windows 11 |
-| **Editor** | VS Code con terminal CMD |
-| **Comando arranque** | `npm run dev` |
-| **Dueño del producto** | Ivie Muñoz |
+| Proyecto | Atínale — Quinielas Deportivas |
+|----------|-------------------------------|
+| URL Producción | https://atinale-ecru.vercel.app |
+| GitHub | github.com/iviemunoz8606-bit/atinale |
+| Supabase ID | pqrcwbevquhpsymmpryi |
+| Stack | Next.js 14 + Supabase + Vercel + Mercado Pago |
+| Lanzamiento | 11 de junio de 2026 — México vs Sudáfrica |
 
 ---
 
-## 🏗️ ARQUITECTURA
+## HISTORIAL DE SESIONES
 
-### Stack tecnológico
-- **Frontend:** Next.js 16.2 con Turbopack, TypeScript, React
-- **Base de datos:** Supabase (PostgreSQL)
-- **Autenticación:** Google OAuth via Supabase Auth
-- **Hosting:** Vercel (deploy automático con cada git push)
-- **Pagos:** Mercado Pago (pendiente de integrar)
-- **Fuentes:** Bebas Neue, Outfit (Google Fonts)
-- **Animaciones:** Framer Motion
+### Sesiones 1-2 — Infraestructura base
+- ✅ Schema completo Supabase: 7 tablas con RLS y funciones
+- ✅ 104 partidos FIFA 2026 cargados con banderas y venues
+- ✅ Google OAuth: landing → /auth/callback → /dashboard
+- ✅ Landing page inicial con animaciones y diana
 
-### Estructura de archivos
-```
-src/
-  app/
-    auth/callback/    → route.ts (maneja OAuth de Google)
-    dashboard/        → page.tsx (dashboard del participante)
-    registro/         → page.tsx (formulario de perfil)
-    page.tsx          → Landing page
-  lib/
-    supabase.ts       → Cliente de Supabase
-.env.local            → Variables de entorno
-```
+### Sesión 3-4 — Dashboard y registro
+- ✅ Dashboard con stats, quinielas disponibles, leaderboard
+- ✅ Página /registro con nombre, teléfono, código referido
+- ✅ Primera quiniela real insertada en Supabase
+- ✅ Bottom navigation
 
----
+### Sesión 5 — Predicciones
+- ✅ /quiniela/[id] — 48 partidos Fase de Grupos
+- ✅ Partidos agrupados por Grupo A-L con tabs
+- ✅ Banderas reales con flagcdn.com
+- ✅ Bloqueo automático al iniciar partido
+- ✅ Botón flotante guardar en lote
+- ✅ Tabs verdes cuando grupo completo
+- ✅ Constraint UNIQUE en tabla predictions
 
-## 🗄️ BASE DE DATOS (Supabase)
+### Sesión 6 — Pagos manuales y admin
+- ✅ Bucket "comprobantes" en Supabase Storage (privado)
+- ✅ JoinPoolModal.tsx — modal de unión con subida de comprobante
+- ✅ Panel admin /admin — comprobantes + resultados + stats
+- ✅ Fix total_pot en dashboard
+- ✅ is_admin activado para ivie.munoz8606@alumnos.udg.mx
+- ✅ Funciones SQL: increment_participants y add_points_to_member
 
-### Tablas y columnas completas
+### Sesión 7 — Mercado Pago
+- ✅ mercadopago SDK instalado
+- ✅ 4 variables de entorno en Vercel y .env.local
+- ✅ API /api/mp/crear-preferencia
+- ✅ API /api/mp/webhook — activa membresías automáticamente
+- ✅ Páginas /pago/exitoso, /pago/fallido, /pago/pendiente
+- ✅ Modal reemplazado: redirige a Checkout Pro
+- ✅ Webhook registrado en panel MP (prueba y producción)
+- ✅ Pago de prueba completado exitosamente
 
-#### `users`
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | uuid | PK, vinculado a auth |
-| name | text | Nombre del usuario |
-| email | text | Email |
-| phone | text | Teléfono (opcional) |
-| avatar_url | text | Foto de Google |
-| referral_code | text | Código único auto-generado |
-| referred_by | uuid | FK → users |
-| total_points | integer | Puntos acumulados históricos |
-| total_quinelas | integer | Quinielas en las que ha participado |
-| is_admin | boolean | Si es administrador |
-| created_at | timestamptz | Fecha de registro |
-
-#### `pools` (quinielas)
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | uuid | PK |
-| name | text | Nombre de la quiniela |
-| description | text | Descripción |
-| type | text | 'public', 'private', 'referral' |
-| competition | text | 'FIFA_2026', 'UEFA_CL', 'LIGA_MX' |
-| entry_fee | integer | Costo de entrada en pesos |
-| max_participants | integer | Límite de participantes |
-| current_participants | integer | Participantes actuales |
-| total_pot | integer | Pozo total acumulado |
-| net_prize | integer | Premio neto (pozo - comisión) |
-| platform_commission | integer | Comisión de la plataforma |
-| creator_id | uuid | FK → users |
-| creator_commission_pct | integer | % de comisión del creador (salas privadas) |
-| access_code | text | Código para salas privadas |
-| status | text | 'upcoming', 'open', 'closed', 'finished' |
-| registration_closes_at | timestamptz | Fecha límite de registro |
-| starts_at | timestamptz | Inicio de la quiniela |
-| ends_at | timestamptz | Fin de la quiniela |
-| winner_id | uuid | FK → users (ganador) |
-| created_at | timestamptz | Fecha de creación |
-
-#### `matches` (partidos)
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | uuid | PK |
-| competition | text | Competencia (default: FIFA_2026) |
-| round | text | Fase del torneo |
-| group_name | text | Grupo (A-L) |
-| home_team | text | Equipo local |
-| away_team | text | Equipo visitante |
-| home_flag | text | Emoji bandera local |
-| away_flag | text | Emoji bandera visitante |
-| venue | text | Estadio |
-| city | text | Ciudad sede |
-| scheduled_at | timestamptz | Fecha y hora del partido |
-| status | text | 'scheduled', 'live', 'finished' |
-| home_score | integer | Goles local (null hasta que termine) |
-| away_score | integer | Goles visitante |
-| match_number | integer | Número de partido (1-104) |
-| created_at | timestamptz | Fecha de creación |
-
-#### `predictions` (predicciones)
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | uuid | PK |
-| pool_id | uuid | FK → pools |
-| match_id | uuid | FK → matches |
-| user_id | uuid | FK → users |
-| predicted_home | integer | Goles predichos local |
-| predicted_away | integer | Goles predichos visitante |
-| points_earned | integer | Puntos ganados (0, 1 o 3) |
-| created_at | timestamptz | Fecha de predicción |
-
-#### `pool_members` (participantes por quiniela)
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | uuid | PK |
-| pool_id | uuid | FK → pools |
-| user_id | uuid | FK → users |
-| payment_status | text | 'pending', 'approved', 'rejected' |
-| payment_proof_url | text | URL del comprobante de pago |
-| points | integer | Puntos en esta quiniela |
-| rank | integer | Posición en esta quiniela |
-| joined_at | timestamptz | Fecha de ingreso |
-
-#### `payments` (pagos/comprobantes)
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | uuid | PK |
-| pool_id | uuid | FK → pools |
-| user_id | uuid | FK → users |
-| amount | integer | Monto pagado |
-| proof_url | text | URL del comprobante |
-| status | text | 'pending', 'approved', 'rejected' |
-| reviewed_by | uuid | Admin que revisó |
-| reviewed_at | timestamptz | Fecha de revisión |
-| notes | text | Notas del admin |
-| created_at | timestamptz | Fecha del pago |
-
-#### `referrals` (referidos)
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | uuid | PK |
-| referrer_id | uuid | FK → users (quien refirió) |
-| referred_id | uuid | FK → users (quien llegó) |
-| pool_id | uuid | FK → pools |
-| bonus_points | integer | Puntos de bonus (default: 5) |
-| commission_pct | integer | % de comisión (default: 3) |
-| commission_amount | integer | Monto de comisión en pesos |
-| paid | boolean | Si ya se pagó la comisión |
-| created_at | timestamptz | Fecha del referido |
+### Sesión 8 — 7 de abril de 2026 — Guard + Diseño
+- ✅ Guard /quiniela/[id] — bloquea acceso sin payment_status = approved
+- ✅ PaywallScreen — pantalla de bloqueo con botón de pago integrado
+- ✅ Fix 404 al regresar de Mercado Pago con botón atrás
+- ✅ Navbar rediseñado — diana animada pequeña + ATÍNALE dorado + botón Entrar
+- ✅ Landing page rediseñada — ATÍNALE con diana en la E, paleta unificada
+- ✅ Componente DianaHero — 4 anillos girando en direcciones alternas
+- ✅ Componente NavDiana — diana compacta para navbar
+- ✅ Paleta unificada — fondo #080C16 en toda la app, sin azul inconsistente
+- ✅ Reducción de amarillo — dorado solo en número del pozo y botón CTA
+- ✅ LOADER APROBADO (pendiente de implementar):
+     Secuencia: estrella desde centro → crosshair crece → anillos
+     de adentro hacia afuera → todos giran continuamente →
+     ATÍNALE + "Cargando..." al final
 
 ---
 
-## 💰 MODELO DE NEGOCIO
+## ESTADO ACTUAL DEL SISTEMA
 
-### Comisiones
-- **Plataforma:** 10% del pozo total (siempre visible)
-- **Creador de sala privada:** 3% (sale del 10% de la plataforma)
-- **Referidor:** 3% efectivo en cash (Versión 2)
-- **Usuarios normales:** +5 puntos por amigo referido y pagado
-
-### Tipos de quiniela
-1. **Pública** — admin crea, casa retiene 10%
-2. **Referidos** — casa 7%, referidor 3% efectivo
-3. **Sala Privada** — creator elige monto y límite, casa 7%, creator 3%
-
-### Ejemplo transparente visible para todos
-```
-Pozo total: $6,000
-Premio neto: $5,400
-Comisión plataforma: $600 (10%)
-```
+| Módulo | Estado |
+|--------|--------|
+| Landing page | En refinamiento final |
+| Autenticación Google | ✅ Producción |
+| Registro de usuarios | ✅ Producción |
+| Dashboard | ✅ Producción |
+| Predicciones /quiniela/[id] | ✅ Con guard de pago |
+| Guard de pago | ✅ Producción |
+| Mercado Pago Checkout Pro | ✅ Producción (modo pruebas) |
+| Panel admin | ✅ Producción |
+| Cálculo de puntos | ✅ Vía admin |
+| Loader con diana | ⏳ Aprobado, pendiente código |
+| Sistema de referidos | ⏳ Pendiente |
+| Modo Próximamente | ⏳ Necesario antes del 27 mayo |
+| Salas privadas | ⏳ Modelo de negocio por definir |
 
 ---
 
-## 🎯 LÓGICA DE PUNTUACIÓN
+## PRÓXIMAS TAREAS EN ORDEN DE PRIORIDAD
 
-| Resultado | Puntos |
-|-----------|--------|
-| Marcador exacto (ej. 2-1 predicho y real) | +3 pts |
-| Resultado correcto (gana/empata/pierde) | +1 pt |
-| Fallo completo | 0 pts |
-| Bonus por referido registrado y pagado | +5 pts |
-
-**Empate final:** El pozo neto se divide en partes iguales entre los empatados.
-
-**Ranking histórico:** Acumulado entre todas las quinielas en las que ha participado.
-
----
-
-## 📅 CALENDARIO FIFA 2026
-
-| Dato | Detalle |
-|------|---------|
-| Formato | 48 equipos, 12 grupos de 4 |
-| Total partidos | 104 |
-| Inicio | 11 junio 2026 — México vs Sudáfrica |
-| Final | 19 julio 2026 — MetLife Stadium, NY |
-| Sedes México | CDMX, Guadalajara, Monterrey |
-| Grupo México | Grupo A: México, Sudáfrica, Corea del Sur, Chequia |
+| # | Tarea | Prioridad | Fecha límite |
+|---|-------|-----------|--------------|
+| 1 | Fixes landing — diana derecha, quitar texto repetido, mover CÓBRATE, salas privadas | Alta | ASAP |
+| 2 | Definir modelo de negocio salas privadas | Alta | ASAP |
+| 3 | Implementar loader con diana en todas las páginas | Alta | Antes de beta |
+| 4 | Sistema de referidos — código único +5pts | Media | Mayo |
+| 5 | Modo Próximamente con captura de emails | Alta | 27 mayo |
+| 6 | Cambiar MP a credenciales de producción | Alta | Antes del lanzamiento |
+| 7 | Unificación visual completa dashboard | Media | Mayo |
 
 ---
 
-## 📅 CALENDARIO DEL PROYECTO
+## FIXES PENDIENTES EN LANDING
 
-| Fase | Fechas | Estado |
-|------|--------|--------|
-| Desarrollo | 3 abril – 30 abril 2026 | 🟡 En curso |
-| Testing interno | 1 – 15 mayo 2026 | ⏳ Pendiente |
-| Soft Launch (modo próximamente) | 27 mayo 2026 | ⏳ Pendiente |
-| Beta real (20-30 personas) | 1 junio 2026 | ⏳ Pendiente |
-| Cierre de registro | 10 junio 11:59pm | ⏳ Pendiente |
-| KICKOFF | 11 junio 5pm — México vs Sudáfrica | 🎯 Meta |
+1. Diana saliendo a la IZQUIERDA — debe ir a la DERECHA de la E
+2. "Quinielas Deportivas" repetido en hero — quitar, ya está en navbar
+3. "CÓBRATE / ¿CUÁNTO SABES?" — mover ARRIBA del contador del pozo
+4. "Predice. Compite. Gana." → cambiar a "Predice y Gana"
+5. Contenido salas privadas — agregar cuando esté definido el modelo
 
 ---
 
-## ✅ SESIONES DE DESARROLLO
+## SALAS PRIVADAS — PENDIENTE DE DEFINIR
 
-### Sesión 1 — Landing Page
-- Landing page completa y responsive
-- Diana animada con Framer Motion
-- Contador animado $5,400
-- Card México vs Sudáfrica con banderas reales
-- 3 pasos animados
-- Logo ATÍNALE con animación de pulso
-
-### Sesión 2 — Base de Datos
-- 7 tablas creadas en Supabase con RLS
-- 104 partidos FIFA 2026 cargados con fechas reales
-- Google OAuth configurado y funcionando
-- Página /registro con formulario de perfil
-- Deploy en Vercel con CI/CD automático
-- Primer usuario real registrado
-
-### Sesión 3 — (Pendiente documentar)
-
-### Sesión 4 — Dashboard + Auth Flow (5 abril 2026)
-**Logros:**
-- BD auditada completamente con SQL query
-- Identificado que pools ya tenía columnas avanzadas
-- Primera quiniela real insertada: "Quiniela Grupos FIFA 2026"
-- Instalado y configurado `@supabase/ssr`
-- Dashboard `/dashboard` construido completo:
-  - Saludo personalizado con nombre del usuario
-  - 3 tarjetas de stats (puntos, posición, quinielas)
-  - Tab "Disponibles" con card de quiniela real
-  - Tab "Mis Quinielas"
-  - Predicciones recientes con banderas emoji
-  - Tabla de posiciones EN VIVO
-  - Navegación inferior (5 secciones)
-- Auth callback corregido para Next.js 16 con `await cookies()`
-- Flujo completo funcionando: Landing → Login Google → Dashboard
-- Login de Google conectado a los 3 botones de la landing
-
-**Pendiente de esta sesión:**
-- Ajustar tamaño en desktop (todo se ve grande)
-- Unificar colores del logo (morado #534AB7 de landing vs verde del dashboard)
-- Subir a Vercel para ver en celular y compartir con beta testers
+Preguntas por responder antes de implementar:
+- ¿Quién puede crear una sala? ¿Cualquier usuario o solo admin?
+- ¿El costo de entrada es configurable por el creador?
+- ¿Qué porcentaje/beneficio recibe el creador?
+- ¿Aparece como sección separada en landing o dentro de tipos de quiniela?
 
 ---
 
-## 🔧 VARIABLES DE ENTORNO (.env.local)
+## NOTAS TÉCNICAS CLAVE
 
-```
-NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-```
-
-> ⚠️ Nunca subir el .env.local a GitHub. Está en .gitignore.
+- Arranque local: `npm run dev -- --webpack` (nunca Turbopack)
+- Siempre `// @ts-nocheck` en archivos nuevos de Next.js
+- Usar `createBrowserClient` de `@supabase/ssr` (nunca createClientComponentClient)
+- El webhook de MP usa SUPABASE_SERVICE_ROLE_KEY para saltear RLS
+- En localhost el checkout NO usa back_urls (MP no acepta localhost)
+- El parámetro de la función SQL es p_pool_id (con prefijo p_)
+- Git config: email ivie.munoz8606@alumnos.udg.mx | user iviemunoz8606-bit
+- round = 'Fase de Grupos' (en español, no 'group')
+- group_name = 'A' hasta 'L'
 
 ---
 
-## 🚀 COMANDOS FRECUENTES
+## COLORES Y DISEÑO
 
+| Elemento | Valor |
+|----------|-------|
+| Fondo | #080C16 |
+| Cards | #111520 |
+| Dorado principal | #F5B731 |
+| Dorado oscuro | #C9930A |
+| Verde éxito | #00C46A |
+| Fuente títulos | Bebas Neue |
+| Fuente cuerpo | Outfit |
+| Banderas | flagcdn.com |
+
+**Regla de uso del dorado:** Solo en número del pozo y botón CTA principal.
+El resto usa blanco en diferentes opacidades.
+
+---
+
+## CALENDARIO
+
+| Fecha | Hito |
+|-------|------|
+| Hoy — 30 Abril | Desarrollo activo |
+| 1 — 15 Mayo | Testing interno |
+| 27 Mayo | Soft Launch — Modo Próximamente |
+| 1 Junio | Beta con 20-30 usuarios |
+| 10 Junio 11:59pm | Cierre de registro |
+| **11 Junio 5:00pm** | **KICKOFF — México vs Sudáfrica** |
+
+---
+
+## COMANDOS DEL DÍA A DÍA
 ```bash
-# Arrancar en local
-npm run dev
-
-# Subir cambios a Vercel
-git add .
-git commit -m "descripción del cambio"
-git push
-
-# Instalar dependencia nueva
-npm install nombre-del-paquete
-
-# Ver versión de Node
-node --version
+npm run dev -- --webpack     # Arrancar local
+git add .                    # Marcar cambios
+git commit -m "descripción"  # Guardar con mensaje
+git push                     # Subir a GitHub → Vercel publica
 ```
-
----
-
-## 📱 IDENTIDAD VISUAL
-
-### Colores
-| Color | Hex | Uso |
-|-------|-----|-----|
-| Dorado | #EFC84A / #F5B731 | Puntos, CTAs principales, logo |
-| Verde | #00C46A | Aciertos, estado activo |
-| Morado | #534AB7 | Botones secundarios, landing |
-| Fondo oscuro | #0A0D12 / #0A0F2E | Background principal |
-| Superficie | #111520 / #111827 | Cards y contenedores |
-| Texto muted | #6B7280 | Texto secundario |
-
-### Identidad por competencia
-- **Mundial FIFA 2026:** Verde + Dorado 🌍
-- **Champions League:** Azul + Plateado ⭐
-- **Liga MX:** Colores mexicanos 🦅
-
-### Tipografía
-- **Títulos:** Bebas Neue (impacto, deportivo)
-- **Cuerpo:** Outfit (moderno, legible)
-
----
-
-## 📋 BACKLOG — PRÓXIMAS SESIONES
-
-### Sesión 5 (próxima)
-- [ ] git push → deploy a Vercel
-- [ ] Unificar colores landing ↔ dashboard
-- [ ] Ajustar tamaño desktop
-- [ ] Página `/quiniela/[id]` — hacer predicciones (máx 3 clics)
-- [ ] Flujo completo: ver partido → poner marcador → guardar
-
-### Sesión 6
-- [ ] Panel de administrador básico
-- [ ] Validar comprobantes de pago
-- [ ] Capturar resultados manualmente
-- [ ] Cálculo automático de puntos
-
-### Sesión 7
-- [ ] Sistema de referidos con link único
-- [ ] Subida de comprobante de pago (Supabase Storage)
-- [ ] Notificaciones cuando el pozo sube
-
-### Sesión 8
-- [ ] Optimización mobile completa
-- [ ] Pruebas con usuarios beta reales
-- [ ] Deploy final para soft launch 27 mayo
-
----
-
-## 🐛 ERRORES CONOCIDOS Y SOLUCIONES
-
-| Error | Causa | Solución |
-|-------|-------|---------|
-| `createClientComponentClient doesn't exist` | Versión nueva de Supabase | Usar `createBrowserClient` de `@supabase/ssr` |
-| `Can't resolve '@supabase/ssr'` | Paquete no instalado | `npm install @supabase/ssr` |
-| `HTTP ERROR 500 en /auth/callback` | Next.js 16 requiere await en cookies | `const cookieStore = await cookies()` |
-| Dashboard redirige al inicio | Sin sesión activa | Hacer login primero con Google |
-
----
-
-*Última actualización: 5 de abril 2026 — Sesión 4*
-*Desarrollado con Claude (Anthropic) — Dueño del producto: Ivie Muñoz*

@@ -4,6 +4,8 @@ import { motion, animate } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 
+// TODO: modo claro v2 — implementar después del lanzamiento
+
 function CountUp({ target, duration = 2.5 }: { target: number; duration?: number }) {
   const [display, setDisplay] = useState(0)
   useEffect(() => {
@@ -16,7 +18,56 @@ function CountUp({ target, duration = 2.5 }: { target: number; duration?: number
   return <>{display.toLocaleString('es-MX')}</>
 }
 
-function DianaHero({ size = 124, bg }: { size?: number; bg: string }) {
+function NavDiana() {
+  const size = 32
+  const off1 = Math.round(size * 0.13)
+  const off2 = Math.round(size * 0.28)
+  const s2   = size - off1 * 2
+  const s3   = size - off2 * 2
+  const r1   = size / 2 - 2
+  const r2   = s2 / 2 - 2
+  const r3   = s3 / 2 - 1.5
+  return (
+    <div style={{ position:'relative', width:size, height:size, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <style>{`
+        @keyframes navSpin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes navSpinRev { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
+        @keyframes navPulse   { 0%,100%{transform:scale(1);opacity:.75} 50%{transform:scale(1.35);opacity:1} }
+      `}</style>
+      <div style={{ position:'absolute', inset:0, animation:'navSpin 18s linear infinite' }}>
+        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
+          <circle cx={size/2} cy={size/2} r={r1} fill="none" stroke="rgba(245,183,49,0.10)" strokeWidth="1"/>
+          <circle cx={size/2} cy={size/2} r={r1} fill="none" stroke="rgba(245,183,49,0.55)" strokeWidth="1.2"
+            strokeDasharray={`8 ${Math.round(r1*2*Math.PI)-8}`} strokeLinecap="round"/>
+        </svg>
+      </div>
+      <div style={{ position:'absolute', inset:off1, animation:'navSpinRev 11s linear infinite' }}>
+        <svg viewBox={`0 0 ${s2} ${s2}`} width={s2} height={s2}>
+          <circle cx={s2/2} cy={s2/2} r={r2} fill="none" stroke="rgba(245,183,49,0.08)" strokeWidth="0.8"/>
+          <circle cx={s2/2} cy={s2/2} r={r2} fill="none" stroke="rgba(245,183,49,0.48)" strokeWidth="1"
+            strokeDasharray={`5 ${Math.round(r2*2*Math.PI)-5}`} strokeLinecap="round"/>
+        </svg>
+      </div>
+      <div style={{ position:'absolute', inset:off2, animation:'navSpin 5s linear infinite' }}>
+        <svg viewBox={`0 0 ${s3} ${s3}`} width={s3} height={s3}>
+          <circle cx={s3/2} cy={s3/2} r={r3} fill="none" stroke="rgba(245,183,49,0.45)" strokeWidth="0.9"
+            strokeDasharray={`4 ${Math.round(r3*2*Math.PI)-4}`} strokeLinecap="round"/>
+        </svg>
+      </div>
+      <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ animation:'navPulse 1.8s ease-in-out infinite', display:'flex', alignItems:'center', justifyContent:'center', width:'100%', height:'100%' }}>
+          <svg width="5" height="5" viewBox="0 0 24 24" fill="#F5B731">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+          </svg>
+        </div>
+      </div>
+      <div style={{ position:'absolute', top:'50%', left:0, right:0, height:1, transform:'translateY(-50%)', background:'linear-gradient(90deg,transparent,rgba(245,183,49,0.28),transparent)' }}/>
+      <div style={{ position:'absolute', left:'50%', top:0, bottom:0, width:1, transform:'translateX(-50%)', background:'linear-gradient(180deg,transparent,rgba(245,183,49,0.28),transparent)' }}/>
+    </div>
+  )
+}
+
+function DianaHero({ size = 180 }: { size?: number }) {
   const off1 = Math.round(size * 0.13)
   const off2 = Math.round(size * 0.234)
   const off3 = Math.round(size * 0.347)
@@ -27,94 +78,88 @@ function DianaHero({ size = 124, bg }: { size?: number; bg: string }) {
   const r2 = s2 / 2 - 3
   const r3 = s3 / 2 - 2
   const r4 = s4 / 2 - 2
-
   return (
     <>
       <style>{`
-        @keyframes spin    { from{transform:rotate(0deg)}   to{transform:rotate(360deg)} }
-        @keyframes spinRev { from{transform:rotate(0deg)}   to{transform:rotate(-360deg)} }
+        @keyframes spin      { from{transform:rotate(0deg)}   to{transform:rotate(360deg)} }
+        @keyframes spinRev   { from{transform:rotate(0deg)}   to{transform:rotate(-360deg)} }
+        @keyframes starPulse { 0%,100%{opacity:.85;transform:scale(1)} 50%{opacity:1;transform:scale(1.2)} }
       `}</style>
-      {/* Anillo 1 */}
-      <div style={{ position:'absolute', inset:0, animation:'spin 18s linear infinite' }}>
+      <div style={{ position:'absolute', inset:0, animation:'spin 22s linear infinite' }}>
         <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
-          <circle cx={size/2} cy={size/2} r={r1} fill="none" stroke="rgba(245,183,49,0.10)" strokeWidth="1"/>
-          <circle cx={size/2} cy={size/2} r={r1} fill="none" stroke="rgba(245,183,49,0.55)" strokeWidth="1.2"
-            strokeDasharray={`26 ${Math.round(r1*2*Math.PI)-26}`} strokeLinecap="round"/>
-          <circle cx={size/2} cy={size/2} r={r1} fill="none" stroke="rgba(245,183,49,0.20)" strokeWidth="0.6"
-            strokeDasharray={`9 ${Math.round(r1*2*Math.PI)-9}`} strokeDashoffset={Math.round(r1*Math.PI*0.6)} strokeLinecap="round"/>
+          <circle cx={size/2} cy={size/2} r={r1} fill="none" stroke="rgba(245,183,49,0.07)" strokeWidth="1.2"/>
+          <circle cx={size/2} cy={size/2} r={r1} fill="none" stroke="rgba(245,183,49,0.48)" strokeWidth="1.4"
+            strokeDasharray={`30 ${Math.round(r1*2*Math.PI)-30}`} strokeLinecap="round"/>
+          <circle cx={size/2} cy={size/2} r={r1} fill="none" stroke="rgba(245,183,49,0.15)" strokeWidth="0.7"
+            strokeDasharray={`10 ${Math.round(r1*2*Math.PI)-10}`} strokeDashoffset={Math.round(r1*Math.PI*0.6)} strokeLinecap="round"/>
         </svg>
       </div>
-      {/* Anillo 2 */}
-      <div style={{ position:'absolute', inset:off1, animation:'spinRev 11s linear infinite' }}>
+      <div style={{ position:'absolute', inset:off1, animation:'spinRev 13s linear infinite' }}>
         <svg viewBox={`0 0 ${s2} ${s2}`} width={s2} height={s2}>
-          <circle cx={s2/2} cy={s2/2} r={r2} fill="none" stroke="rgba(245,183,49,0.08)" strokeWidth="1"/>
-          <circle cx={s2/2} cy={s2/2} r={r2} fill="none" stroke="rgba(245,183,49,0.48)" strokeWidth="1"
-            strokeDasharray={`18 ${Math.round(r2*2*Math.PI)-18}`} strokeLinecap="round"/>
+          <circle cx={s2/2} cy={s2/2} r={r2} fill="none" stroke="rgba(245,183,49,0.06)" strokeWidth="1"/>
+          <circle cx={s2/2} cy={s2/2} r={r2} fill="none" stroke="rgba(245,183,49,0.42)" strokeWidth="1.1"
+            strokeDasharray={`20 ${Math.round(r2*2*Math.PI)-20}`} strokeLinecap="round"/>
         </svg>
       </div>
-      {/* Anillo 3 */}
-      <div style={{ position:'absolute', inset:off2, animation:'spin 7s linear infinite' }}>
+      <div style={{ position:'absolute', inset:off2, animation:'spin 8s linear infinite' }}>
         <svg viewBox={`0 0 ${s3} ${s3}`} width={s3} height={s3}>
-          <circle cx={s3/2} cy={s3/2} r={r3} fill="none" stroke="rgba(245,183,49,0.10)" strokeWidth="0.8"/>
-          <circle cx={s3/2} cy={s3/2} r={r3} fill="none" stroke="rgba(245,183,49,0.42)" strokeWidth="0.8"
-            strokeDasharray={`12 ${Math.round(r3*2*Math.PI)-12}`} strokeLinecap="round"/>
+          <circle cx={s3/2} cy={s3/2} r={r3} fill="none" stroke="rgba(245,183,49,0.08)" strokeWidth="0.9"/>
+          <circle cx={s3/2} cy={s3/2} r={r3} fill="none" stroke="rgba(245,183,49,0.38)" strokeWidth="0.9"
+            strokeDasharray={`14 ${Math.round(r3*2*Math.PI)-14}`} strokeLinecap="round"/>
         </svg>
       </div>
-      {/* Anillo 4 */}
-      <div style={{ position:'absolute', inset:off3, animation:'spinRev 4s linear infinite' }}>
+      <div style={{ position:'absolute', inset:off3, animation:'spinRev 5s linear infinite' }}>
         <svg viewBox={`0 0 ${s4} ${s4}`} width={s4} height={s4}>
-          <circle cx={s4/2} cy={s4/2} r={r4} fill="none" stroke="rgba(245,183,49,0.50)" strokeWidth="0.8"
-            strokeDasharray={`7 ${Math.round(r4*2*Math.PI)-7}`} strokeLinecap="round"/>
-        </svg>
-      </div>
-      {/* Estrella */}
-      <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(245,183,49,0.9)">
-          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-        </svg>
-      </div>
-      {/* Crosshair */}
-      <div style={{ position:'absolute', top:'50%', left:0, right:0, height:1, transform:'translateY(-50%)', background:'linear-gradient(90deg,transparent,rgba(245,183,49,0.2),rgba(245,183,49,0.3),rgba(245,183,49,0.2),transparent)' }}/>
-      <div style={{ position:'absolute', left:'50%', top:0, bottom:0, width:1, transform:'translateX(-50%)', background:'linear-gradient(180deg,transparent,rgba(245,183,49,0.2),rgba(245,183,49,0.3),rgba(245,183,49,0.2),transparent)' }}/>
-    </>
-  )
-}
-
-function NavDiana() {
-  return (
-    <div style={{ position:'relative', width:36, height:36, flexShrink:0 }}>
-      <style>{`
-        @keyframes navSpin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes navSpinRev { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
-        @keyframes navPulse   { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.3);opacity:1} }
-      `}</style>
-      <div style={{ position:'absolute', inset:0, animation:'navSpin 6s linear infinite' }}>
-        <svg viewBox="0 0 36 36" width="36" height="36">
-          <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(245,183,49,0.12)" strokeWidth="1"/>
-          <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(245,183,49,0.6)" strokeWidth="1.2" strokeDasharray="10 91" strokeLinecap="round"/>
-        </svg>
-      </div>
-      <div style={{ position:'absolute', inset:8, animation:'navSpinRev 4s linear infinite' }}>
-        <svg viewBox="0 0 20 20" width="20" height="20">
-          <circle cx="10" cy="10" r="8" fill="none" stroke="rgba(245,183,49,0.5)" strokeWidth="1" strokeDasharray="6 45" strokeLinecap="round"/>
+          <circle cx={s4/2} cy={s4/2} r={r4} fill="none" stroke="rgba(245,183,49,0.45)" strokeWidth="0.9"
+            strokeDasharray={`8 ${Math.round(r4*2*Math.PI)-8}`} strokeLinecap="round"/>
         </svg>
       </div>
       <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <div style={{ animation:'navPulse 1.8s ease-in-out infinite' }}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="#F5B731">
+        <div style={{ animation:'starPulse 2.2s ease-in-out infinite' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#F5B731">
             <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
           </svg>
         </div>
       </div>
-      <div style={{ position:'absolute', top:'50%', left:0, right:0, height:1, transform:'translateY(-50%)', background:'linear-gradient(90deg,transparent,rgba(245,183,49,0.25),transparent)' }}/>
-      <div style={{ position:'absolute', left:'50%', top:0, bottom:0, width:1, transform:'translateX(-50%)', background:'linear-gradient(180deg,transparent,rgba(245,183,49,0.25),transparent)' }}/>
-    </div>
+      <div style={{ position:'absolute', top:'50%', left:0, right:0, height:1, transform:'translateY(-50%)', background:'linear-gradient(90deg,transparent,rgba(245,183,49,0.15),rgba(245,183,49,0.25),rgba(245,183,49,0.15),transparent)' }}/>
+      <div style={{ position:'absolute', left:'50%', top:0, bottom:0, width:1, transform:'translateX(-50%)', background:'linear-gradient(180deg,transparent,rgba(245,183,49,0.15),rgba(245,183,49,0.25),rgba(245,183,49,0.15),transparent)' }}/>
+    </>
   )
 }
 
+function NavLogo({ isMobile }: { isMobile: boolean }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+      <div style={{ display:'flex', flexDirection:'column', justifyContent:'center' }}>
+        {!isMobile && (
+          <div style={{ fontSize:5, color:'rgba(255,255,255,0.3)', letterSpacing:'.5px', textTransform:'uppercase', lineHeight:.5, marginBottom:1 }}>
+            Quinielas Deportivas
+          </div>
+        )}
+        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+          <div style={{
+            fontFamily:"'Bebas Neue', sans-serif",
+            fontSize: isMobile ? 18 : 22,
+            letterSpacing:'4px', lineHeight:1,
+            background:'linear-gradient(135deg,#F5B731 0%,#E8A020 40%,#F5B731 100%)',
+            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
+          }}>
+            ATÍNALE
+          </div>
+          <NavDiana />
+        </div>
+        {!isMobile && (
+          <div style={{ fontSize:6, color:'rgba(255,255,255,0.2)', letterSpacing:'.5px', textTransform:'uppercase', lineHeight:.5, marginTop:1 }}>
+            Predice y Gana
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
-  const BG = '#080C16'
+  const BG   = '#080C16'
   const CARD = '#111520'
 
   useEffect(() => {
@@ -135,328 +180,453 @@ export default function Home() {
     })
   }
 
-  // Tamaño de la diana según pantalla
-  const dianaSize = isMobile ? 110 : 140
+  const dianaSize    = isMobile ? 120 : 148
+  const heroFontSize = isMobile ? 80  : 104
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', fontFamily: "'Outfit', sans-serif", color: '#F0F2F8', overflowX: 'hidden' }}>
+    <div style={{ background:BG, minHeight:'100vh', fontFamily:"'Outfit', sans-serif", color:'#F0F2F8', overflowX:'hidden' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap');
-        * { box-sizing: border-box; }
-        @keyframes fadeUp   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes shimmer  { 0%{left:-100%} 100%{left:200%} }
-        @keyframes pulseDot { 0%,100%{opacity:1} 50%{opacity:.3} }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        @keyframes fadeUp    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes shimmer   { 0%{left:-100%} 100%{left:200%} }
+        @keyframes pulseDot  { 0%,100%{opacity:1} 50%{opacity:.2} }
+        @keyframes btnPulse  { 0%,100%{box-shadow:0 0 0 0 rgba(245,183,49,0.4)} 50%{box-shadow:0 0 0 8px rgba(245,183,49,0)} }
+        @keyframes neonPulse { 0%,100%{text-shadow:0 0 12px rgba(255,255,255,0.25),0 0 28px rgba(255,255,255,0.1)} 50%{text-shadow:0 0 20px rgba(255,255,255,0.45),0 0 50px rgba(255,255,255,0.15)} }
+
         .cta-gold {
           background: linear-gradient(135deg,#F5B731,#C9930A);
-          color: #080C16; border: none; border-radius: 12px;
-          padding: 16px 0; font-family: 'Bebas Neue', sans-serif;
-          font-size: 20px; letter-spacing: 2px; cursor: pointer;
-          width: 100%; position: relative; overflow: hidden;
-          transition: transform .15s, box-shadow .15s;
+          color:#080C16; border:none; border-radius:14px;
+          padding:18px 0; font-family:'Bebas Neue',sans-serif;
+          font-size:22px; letter-spacing:2.5px; cursor:pointer;
+          width:100%; position:relative; overflow:hidden;
+          transition:transform .15s, box-shadow .15s;
         }
-        .cta-gold:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(245,183,49,0.35); }
+        .cta-gold:hover { transform:translateY(-2px); box-shadow:0 14px 36px rgba(245,183,49,0.38); }
         .cta-gold::after {
-          content:''; position:absolute; top:0; left:-100%;
-          width:60%; height:100%;
-          background: linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
-          animation: shimmer 2.5s ease-in-out infinite;
+          content:''; position:absolute; top:0; left:-100%; width:60%; height:100%;
+          background:linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent);
+          animation:shimmer 2.8s ease-in-out infinite;
         }
+        .btn-entrar {
+          background:linear-gradient(135deg,#F5B731,#C9930A);
+          color:#080C16; border:none; border-radius:22px;
+          font-weight:800; cursor:pointer;
+          font-family:'Outfit',sans-serif; letter-spacing:.5px;
+          animation:btnPulse 2.4s ease-in-out infinite;
+          transition:transform .15s;
+        }
+        .btn-entrar:hover { transform:scale(1.05); }
+        .feature-row {
+          display:flex; align-items:flex-start; gap:14px;
+          padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.05);
+        }
+        .feature-row:last-child { border-bottom:none; }
         .step-card {
-          background: #111520; border-radius: 14px; padding: 16px 14px;
-          border: 1px solid rgba(255,255,255,0.06);
-          display: flex; align-items: flex-start; gap: 14px;
-          transition: transform .2s, border-color .2s;
+          background:#111520; border-radius:16px; padding:22px 18px;
+          border:1px solid rgba(255,255,255,0.07);
+          display:flex; flex-direction:column; gap:12px;
+          transition:transform .2s, border-color .2s;
+          flex:1;
         }
-        .step-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.12); }
+        .step-card:hover { transform:translateY(-4px); border-color:rgba(255,255,255,0.14); }
+        .sala-tier {
+          border-radius:14px; padding:20px 16px;
+          text-align:center; transition:transform .2s;
+          display:flex; flex-direction:column; align-items:center; gap:6px;
+        }
+        .sala-tier:hover { transform:translateY(-4px); }
+        .neon-cobrate {
+          font-family:'Bebas Neue',sans-serif;
+          color:#ffffff;
+          animation:neonPulse 3s ease-in-out infinite;
+        }
       `}</style>
 
       {/* ══ NAVBAR ══ */}
       <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(8,12,22,0.94)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 20px', height: 60,
+        position:'fixed', top:0, left:0, right:0, zIndex:100,
+        background:'rgba(8,12,22,0.96)', backdropFilter:'blur(20px)',
+        borderBottom:'1px solid rgba(255,255,255,0.07)',
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'0 28px', height:64,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <NavDiana />
-          <div>
-            <div style={{
-              fontFamily: "'Bebas Neue', sans-serif",
-              fontSize: isMobile ? 20 : 26, letterSpacing: '3px', lineHeight: 1,
-              background: 'linear-gradient(135deg,#F5B731,#C9930A)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-            }}>
-              ATÍNALE
-            </div>
-            {!isMobile && (
-              <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.28)', letterSpacing: '3px', textTransform: 'uppercase' }}>
-                Quinielas Deportivas
-              </div>
-            )}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <NavLogo isMobile={isMobile} />
+        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
           {!isMobile && (
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>
+            <span style={{ color:'rgba(255,255,255,0.4)', fontSize:13, cursor:'pointer', fontWeight:500 }}>
               ¿Cómo funciona?
             </span>
           )}
-          <button onClick={handleLogin} style={{
-            background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16',
-            border: 'none', borderRadius: 20,
-            padding: isMobile ? '8px 16px' : '9px 22px',
-            fontSize: isMobile ? 12 : 13, fontWeight: 800, cursor: 'pointer',
-            fontFamily: "'Outfit', sans-serif"
-          }}>
+          <button onClick={handleLogin} className="btn-entrar"
+            style={{ padding: isMobile ? '8px 18px' : '10px 26px', fontSize: isMobile ? 12 : 14 }}>
             Entrar →
           </button>
         </div>
       </nav>
 
       {/* ══ HERO ══ */}
-      <section style={{ padding: isMobile ? '80px 20px 48px' : '100px 5% 60px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 32 : 60, alignItems: isMobile ? 'stretch' : 'center' }}>
+      <section style={{ padding: isMobile ? '84px 20px 48px' : '96px 5% 60px', maxWidth:1200, margin:'0 auto' }}>
+        <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 36 : 52, alignItems:'flex-start' }}>
 
-          {/* IZQUIERDA */}
-          <motion.div
-            initial={{ opacity:0, x:-30 }} animate={{ opacity:1, x:0 }}
-            transition={{ duration:.6 }}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {/* Columna izquierda */}
+          <motion.div initial={{ opacity:0, x:-24 }} animate={{ opacity:1, x:0 }} transition={{ duration:.65 }}
+            style={{ flex:'0 0 auto', width: isMobile ? '100%' : '46%' }}>
 
-            {/* ── ATÍNALE + Diana ── */}
-            {/*
-              TÉCNICA PARA LA DIANA:
-              - El wrapper tiene position:relative + display:inline-block
-              - El texto tiene padding-right = dianaSize/2 (para dejar espacio a la mitad de la diana)
-              - overflow:hidden en el texto oculta el espacio en blanco
-              - La diana se posiciona con right: -(dianaSize/2) para centrarla en el borde de la E
-            */}
-            <div style={{ marginBottom: 8, animation: 'fadeUp .6s ease .1s both' }}>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 8 }}>
-                Quinielas Deportivas
-              </div>
-
-              <div style={{ position: 'relative', display: 'inline-block', lineHeight: 1 }}>
-                {/* Diana — centrada en el borde derecho del texto */}
+            <div style={{ animation:'fadeUp .55s ease .05s both', marginBottom:22 }}>
+              <div style={{ position:'relative', display:'inline-block', paddingRight: dianaSize * 0.28 }}>
                 <div style={{
-                  position: 'absolute',
-                  width: dianaSize,
-                  height: dianaSize,
-                  right: -(dianaSize / 2),
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  zIndex: 1,
-                  pointerEvents: 'none'
+                  fontFamily:"'Bebas Neue', sans-serif", fontSize:heroFontSize,
+                  letterSpacing:'6px', lineHeight:1,
+                  background:'linear-gradient(135deg,#C9930A 0%,#F5B731 28%,#fff 50%,#F5B731 72%,#C9930A 100%)',
+                  WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
+                  backgroundClip:'text', whiteSpace:'nowrap', position:'relative', zIndex:2,
                 }}>
-                  <DianaHero size={dianaSize} bg={BG} />
+                  ATÍNALE
                 </div>
-
-                {/* Texto — clip visual con overflow hidden para tapar el espacio en blanco */}
                 <div style={{
-                  position: 'relative',
-                  zIndex: 2,
-                  background: BG,
-                  display: 'inline-block',
-                  paddingRight: dianaSize / 2,
-                  // overflow hidden elimina el espacio visible a la derecha
-                  // pero el background sigue tapando los anillos debajo del texto
-                  clipPath: `inset(0 0 0 0)`,
+                  position:'absolute', width:dianaSize, height:dianaSize,
+                  right:-(dianaSize * 0.28), top:'45%', transform:'translateY(-50%)',
+                  zIndex:1, pointerEvents:'none',
                 }}>
-                  <div style={{
-                    fontFamily: "'Bebas Neue', sans-serif",
-                    fontSize: isMobile ? 56 : 72,
-                    letterSpacing: '5px', lineHeight: 1,
-                    background: 'linear-gradient(135deg,#C9930A 0%,#F5B731 35%,#fff 55%,#F5B731 75%,#C9930A 100%)',
-                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text', whiteSpace: 'nowrap',
-                    // Margen negativo elimina el hueco visible
-                    marginRight: -(dianaSize / 2),
-                  }}>
-                    ATÍNALE
-                  </div>
+                  <DianaHero size={dianaSize} />
                 </div>
               </div>
-
-              {/* Predice. Compite. Gana. */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
-                <div style={{ height: 2, width: 26, background: 'linear-gradient(90deg,rgba(255,255,255,0.4),rgba(255,255,255,0.05))', borderRadius: 2 }}/>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 300, letterSpacing: '3px' }}>
-                  Predice. Compite. Gana.
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8 }}>
+                <div style={{ height:1, width:28, background:'linear-gradient(90deg,rgba(245,183,49,0.55),rgba(245,183,49,0.05))', borderRadius:2 }}/>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', fontWeight:400, letterSpacing:'4.5px', textTransform:'uppercase' }}>
+                  Predice y Gana
+                </div>
+              </div>
+              <div style={{ marginTop:16, marginBottom:4 }}>
+                <div className="neon-cobrate" style={{ fontSize: isMobile ? 52 : 66, letterSpacing:'3px', lineHeight:1 }}>
+                  CÓBRATE!
+                </div>
+                <div style={{ height:1, background:'linear-gradient(90deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))', borderRadius:2, margin:'10px 0 8px' }}/>
+                <div style={{ fontSize: isMobile ? 14 : 16, color:'rgba(255,255,255,0.4)', fontWeight:300, letterSpacing:'.5px' }}>
+                  ¿Cuánto sabes de fútbol?
                 </div>
               </div>
             </div>
 
-            {/* Tagline */}
-            <div style={{ animation: 'fadeUp .6s ease .25s both', marginBottom: 16 }}>
-              <div style={{ fontSize: isMobile ? 10 : 11, color: 'rgba(255,255,255,0.5)', letterSpacing: 4, fontWeight: 700, marginBottom: 10 }}>
-                🏆 FIFA WORLD CUP 2026 · QUINIELA ACTIVA
-              </div>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#fff', fontSize: isMobile ? 52 : 68, lineHeight: 0.9, letterSpacing: '2px', marginBottom: 8 }}>
-                CÓBRATE.
-              </div>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'rgba(255,255,255,0.7)', fontSize: isMobile ? 30 : 42, lineHeight: 1, letterSpacing: '2px' }}>
-                ¿CUÁNTO SABES<br />DE FÚTBOL?
-              </div>
-            </div>
-
-            {/* Features */}
-            <div style={{ animation: 'fadeUp .6s ease .4s both', marginBottom: 22 }}>
+            <div style={{ animation:'fadeUp .55s ease .18s both', marginBottom:26 }}>
               {[
-                { icon: '💰', text: 'Predice marcadores y acumula puntos' },
-                { icon: '🎯', text: 'El que más acierta gana el pozo' },
-                { icon: '👥', text: 'Refiere amigos y gana +5 puntos extra' },
-                { icon: '🔒', text: 'Comisión 10% siempre visible para todos' },
+                { icon:'⚽', text:'El fútbol se disfruta más cuando sabes que sabes' },
+                { icon:'🎯', text:'3 pts marcador exacto — 1 pt resultado correcto' },
+                { icon:'🏆', text:'El que más acierta gana el 90% del pozo' },
+                { icon:'🔒', text:'Comisión 10% siempre visible — sin sorpresas' },
               ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 9 }}>
-                  <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
-                  <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: isMobile ? 13 : 14, fontWeight: 500 }}>{item.text}</span>
+                <div key={i} className="feature-row">
+                  <span style={{ fontSize:17, flexShrink:0, marginTop:1 }}>{item.icon}</span>
+                  <span style={{ color:'rgba(255,255,255,0.65)', fontSize: isMobile ? 14 : 15, fontWeight:500, lineHeight:1.5 }}>{item.text}</span>
                 </div>
               ))}
             </div>
 
-            {/* CTA */}
-            <div style={{ animation: 'fadeUp .6s ease .5s both', marginBottom: 10 }}>
-              <button className="cta-gold" onClick={handleLogin}>
-                🏆 QUIERO GANAR EL POZO →
-              </button>
+            <div style={{ animation:'fadeUp .55s ease .32s both', marginBottom:11 }}>
+              <button className="cta-gold" onClick={handleLogin}>🏆 QUIERO GANAR EL POZO →</button>
             </div>
-            <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.25)', animation: 'fadeUp .6s ease .6s both' }}>
-              Entra con <span onClick={handleLogin} style={{ color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontWeight: 700 }}>Google</span> · Solo 15 segundos · Pago con Mercado Pago
+            <div style={{ textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.22)', animation:'fadeUp .55s ease .42s both', lineHeight:1.8 }}>
+              Entra con <span onClick={handleLogin} style={{ color:'rgba(255,255,255,0.48)', cursor:'pointer', fontWeight:700 }}>Google</span>
+              {' '}· Solo 15 segundos · Pago con Mercado Pago
             </div>
           </motion.div>
 
-          {/* DERECHA */}
-          <motion.div
-            initial={{ opacity:0, x: isMobile ? 0 : 30, y: isMobile ? 20 : 0 }}
-            animate={{ opacity:1, x:0, y:0 }}
-            transition={{ duration:.6, delay:.2 }}
-            style={{ flex: isMobile ? 'none' : 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Columna derecha */}
+          <motion.div initial={{ opacity:0, x: isMobile ? 0 : 24, y: isMobile ? 14 : 0 }}
+            animate={{ opacity:1, x:0, y:0 }} transition={{ duration:.65, delay:.15 }}
+            style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
 
-            {/* Pozo card — sin azul, uniforme */}
-            <div style={{
-              background: CARD, border: '1px solid rgba(245,183,49,0.2)',
-              borderRadius: 18, padding: '18px 20px', textAlign: 'center'
-            }}>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: 3, marginBottom: 6, fontWeight: 700 }}>
-                💵 PREMIO NETO · QUINIELA ACTIVA
+            {/* Pozo */}
+            <div style={{ background:CARD, border:'1px solid rgba(245,183,49,0.22)', borderRadius:18, padding:'18px 20px', animation:'fadeUp .55s ease .2s both' }}>
+              <div style={{ fontSize:9, color:'rgba(245,183,49,0.7)', letterSpacing:'2.5px', fontWeight:700, textAlign:'center', marginBottom:8 }}>
+                🏆 FIFA WORLD CUP 2026 · QUINIELA ACTIVA
               </div>
-              <div style={{
-                fontFamily: "'Bebas Neue', sans-serif",
-                color: '#F5B731', fontSize: isMobile ? 64 : 80,
-                lineHeight: 1, letterSpacing: '2px', marginBottom: 2
-              }}>
-                $<CountUp target={5400} duration={2.5} />
+              <div style={{ fontSize:9, color:'rgba(255,255,255,0.28)', letterSpacing:3, marginBottom:6, fontWeight:700, textAlign:'center' }}>
+                💵 PREMIO NETO
               </div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 3, marginBottom: 14 }}>MXN</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12 }}>
-                {[
-                  { label: 'Pozo total', value: '$6,000', sub: '30 × $200' },
-                  { label: 'Jugadores',  value: '30',     sub: 'inscritos' },
-                  { label: 'Comisión',   value: '$600',   sub: '10% visible' },
-                ].map((s, i) => (
-                  <div key={i} style={{ textAlign: 'center', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.07)' : 'none', padding: '0 4px' }}>
-                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, marginBottom: 4, fontWeight: 600 }}>{s.label}</div>
-                    <div style={{ color: '#fff', fontSize: isMobile ? 16 : 18, fontWeight: 800, marginBottom: 2 }}>{s.value}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9 }}>{s.sub}</div>
-                  </div>
-                ))}
+              <div style={{ textAlign:'center', marginBottom:4 }}>
+                <span style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#F5B731', fontSize: isMobile ? 70 : 88, lineHeight:1, letterSpacing:'2px' }}>
+                  $<CountUp target={5400} duration={2.5} />
+                </span>
+              </div>
+              <div style={{ textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.22)', letterSpacing:2, marginBottom:12 }}>
+                30 jugadores X 200 MXN · Pozo $6,000 · Comisión 10% siempre visible
+              </div>
+              <div style={{ background:'rgba(0,196,106,0.06)', border:'1px solid rgba(0,196,106,0.2)', borderRadius:10, padding:'9px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.38)' }}>📈 Si llega hasta (200 participantes), ganarías...</div>
+                <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:22, color:'#00C46A', letterSpacing:1 }}>$18,000</div>
               </div>
             </div>
 
             {/* Partido inaugural */}
-            <div style={{ background: CARD, border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>
-              <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,196,106,0.05)' }}>
-                <span style={{ fontSize: 9, color: '#00C46A', letterSpacing: 2, fontWeight: 700, textTransform: 'uppercase' }}>⚽ Partido Inaugural</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF4D6D', display: 'inline-block', animation: 'pulseDot 1.2s ease-in-out infinite' }}/>
-                  <span style={{ fontSize: 9, color: '#FF4D6D', fontWeight: 700 }}>11 JUN · 5:00 PM CST</span>
+            <div style={{ background:CARD, border:'1px solid rgba(255,255,255,0.07)', borderRadius:16, overflow:'hidden', animation:'fadeUp .55s ease .3s both' }}>
+              <div style={{ padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(255,255,255,0.05)', background:'rgba(0,196,106,0.05)' }}>
+                <span style={{ fontSize:10, color:'#00C46A', letterSpacing:2, fontWeight:700 }}>⚽ PARTIDO INAUGURAL</span>
+                <span style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF4D6D', display:'inline-block', animation:'pulseDot 1.2s ease-in-out infinite' }}/>
+                  <span style={{ fontSize:9, color:'#FF4D6D', fontWeight:700 }}>11 JUN · 5:00 PM CST</span>
                 </span>
               </div>
-              <div style={{ padding: '16px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <img src="https://flagcdn.com/w80/mx.png" alt="México" style={{ width: isMobile ? 44 : 52, height: isMobile ? 29 : 34, objectFit: 'cover', borderRadius: 4, display: 'block', margin: '0 auto 8px', boxShadow: '0 2px 10px rgba(0,0,0,0.4)' }}/>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>México</div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>EL TRI</div>
+              <div style={{ padding:'16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+                <div style={{ flex:1, textAlign:'center' }}>
+                  <img src="https://flagcdn.com/w80/mx.png" alt="México" style={{ width: isMobile ? 48 : 58, height: isMobile ? 32 : 38, objectFit:'cover', borderRadius:5, display:'block', margin:'0 auto 8px', boxShadow:'0 2px 12px rgba(0,0,0,0.5)' }}/>
+                  <div style={{ fontSize:14, fontWeight:700 }}>México</div>
+                  <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:2, letterSpacing:1 }}>EL TRI</div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: 'rgba(255,255,255,0.12)', letterSpacing: 2 }}>VS</div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginTop: 2 }}>Grupo A · CDMX</div>
+                <div style={{ textAlign:'center', padding:'0 8px' }}>
+                  <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:22, color:'rgba(255,255,255,0.10)', letterSpacing:2 }}>VS</div>
+                  <div style={{ fontSize:9, color:'rgba(255,255,255,0.35)', fontWeight:600, marginTop:3 }}>Grupo A · CDMX</div>
                 </div>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <img src="https://flagcdn.com/w80/za.png" alt="Sudáfrica" style={{ width: isMobile ? 44 : 52, height: isMobile ? 29 : 34, objectFit: 'cover', borderRadius: 4, display: 'block', margin: '0 auto 8px', boxShadow: '0 2px 10px rgba(0,0,0,0.4)' }}/>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>Sudáfrica</div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>BAFANA BAFANA</div>
+                <div style={{ flex:1, textAlign:'center' }}>
+                  <img src="https://flagcdn.com/w80/za.png" alt="Sudáfrica" style={{ width: isMobile ? 48 : 58, height: isMobile ? 32 : 38, objectFit:'cover', borderRadius:5, display:'block', margin:'0 auto 8px', boxShadow:'0 2px 12px rgba(0,0,0,0.5)' }}/>
+                  <div style={{ fontSize:14, fontWeight:700 }}>Sudáfrica</div>
+                  <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:2, letterSpacing:1 }}>BAFANA BAFANA</div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', background:'rgba(0,0,0,0.25)', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
                 {[
-                  { pts: '3 PTS', label: '🎯 Exacto',   color: '#F5B731' },
-                  { pts: '1 PT',  label: '✓ Resultado', color: '#00C46A' },
-                  { pts: '0 PTS', label: '✗ Fallo',     color: '#374151' },
+                  { pts:'3 PTS', label:'Exacto',    color:'#F5B731', icon:'🎯' },
+                  { pts:'1 PT',  label:'Resultado', color:'#00C46A', icon:'✓' },
+                  { pts:'0 PTS', label:'Fallo',     color:'rgba(255,255,255,0.2)', icon:'✗' },
                 ].map((item, i) => (
-                  <div key={i} style={{ textAlign: 'center', padding: '10px 0', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                    <div style={{ fontFamily: "'Bebas Neue', sans-serif", color: item.color, fontSize: 15 }}>{item.pts}</div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{item.label}</div>
+                  <div key={i} style={{ textAlign:'center', padding:'11px 0', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                    <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:item.color, fontSize:16, letterSpacing:1 }}>{item.pts}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', marginTop:2 }}>{item.icon} {item.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Referidos */}
-            <div style={{ background: CARD, border: '1px solid rgba(0,196,106,0.15)', borderRadius: 14, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 24, flexShrink: 0 }}>👥</div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Refiere amigos y sube más rápido</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
-                  Cada amigo que pague te da <span style={{ color: '#00C46A', fontWeight: 700 }}>+5 puntos</span> en el ranking
+            {/* Tarjeta Salas */}
+            <a href="#salas" style={{ textDecoration:'none' }}>
+              <div style={{ background:CARD, border:'1px solid rgba(245,183,49,0.18)', borderRadius:14, padding:'14px 16px', display:'flex', alignItems:'center', gap:12, cursor:'pointer', transition:'border-color .2s', animation:'fadeUp .55s ease .42s both' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor='rgba(245,183,49,0.45)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor='rgba(245,183,49,0.18)'}>
+                <span style={{ fontSize:22, flexShrink:0 }}>🏠</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>Crea tu sala privada y gana comisión</div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.38)', lineHeight:1.5 }}>
+                    Convoca a tu grupo y gana hasta <span style={{ color:'#F5B731', fontWeight:700 }}>5% del pozo</span> solo por invitar
+                  </div>
                 </div>
+                <span style={{ color:'rgba(255,255,255,0.2)', fontSize:18, flexShrink:0 }}>›</span>
               </div>
-            </div>
+            </a>
+
+            {/* Tarjeta Referidos */}
+            <a href="#referidos" style={{ textDecoration:'none' }}>
+              <div style={{ background:CARD, border:'1px solid rgba(0,196,106,0.2)', borderRadius:14, padding:'14px 16px', display:'flex', alignItems:'center', gap:12, cursor:'pointer', transition:'border-color .2s', animation:'fadeUp .55s ease .35s both' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor='rgba(0,196,106,0.5)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor='rgba(0,196,106,0.2)'}>
+                <span style={{ fontSize:22, flexShrink:0 }}>👥</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>Refiere amigos y sube más rápido</div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.38)', lineHeight:1.5 }}>
+                    Cada amigo que pague te sube en el ranking de referidos. Top 3 gana quiniela gratis para UEFA o Liga MX
+                  </div>
+                </div>
+                <span style={{ color:'rgba(255,255,255,0.2)', fontSize:18, flexShrink:0 }}>›</span>
+              </div>
+            </a>
 
           </motion.div>
         </div>
       </section>
 
-      {/* ══ 3 PASOS ══ */}
-      <section style={{ padding: isMobile ? '40px 20px' : '56px 5%', maxWidth: 1200, margin: '0 auto', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 40 }}>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: 5, marginBottom: 10, fontWeight: 700 }}>⚡ ASÍ DE FÁCIL</div>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#fff', fontSize: isMobile ? 40 : 60, letterSpacing: '3px', lineHeight: 1, marginBottom: 10 }}>
-            3 PASOS PARA<br/><span style={{ color: '#F5B731' }}>GANAR EL POZO</span>
+      {/* ══ 3 PASOS — título centrado, 3 tarjetas horizontales ══ */}
+      <section style={{ padding: isMobile ? '48px 20px' : '64px 5%', maxWidth:1200, margin:'0 auto', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ textAlign:'center', marginBottom: isMobile ? 28 : 44 }}>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', letterSpacing:5, marginBottom:12, fontWeight:700 }}>⚡ ASÍ DE FÁCIL</div>
+          <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#fff', fontSize: isMobile ? 44 : 62, letterSpacing:'3px', lineHeight:1, marginBottom:12 }}>
+            3 PASOS PARA<br/><span style={{ color:'#F5B731' }}>GANAR EL POZO</span>
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: isMobile ? 13 : 15, fontWeight: 400 }}>
+          <div style={{ color:'rgba(255,255,255,0.38)', fontSize: isMobile ? 13 : 16 }}>
             Sin complicaciones — predice, compite y cobra
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 32 }}>
+        <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:12, marginBottom:36 }}>
           {[
-            { num: '01', icon: '💳', title: 'Regístrate y paga',       desc: 'Crea tu cuenta y paga $100 vía Mercado Pago. En menos de 2 minutos estás dentro.',       accent: 'rgba(245,183,49,0.12)',  border: 'rgba(245,183,49,0.25)',  num_color: 'rgba(245,183,49,0.12)' },
-            { num: '02', icon: '🎯', title: 'Predice los 48 partidos', desc: 'Escribe el marcador exacto de cada partido. Se bloquea automáticamente al iniciar.',       accent: 'rgba(0,196,106,0.1)',    border: 'rgba(0,196,106,0.2)',    num_color: 'rgba(0,196,106,0.12)'  },
-            { num: '03', icon: '🏆', title: 'Sube al ranking y gana',  desc: 'El que más aciertos tenga se lleva el 90% del pozo. Ranking en tiempo real.',              accent: 'rgba(79,173,255,0.08)',  border: 'rgba(79,173,255,0.18)',  num_color: 'rgba(79,173,255,0.1)'  },
+            { num:'01', icon:'💳', title:'Regístrate y paga',
+              desc:'Crea tu cuenta con Google y paga $100 vía Mercado Pago. En menos de 2 minutos estás dentro.',
+              accent:'rgba(245,183,49,0.10)', border:'rgba(245,183,49,0.22)', num_color:'rgba(245,183,49,0.25)' },
+            { num:'02', icon:'🎯', title:'Predice los 48 partidos',
+              desc:'Escribe el marcador exacto de cada partido. Se bloquea automáticamente al pitazo inicial.',
+              accent:'rgba(0,196,106,0.09)', border:'rgba(0,196,106,0.2)', num_color:'rgba(0,196,106,0.25)' },
+            { num:'03', icon:'🏆', title:'Sube al ranking y cobra',
+              desc:'El que más aciertos tenga se lleva el 90% del pozo. Ranking actualizado en tiempo real.',
+              accent:'rgba(79,173,255,0.07)', border:'rgba(79,173,255,0.18)', num_color:'rgba(79,173,255,0.22)' },
           ].map((step, i) => (
             <div key={i} className="step-card">
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: step.accent, border: `1px solid ${step.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>
-                {step.icon}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>{step.title}</div>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: step.num_color }}>{step.num}</div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ width:44, height:44, borderRadius:12, background:step.accent, border:`1px solid ${step.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>
+                  {step.icon}
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{step.desc}</div>
+                <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:28, color:step.num_color }}>{step.num}</div>
+              </div>
+              <div>
+                <div style={{ fontWeight:700, fontSize:15, color:'#fff', marginBottom:6 }}>{step.title}</div>
+                <div style={{ fontSize:13, color:'rgba(255,255,255,0.38)', lineHeight:1.65 }}>{step.desc}</div>
               </div>
             </div>
           ))}
         </div>
 
-        <button className="cta-gold" onClick={handleLogin}>
-          🏆 QUIERO GANAR EL POZO →
-        </button>
-        <div style={{ textAlign: 'center', marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.2)', lineHeight: 1.8 }}>
-          Pago seguro con Mercado Pago · Comisión 10% siempre visible<br/>
-          <span style={{ color: 'rgba(245,183,49,0.4)' }}>atinale-ecru.vercel.app</span>
+        <div style={{ maxWidth:520, margin:'0 auto' }}>
+          <button className="cta-gold" onClick={handleLogin}>🏆 QUIERO GANAR EL POZO →</button>
+          <div style={{ textAlign:'center', marginTop:12, fontSize:11, color:'rgba(255,255,255,0.18)', lineHeight:1.9 }}>
+            Pago seguro con Mercado Pago · Comisión 10% siempre visible
+          </div>
+        </div>
+      </section>
+
+      {/* ══ SALAS PRIVADAS — título centrado, igual que antes ══ */}
+      <section id="salas" style={{ padding: isMobile ? '48px 20px' : '64px 5%', maxWidth:1200, margin:'0 auto', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ textAlign:'center', marginBottom: isMobile ? 28 : 44 }}>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', letterSpacing:5, marginBottom:12, fontWeight:700 }}>🏠 PARA GRUPOS</div>
+          <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#fff', fontSize: isMobile ? 38 : 56, letterSpacing:'3px', lineHeight:1, marginBottom:12 }}>
+            CREA TU SALA<br/><span style={{ color:'#F5B731' }}>Y GANA COMISIÓN</span>
+          </div>
+          <div style={{ color:'rgba(255,255,255,0.4)', fontSize: isMobile ? 13 : 15, maxWidth:540, margin:'0 auto' }}>
+            Arma tu quiniela privada y tú cobras por cada persona que se une. Sin complicaciones.
+          </div>
+        </div>
+
+        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap:12, marginBottom:28 }}>
+          {[
+            { icon:'🏷️', step:'01', title:'Nombra tu sala',
+              desc:'¿"Los Godinez FC"? ¿"La Prepa 5 Bravos"? ¿"Secu Imparable"? Tú decides el nombre y compartes tu código.' },
+            { icon:'👥', step:'02', title:'Convoca a los suyos',
+              desc:'Mínimo 5 para arrancar. El admin autoriza tu sala. Tus cuates se unen con tu código — así de fácil.' },
+            { icon:'💰', step:'03', title:'Cobra tu comisión',
+              desc:'Entre más gente invites, más dinero te cae. Tu ganancia proyectada se actualiza en tiempo real.' },
+          ].map((item, i) => (
+            <div key={i} style={{ background:CARD, borderRadius:16, padding:'20px 18px', border:'1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ fontSize:28, marginBottom:10 }}>{item.icon}</div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:12, color:'rgba(245,183,49,0.4)', letterSpacing:2 }}>{item.step}</div>
+                <div style={{ fontWeight:700, fontSize:15, color:'#fff' }}>{item.title}</div>
+              </div>
+              <div style={{ fontSize:13, color:'rgba(255,255,255,0.4)', lineHeight:1.65 }}>{item.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background:CARD, borderRadius:18, padding:'24px 20px', border:'1px solid rgba(245,183,49,0.15)', marginBottom:20 }}>
+          <div style={{ textAlign:'center', marginBottom:20 }}>
+            <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', letterSpacing:3, fontWeight:700, marginBottom:6 }}>TU GANANCIA COMO CREADOR DE SALA</div>
+            <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize: isMobile ? 22 : 28, color:'#fff', letterSpacing:2 }}>COMISIÓN ESCALONADA</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap:10 }}>
+            {[
+              { label:'ARRANQUE',  pct:'3%', color:'#F5B731', border:'rgba(245,183,49,0.25)', bg:'rgba(245,183,49,0.06)', rango:'Menos de 25', ejemplo:'20 personas × $100', ganancia:'$60' },
+              { label:'CRECIENDO', pct:'4%', color:'#00C46A', border:'rgba(0,196,106,0.28)',  bg:'rgba(0,196,106,0.07)',  rango:'25 a 49',      ejemplo:'35 personas × $100', ganancia:'$140' },
+              { label:'EXPLOSIVO', pct:'5%', color:'#4FADFF', border:'rgba(79,173,255,0.28)', bg:'rgba(79,173,255,0.07)', rango:'50 o más',     ejemplo:'60 personas × $100', ganancia:'$300' },
+            ].map((tier, i) => (
+              <div key={i} className="sala-tier" style={{ border:`1px solid ${tier.border}`, background:tier.bg }}>
+                <div style={{ fontSize:9, color:tier.color, letterSpacing:3, fontWeight:700 }}>{tier.label}</div>
+                <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:52, color:tier.color, lineHeight:1 }}>{tier.pct}</div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.38)', lineHeight:1.5, textAlign:'center' }}>{tier.rango}<br/>participantes</div>
+                <div style={{ width:'100%', borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:10, marginTop:4 }}>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.2)', marginBottom:3 }}>Ej. {tier.ejemplo}</div>
+                  <div style={{ fontSize:15, color:tier.color, fontWeight:800 }}>{tier.ganancia} para ti</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop:16, padding:'10px 14px', background:'rgba(255,255,255,0.03)', borderRadius:10, border:'1px solid rgba(255,255,255,0.05)', textAlign:'center' }}>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,0.32)' }}>
+              💡 La comisión sale del 10% que retiene la plataforma. El premio neto <span style={{ color:'rgba(255,255,255,0.6)', fontWeight:600 }}>nunca se toca.</span>
+            </span>
+          </div>
+        </div>
+
+        <div style={{ background:'rgba(245,183,49,0.05)', border:'1px solid rgba(245,183,49,0.2)', borderRadius:16, padding:'20px', display:'flex', flexDirection: isMobile ? 'column' : 'row', alignItems:'center', gap:20 }}>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700, fontSize:15, color:'#fff', marginBottom:6 }}>¿Listo para crear tu sala?</div>
+            <div style={{ fontSize:13, color:'rgba(255,255,255,0.4)', lineHeight:1.6 }}>
+              Requisito: estar inscrito en al menos una quiniela pagada.<br/>
+              El admin autoriza tu sala — normalmente en menos de 24 hrs.
+            </div>
+          </div>
+          <button onClick={handleLogin} className="btn-entrar" style={{ padding:'14px 28px', fontSize:16, letterSpacing:2, fontFamily:"'Bebas Neue', sans-serif", whiteSpace:'nowrap', flexShrink:0 }}>
+            CREAR MI SALA →
+          </button>
+        </div>
+      </section>
+
+      {/* ══ REFERIDOS — título centrado, tarjetas horizontales, justo antes del CTA final ══ */}
+      <section id="referidos" style={{ padding: isMobile ? '48px 20px' : '64px 5%', maxWidth:1200, margin:'0 auto', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ textAlign:'center', marginBottom: isMobile ? 28 : 44 }}>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', letterSpacing:5, marginBottom:12, fontWeight:700 }}>🌟 RANKING DE PROMOTORES</div>
+          <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#fff', fontSize: isMobile ? 44 : 62, letterSpacing:'3px', lineHeight:1, marginBottom:12 }}>
+            REFIERE MÁS,<br/><span style={{ color:'#F5B731' }}>GANA MÁS.</span>
+          </div>
+          <div style={{ color:'rgba(255,255,255,0.38)', fontSize: isMobile ? 13 : 16, maxWidth:560, margin:'0 auto' }}>
+            Los 3 mejores promotores del Mundial ganan una quiniela gratis para Champions o Liga MX. Tu ranking se actualiza en tiempo real en tu dashboard.
+          </div>
+        </div>
+
+        <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:12, marginBottom:28 }}>
+          {[
+            { pos:'🥇', label:'1er lugar', premio:'Quiniela gratis + mención especial en la plataforma', color:'rgba(245,183,49,0.2)', border:'rgba(245,183,49,0.3)' },
+            { pos:'🥈', label:'2do lugar', premio:'Quiniela gratis para la siguiente competencia',        color:'rgba(255,255,255,0.05)', border:'rgba(255,255,255,0.1)' },
+            { pos:'🥉', label:'3er lugar', premio:'Quiniela gratis para la siguiente competencia',        color:'rgba(255,255,255,0.05)', border:'rgba(255,255,255,0.1)' },
+          ].map((item, i) => (
+            <div key={i} style={{ flex:1, background:item.color, border:`1px solid ${item.border}`, borderRadius:16, padding:'20px 18px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', gap:8 }}>
+              <span style={{ fontSize:32 }}>{item.pos}</span>
+              <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:18, color:'#fff', letterSpacing:1 }}>{item.label}</div>
+              <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', lineHeight:1.5 }}>{item.premio}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mini widget dashboard */}
+        <div style={{ background:CARD, borderRadius:16, padding:'20px', border:'1px solid rgba(245,183,49,0.15)', maxWidth:600, margin:'0 auto' }}>
+          <div style={{ fontSize:9, color:'rgba(255,255,255,0.22)', letterSpacing:3, fontWeight:700, marginBottom:16, textAlign:'center' }}>
+            CÓMO SE VE EN TU DASHBOARD
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+            {[
+              { label:'Referidos',   value:'7',   color:'#F5B731' },
+              { label:'Activos',     value:'5',   color:'#00C46A' },
+              { label:'Mi posición', value:'#4',  color:'#4FADFF' },
+              { label:'Pts ranking', value:'310', color:'#F5B731' },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign:'center', padding:'12px 0', background:'rgba(0,0,0,0.25)', borderRadius:10 }}>
+                <div style={{ fontSize:24, fontWeight:800, color:s.color }}>{s.value}</div>
+                <div style={{ fontSize:9, color:'rgba(255,255,255,0.28)', marginTop:4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ CTA FINAL ══ */}
+      <section style={{ padding: isMobile ? '48px 20px 64px' : '60px 5% 80px', maxWidth:1200, margin:'0 auto', borderTop:'1px solid rgba(255,255,255,0.06)', textAlign:'center' }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:10, background:'rgba(255,77,109,0.08)', border:'1px solid rgba(255,77,109,0.25)', borderRadius:12, padding:'10px 20px', marginBottom:28 }}>
+          <span style={{ fontSize:14 }}>⚠️</span>
+          <span style={{ fontSize:12, color:'rgba(255,150,150,0.9)', fontWeight:600, letterSpacing:.5 }}>
+            El registro cierra el <span style={{ color:'#FF4D6D' }}>10 de junio a las 11:59 PM</span> — después no puedes participar
+          </span>
+        </div>
+        <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#fff', fontSize: isMobile ? 34 : 50, letterSpacing:'3px', lineHeight:1, marginBottom:6 }}>
+          EL MUNDIAL EMPIEZA
+        </div>
+        <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#F5B731', fontSize: isMobile ? 48 : 68, letterSpacing:'3px', lineHeight:1, marginBottom:16 }}>
+          11 DE JUNIO
+        </div>
+        <div style={{ color:'rgba(255,255,255,0.35)', fontSize: isMobile ? 13 : 15, maxWidth:460, margin:'0 auto 32px' }}>
+          México vs Sudáfrica · Estadio Azteca · 5:00 PM CST<br/>
+          Tus predicciones se bloquean automáticamente al pitazo.
+        </div>
+        <div style={{ maxWidth:520, margin:'0 auto' }}>
+          <button className="cta-gold" onClick={handleLogin}>🏆 QUIERO GANAR EL POZO →</button>
+          <div style={{ marginTop:14, fontSize:11, color:'rgba(255,255,255,0.18)', lineHeight:1.9 }}>
+            Pago seguro con Mercado Pago · Comisión 10% siempre visible<br/>
+            <span style={{ color:'rgba(245,183,49,0.35)' }}>atinale-ecru.vercel.app</span>
+          </div>
         </div>
       </section>
 

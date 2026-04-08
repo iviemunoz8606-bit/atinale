@@ -18,7 +18,7 @@ export default function Registro() {
   const [error, setError] = useState('')
   const [isMobile, setIsMobile] = useState(false)
 
-  useEffect(() => {
+  (() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)
@@ -68,7 +68,7 @@ export default function Registro() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Sesión expirada, vuelve a iniciar sesión'); setLoading(false); return }
-
+useEffect
     const { error } = await supabase.from('users').upsert({
       id: user.id,
       name: nombre.trim(),

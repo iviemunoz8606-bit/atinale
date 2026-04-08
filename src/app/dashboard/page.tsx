@@ -590,10 +590,10 @@ export default function Dashboard() {
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(10,13,18,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', padding: '8px 0 20px' }}>
         {[
           { icon: '🏠', label: 'Inicio',    href: '/dashboard', active: true  },
-          { icon: '⚽', label: 'Quinielas', href: '/quinielas', active: false },
-          { icon: '🎯', label: 'Predecir',  href: '/quinielas', active: false },
-          { icon: '🏆', label: 'Ranking',   href: '/ranking',   active: false },
-          { icon: '👤', label: 'Perfil',    href: '/perfil',    active: false },
+          { icon: '⚽', label: 'Quinielas', href: '/dashboard', active: false },
+          { icon: '🎯', label: 'Predecir',  href: '/dashboard', active: false },
+          { icon: '🏆', label: 'Ranking',   href: '/dashboard',   active: false },
+          { icon: '👤', label: 'Perfil',    href: '/dashboard',    active: false },
         ].map((item) => (
           <Link key={item.label} href={item.href} style={{ flex: 1, textDecoration: 'none' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 6 }}>

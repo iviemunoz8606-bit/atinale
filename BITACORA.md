@@ -230,3 +230,34 @@ SUPABASE:      createBrowserClient de @supabase/ssr (nunca createClientComponent
 MOBILE:        CSS media queries puras — NO usar window.innerWidth para mostrar/ocultar
 COLORES:       BG #080C16 | CARD #111520 | Dorado #F5B731/#C9930A | Verde #00C46A
 FUENTES:       Bebas Neue (títulos) + Outfit (cuerpo)
+### Sesión 10 — 8 de abril 2026 — Mobile fixes + Quinielas + Dashboard
+
+**Mobile hero:**
+- ✅ Botones "QUIERO GANAR EL POZO" reducidos a 2 en mobile
+- ✅ Aviso rojo duplicado eliminado
+- ✅ "CÓBRATE" cambiado a "GANATE" en mobile
+- ✅ 3 Pasos visibles directo en mobile (sin acordeón) con título centrado
+- ✅ Horas corregidas a UTC — 1:00 PM hora centro (UTC-6)
+- ✅ Cierre de registro — 12:50 PM del 11 de junio
+
+**Bugs resueltos:**
+- ✅ Bug doble login — route.ts ahora verifica name+phone antes de redirigir
+- ✅ Nav inferior sin 404 — Ranking y Perfil apuntan a /dashboard temporalmente
+
+**Base de datos:**
+- ✅ 3 quinielas públicas creadas en Supabase ($100/$300/$500)
+- ✅ Quiniela beta test cerrada (status=closed) — pagos preservados
+- ✅ Fechas en UTC corregidas en todas las quinielas
+
+**Dashboard:**
+- ✅ Colores unificados con landing (#080C16)
+
+**Pendientes sesión 11:**
+- [ ] Modo Próximamente + captura emails (URGENTE antes 27 mayo)
+- [ ] Cambiar MP a credenciales producción
+- [ ] Sistema de referidos (tabla referrals ya existe)
+- [ ] Botón cerrar sesión
+- [ ] Dashboard desktop redistribuir layout
+- [ ] Páginas Ranking y Perfil
+- [ ] Formulario crear quinielas desde /admin
+- [ ] Tabs quinielas en tabla posiciones (se ven apretados en desktop)

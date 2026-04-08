@@ -355,7 +355,7 @@ export default function Home() {
               </span>
             </div>
             <div style={{ textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.22)', letterSpacing:2, marginBottom:10 }}>
-              30 jugadores × $200 MXN · Comisión 10% visible
+              60 jugadores × $100 MXN · Comisión 10% visible
             </div>
             <div style={{ background:'rgba(0,196,106,0.06)', border:'1px solid rgba(0,196,106,0.2)', borderRadius:10, padding:'8px 12px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div style={{ fontSize:11, color:'rgba(255,255,255,0.38)' }}>📈 Si se llena (200 personas)</div>
@@ -601,7 +601,7 @@ export default function Home() {
                   </span>
                 </div>
                 <div style={{ textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.22)', letterSpacing:2, marginBottom:12 }}>
-                  30 jugadores X 200 MXN · Pozo $6,000 · Comisión 10% siempre visible
+                  60 jugadores X 100 MXN · Pozo $6,000 · Comisión 10% siempre visible
                 </div>
                 <div style={{ background:'rgba(0,196,106,0.06)', border:'1px solid rgba(0,196,106,0.2)', borderRadius:10, padding:'9px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                   <div style={{ fontSize:11, color:'rgba(255,255,255,0.38)' }}>📈 Si llega hasta (200 participantes), ganarías...</div>

@@ -180,3 +180,53 @@ git add .                    # Marcar cambios
 git commit -m "descripción"  # Guardar con mensaje
 git push                     # Subir a GitHub → Vercel publica
 ```
+
+## Sesión 9 — 7 de abril 2026 — Landing page completa + Mobile
+
+### Lo que se construyó:
+
+**Landing page rediseñada completa:**
+- NavLogo: ATÍNALE + diana animada con 3 anillos + Quinielas Deportivas / Predice y Gana
+- Hero desktop: CÓBRATE! con efecto neón blanco, diana anclada a la E, orden reorganizado
+- Hero mobile: sección completamente separada con CSS media queries (no JavaScript)
+- Contador del pozo: $5,400 animado con CountUp, proyección $18,000 si se llena
+- Partido inaugural México vs Sudáfrica con banderas y sistema de puntos
+- Tarjetas Salas y Referidos en columna derecha con links a secciones
+- Sección 3 Pasos: título centrado, tarjetas horizontales en desktop
+- Sección Salas Privadas: comisión escalonada 3/4/5%, diseño original
+- Sección Referidos: tarjetas de premios, mini dashboard con colores vibrantes
+- CTA Final: aviso urgencia rojo + 11 DE JUNIO dorado
+- Botón "Entrar" con animación btnPulse dorada continua
+- Botón "Crear mi sala" con misma animación que Entrar
+- Dashboard ranking: colores F5B731 / 00C46A / 4FADFF
+
+**Mobile optimizado:**
+- CSS media queries puras para evitar bug de SSR con window
+- Hero mobile con orden: ATÍNALE → CÓBRATE → $5,400 → Partido → Features → CTA
+- Acordeones colapsables: ¿Cómo funciona? / Salas / Referidos
+- Secciones desktop-only: 3 Pasos, Salas completa, Referidos completo ocultos en mobile
+
+**Decisiones de producto:**
+- Salas privadas: comisión 3/4/5% escalonada por participantes
+- Ranking de Promotores: top 3 gana quiniela gratis Champions/Liga MX
+- Pozo: opción B — mostrar real + proyección
+- Modo claro: agendado para v2 post-Mundial
+- Deploy exitoso en producción
+
+### Pendientes para sesión 10:
+- [ ] Mostrar "3 Pasos" directo en mobile (sin acordeón)
+- [ ] CountUp con animación en mobile
+- [ ] Botones mobile que funcionen correctamente
+- [ ] Botón "Entrar" más angosto en mobile
+- [ ] Bug doble registro en /auth/callback
+- [ ] Cambiar Mercado Pago a credenciales de producción
+### Contexto técnico
+STACK:         Next.js 14 (--webpack) + Supabase + Vercel + Mercado Pago
+OS:            Windows 11 + VS Code + CMD
+ARRANQUE:      npm run dev -- --webpack
+DEPLOY:        git add . → git commit → git push (Vercel auto-deploy)
+REGLA CSS:     // @ts-nocheck siempre en archivos nuevos
+SUPABASE:      createBrowserClient de @supabase/ssr (nunca createClientComponentClient)
+MOBILE:        CSS media queries puras — NO usar window.innerWidth para mostrar/ocultar
+COLORES:       BG #080C16 | CARD #111520 | Dorado #F5B731/#C9930A | Verde #00C46A
+FUENTES:       Bebas Neue (títulos) + Outfit (cuerpo)

@@ -431,25 +431,33 @@ export default function Home() {
             </div>
           </div>
 
+          <div style={{ marginBottom:14,textAlign:'center'}}>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', letterSpacing:'3px', textTransform:'uppercase', marginBottom:6 }}>
+              ⚡ Así de fácil
+            </div>
+            <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:36, lineHeight:1.1 }}>
+              3 PASOS PARA<br/>
+              <span style={{ color:'#F5B731' }}>GANAR EL POZO</span>
+            </div>
+          </div>
+
           {/* 7 — 3 Pasos mobile */}
           <div style={{ marginBottom:10 }}>
-            <Acordeon icon="⚡" titulo="¿Cómo funciona?" subtitulo="Toca para ver los 3 pasos" color="rgba(255,255,255,0.1)">
-              <div style={{ paddingTop:12, display:'flex', flexDirection:'column', gap:10 }}>
-                {[
-                  { num:'01', icon:'💳', title:'Regístrate y paga', desc:'Crea tu cuenta con Google y paga $100 vía Mercado Pago. En menos de 2 minutos estás dentro.' },
-                  { num:'02', icon:'🎯', title:'Predice los 48 partidos', desc:'Escribe el marcador exacto de cada partido. Se bloquea automáticamente al pitazo.' },
-                  { num:'03', icon:'🏆', title:'Sube al ranking y cobra', desc:'El que más aciertos tenga se lleva el 90% del pozo. Ranking en tiempo real.' },
-                ].map((step, i) => (
-                  <div key={i} style={{ display:'flex', gap:12, alignItems:'flex-start', padding:'10px', background:'rgba(0,0,0,0.2)', borderRadius:10 }}>
-                    <span style={{ fontSize:18, flexShrink:0 }}>{step.icon}</span>
-                    <div>
-                      <div style={{ fontSize:12, fontWeight:700, color:'#fff', marginBottom:2 }}>{step.num} — {step.title}</div>
-                      <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', lineHeight:1.5 }}>{step.desc}</div>
-                    </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {[
+                { num:'01', icon:'💳', title:'Regístrate y paga', desc:'Crea tu cuenta con Google y paga $100 vía Mercado Pago. En menos de 2 minutos estás dentro.' },
+                { num:'02', icon:'🎯', title:'Predice los 48 partidos', desc:'Escribe el marcador exacto de cada partido. Se bloquea automáticamente al pitazo.' },
+                { num:'03', icon:'🏆', title:'Sube al ranking y cobra', desc:'El que más aciertos tenga se lleva el 90% del pozo. Ranking en tiempo real.' },
+              ].map((step, i) => (
+                <div key={i} style={{ display:'flex', gap:12, alignItems:'flex-start', padding:'10px', background:'rgba(0,0,0,0.2)', borderRadius:10 }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>{step.icon}</span>
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#fff', marginBottom:2 }}>{step.num} — {step.title}</div>
+                    <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', lineHeight:1.5 }}>{step.desc}</div>
                   </div>
-                ))}
-              </div>
-            </Acordeon>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* 8 — Salas colapsable */}

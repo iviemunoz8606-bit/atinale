@@ -31,11 +31,11 @@ export async function GET(request: Request) {
     if (!error && session) {
       const { data: profile } = await supabase
         .from('users')
-        .select('id')
+        .select('id, name, phone')
         .eq('id', session.user.id)
         .single()
 
-      if (profile) {
+      if (profile && profile.name && profile.phone) {
         return NextResponse.redirect(`${origin}/dashboard`)
       } else {
         return NextResponse.redirect(`${origin}/registro`)

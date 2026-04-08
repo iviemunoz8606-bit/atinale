@@ -334,14 +334,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 2 — CÓBRATE */}
+          {/* 2 — GANATE */}
           <div style={{ marginBottom:16 }}>
             <div className="neon-cobrate" style={{ fontSize:52, letterSpacing:'3px', lineHeight:1 }}>
-              CÓBRATE!
-            </div>
-            <div style={{ height:1, background:'linear-gradient(90deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))', borderRadius:2, margin:'8px 0 6px' }}/>
-            <div style={{ fontSize:14, color:'rgba(255,255,255,0.4)', fontWeight:300 }}>
-              ¿Cuánto sabes de fútbol?
+              GANATE!
             </div>
           </div>
 
@@ -373,7 +369,7 @@ export default function Home() {
               <span style={{ fontSize:10, color:'#00C46A', letterSpacing:2, fontWeight:700 }}>⚽ PARTIDO INAUGURAL</span>
               <span style={{ display:'flex', alignItems:'center', gap:5 }}>
                 <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF4D6D', display:'inline-block', animation:'pulseDot 1.2s ease-in-out infinite' }}/>
-                <span style={{ fontSize:9, color:'#FF4D6D', fontWeight:700 }}>11 JUN · 5:00 PM</span>
+                <span style={{ fontSize:9, color:'#FF4D6D', fontWeight:700 }}>11 JUN · 1 PM (hora centro)</span>
               </span>
             </div>
             <div style={{ padding:'14px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
@@ -406,6 +402,11 @@ export default function Home() {
             </div>
           </div>
 
+          
+            <div style={{ fontSize:14, color:'rgba(255,255,255,0.4)', fontWeight:300 }}>
+              ¿Cuánto sabes de fútbol?
+            </div>
+          <div style={{ height:1, background:'linear-gradient(90deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))', borderRadius:2, margin:'8px 0 6px' }}/>      
           {/* 5 — Features */}
           <div style={{ marginBottom:16 }}>
             {[
@@ -510,14 +511,6 @@ export default function Home() {
             </div>
           </Acordeon>
 
-          {/* CTA final mobile */}
-          <div style={{ marginTop:20, padding:'20px', background:'rgba(255,77,109,0.06)', border:'1px solid rgba(255,77,109,0.2)', borderRadius:14, textAlign:'center' }}>
-            <div style={{ fontSize:11, color:'rgba(255,150,150,0.8)', fontWeight:600, marginBottom:12 }}>
-              ⚠️ Registro cierra el <span style={{ color:'#FF4D6D' }}>10 de junio 11:59 PM</span>
-            </div>
-            <button className="cta-gold" onClick={handleLogin}>🏆 QUIERO GANAR EL POZO →</button>
-          </div>
-
         </section>
       </div>
 
@@ -612,7 +605,7 @@ export default function Home() {
                   <span style={{ fontSize:10, color:'#00C46A', letterSpacing:2, fontWeight:700 }}>⚽ PARTIDO INAUGURAL</span>
                   <span style={{ display:'flex', alignItems:'center', gap:5 }}>
                     <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF4D6D', display:'inline-block', animation:'pulseDot 1.2s ease-in-out infinite' }}/>
-                    <span style={{ fontSize:9, color:'#FF4D6D', fontWeight:700 }}>11 JUN · 5:00 PM CST</span>
+                    <span style={{ fontSize:9, color:'#FF4D6D', fontWeight:700 }}>11 JUN · 1:00 PM (hora centro)</span>
                   </span>
                 </div>
                 <div style={{ padding:'16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
@@ -837,20 +830,21 @@ export default function Home() {
 
       {/* ══ CTA FINAL ══ */}
       <section style={{ padding:'60px 5% 80px', maxWidth:1200, margin:'0 auto', borderTop:'1px solid rgba(255,255,255,0.06)', textAlign:'center' }}>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:10, background:'rgba(255,77,109,0.08)', border:'1px solid rgba(255,77,109,0.25)', borderRadius:12, padding:'10px 20px', marginBottom:28 }}>
-          <span style={{ fontSize:14 }}>⚠️</span>
-          <span style={{ fontSize:12, color:'rgba(255,150,150,0.9)', fontWeight:600, letterSpacing:.5 }}>
-            El registro cierra el <span style={{ color:'#FF4D6D' }}>10 de junio a las 11:59 PM</span> — después no puedes participar
-          </span>
-        </div>
-        <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#fff', fontSize: isMobile ? 34 : 50, letterSpacing:'3px', lineHeight:1, marginBottom:6 }}>
+        
+        <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#fff', fontSize: isMobile ? 40  : 60, letterSpacing:'3px', lineHeight:1, marginBottom:6 }}>
           EL MUNDIAL EMPIEZA
         </div>
         <div style={{ fontFamily:"'Bebas Neue', sans-serif", color:'#F5B731', fontSize: isMobile ? 48 : 68, letterSpacing:'3px', lineHeight:1, marginBottom:16 }}>
           11 DE JUNIO
         </div>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:10, background:'rgba(255,77,109,0.08)', border:'1px solid rgba(255,77,109,0.25)', borderRadius:12, padding:'10px 20px', marginBottom:28 }}>
+          <span style={{ fontSize:14 }}>⚠️</span>
+          <span style={{ fontSize:12, color:'rgba(255,150,150,0.9)', fontWeight:600, letterSpacing:.5 }}>
+            El registro cierra el <span style={{ color:'#FF4D6D' }}>11 de junio 12:50 PM</span> — después no puedes participar
+          </span>
+        </div>
         <div style={{ color:'rgba(255,255,255,0.35)', fontSize: isMobile ? 13 : 15, maxWidth:460, margin:'0 auto 32px' }}>
-          México vs Sudáfrica · Estadio Azteca · 5:00 PM CST<br/>
+          México vs Sudáfrica · Estadio Azteca · 1:00 PM (hora centro)<br/>
           Tus predicciones se bloquean automáticamente al pitazo.
         </div>
         <div style={{ maxWidth:520, margin:'0 auto' }}>

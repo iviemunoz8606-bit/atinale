@@ -206,7 +206,7 @@ export default function Dashboard() {
   // ── Loading ──
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A0D12', flexDirection: 'column', gap: 16 }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#080C16', flexDirection: 'column', gap: 16 }}>
         <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731', animation: 'spin 0.8s linear infinite' }} />
         <p style={{ color: '#6B7280', fontSize: 14 }}>Cargando...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -220,12 +220,12 @@ export default function Dashboard() {
   const totalMyPoints = user.total_points || 0
 
   return (
-    <div style={{ background: '#0A0D12', minHeight: '100vh', fontFamily: "'Outfit','Helvetica Neue',sans-serif", color: '#F0F2F8' }}>
+    <div style={{ background: '#080C16', minHeight: '100vh', fontFamily: "'Outfit','Helvetica Neue',sans-serif", color: '#F0F2F8' }}>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0A0D12; }
+        body { background: #080C16; }
         @keyframes fadeUp  { from { opacity:0; transform:translateY(14px) } to { opacity:1; transform:translateY(0) } }
         @keyframes pulse   { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:.5; transform:scale(1.4) } }
         @keyframes shimmer { 0% { left:-100% } 100% { left:200% } }
@@ -300,7 +300,7 @@ export default function Dashboard() {
           {user.avatar_url ? (
             <img src={user.avatar_url} alt={user.name} style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid rgba(245,183,49,0.3)', objectFit: 'cover' }} />
           ) : (
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#F5B731,#00C46A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: '#0A0D12', border: '2px solid rgba(245,183,49,0.3)' }}>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#F5B731,#00C46A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: '#080C16', border: '2px solid rgba(245,183,49,0.3)' }}>
               {getInitial(user.name)}
             </div>
           )}
@@ -337,7 +337,7 @@ export default function Dashboard() {
         {/* TABS */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           {(['disponibles', 'mis-quinielas'] as const).map(tab => (
-            <button key={tab} className="tab-btn" onClick={() => setActiveTab(tab)} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", fontWeight: 600, fontSize: 13, background: activeTab === tab ? 'linear-gradient(135deg,#F5B731,#C9930A)' : 'rgba(255,255,255,0.04)', color: activeTab === tab ? '#0A0D12' : '#6B7280', transition: 'all 0.2s' }}>
+            <button key={tab} className="tab-btn" onClick={() => setActiveTab(tab)} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", fontWeight: 600, fontSize: 13, background: activeTab === tab ? 'linear-gradient(135deg,#F5B731,#C9930A)' : 'rgba(255,255,255,0.04)', color: activeTab === tab ? '#080C16' : '#6B7280', transition: 'all 0.2s' }}>
               {tab === 'disponibles' ? '🏆 Disponibles' : '🎯 Mis Quinielas'}
             </button>
           ))}
@@ -437,7 +437,7 @@ export default function Dashboard() {
                             : isPending
                               ? 'rgba(245,183,49,0.1)'
                               : 'linear-gradient(135deg,#F5B731,#C9930A)',
-                          color: isPending ? '#F5B731' : '#0A0D12',
+                          color: isPending ? '#F5B731' : '#080C16',
                         }}
                       >
                         {isApproved ? 'VER PREDICCIONES →' : isPending ? '⏳ EN REVISIÓN' : 'UNIRSE →'}
@@ -457,7 +457,7 @@ export default function Dashboard() {
               <div style={{ background: '#111520', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: 32, textAlign: 'center', color: '#6B7280' }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
                 <div style={{ fontWeight: 600, marginBottom: 6 }}>Aún no participas en ninguna quiniela</div>
-                <button onClick={() => setActiveTab('disponibles')} style={{ marginTop: 12, padding: '10px 20px', borderRadius: 20, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#0A0D12', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}>
+                <button onClick={() => setActiveTab('disponibles')} style={{ marginTop: 12, padding: '10px 20px', borderRadius: 20, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}>
                   Ver quinielas disponibles
                 </button>
               </div>
@@ -565,7 +565,7 @@ export default function Dashboard() {
                   return (
                     <div key={entry.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < leaderboard.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none', background: isMe ? 'rgba(245,183,49,0.05)' : 'transparent', borderLeft: isMe ? '2px solid #F5B731' : '2px solid transparent' }}>
                       <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, width: 28, textAlign: 'center', color: i < 3 ? '#F5B731' : '#6B7280' }}>{i + 1}</div>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: `linear-gradient(135deg,${avatarColors[i % avatarColors.length]})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: isMe ? '#0A0D12' : 'white' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: `linear-gradient(135deg,${avatarColors[i % avatarColors.length]})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: isMe ? '#080C16' : 'white' }}>
                         {entry.user?.avatar_url
                           ? <img src={entry.user.avatar_url} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                           : getInitial(entry.user?.name || '?')}

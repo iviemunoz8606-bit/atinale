@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use client'
-import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
+const motion = dynamic(() => import('framer-motion').then(mod => mod.motion), { ssr: false }) as any
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import '@fontsource/bebas-neue'

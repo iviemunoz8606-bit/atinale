@@ -189,6 +189,12 @@ export default function Home() {
   const BG   = '#080C16'
   const CARD = '#111520'
 
+  // ← AGREGAR ESTA LÍNEA
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()

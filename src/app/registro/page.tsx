@@ -1,10 +1,7 @@
 // @ts-nocheck
 'use client'
-import dynamic from 'next/dynamic'
-const motion = dynamic(() => import('framer-motion').then(mod => mod.motion), { ssr: false }) as any
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import '@fontsource/bebas-neue'
 
 export default function Registro() {
   const supabase = createBrowserClient(
@@ -19,7 +16,7 @@ export default function Registro() {
   const [error, setError] = useState('')
   const [isMobile, setIsMobile] = useState(false)
 
-  (() => {
+  useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)
@@ -35,7 +32,6 @@ export default function Registro() {
           .select('name, phone')
           .eq('id', data.session.user.id)
           .single()
-        
         if (!perfil || !perfil.name || !perfil.phone) {
           setStep('perfil')
         } else {
@@ -69,7 +65,7 @@ export default function Registro() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Sesión expirada, vuelve a iniciar sesión'); setLoading(false); return }
-useEffect
+
     const { error } = await supabase.from('users').upsert({
       id: user.id,
       name: nombre.trim(),
@@ -89,9 +85,7 @@ useEffect
       minHeight: '100vh', display: 'flex', alignItems: 'center',
       justifyContent: 'center', fontFamily: 'system-ui, sans-serif', padding: '2rem 1rem'
     }}>
-      <motion.div
-        initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div
         style={{
           background: 'linear-gradient(135deg, #1A1050 0%, #0F1A3A 100%)',
           border: '1px solid #534AB7', borderRadius: 28,
@@ -113,7 +107,7 @@ useEffect
         </div>
 
         {step === 'login' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div>
             <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>
               Únete a la quiniela
             </h2>
@@ -133,15 +127,14 @@ useEffect
                 {error}
               </div>
             )}
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            <button
               onClick={loginConGoogle} disabled={loading}
               style={{
                 width: '100%', background: '#ffffff', color: '#1a1a1a', border: 'none',
                 borderRadius: 50, padding: '16px 24px', fontSize: 17, fontWeight: 700,
                 cursor: loading ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-                opacity: loading ? 0.7 : 1
+                opacity: loading ? 0.7 : 1, transition: 'transform 0.15s',
               }}>
               {loading ? <span>Conectando...</span> : (
                 <>
@@ -154,15 +147,15 @@ useEffect
                   Continuar con Google
                 </>
               )}
-            </motion.button>
+            </button>
             <p style={{ color: '#5F6E8A', fontSize: 13, textAlign: 'center', marginTop: 20, lineHeight: 1.5 }}>
               Al continuar aceptas participar en la quiniela bajo las reglas de Atínale
             </p>
-          </motion.div>
+          </div>
         )}
 
         {step === 'perfil' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div>
             <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>
               ¡Ya casi estás!
             </h2>
@@ -197,8 +190,7 @@ useEffect
                 {error}
               </div>
             )}
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            <button
               onClick={guardarPerfil} disabled={loading}
               style={{
                 width: '100%', background: '#EFC84A', color: '#0D0D1A', border: 'none',
@@ -206,10 +198,10 @@ useEffect
                 cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1
               }}>
               {loading ? 'Guardando...' : '🏆 Entrar a la quiniela →'}
-            </motion.button>
-          </motion.div>
+            </button>
+          </div>
         )}
-      </motion.div>
+      </div>
     </div>
   )
 }

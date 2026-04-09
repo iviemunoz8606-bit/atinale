@@ -197,16 +197,38 @@ export default function Home() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  async function handleLogin() {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` }
-    })
+  const handleLogin = async () => {
+  // Verificar si ya hay sesión activa antes de ir a Google
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (session) {
+    // Ya hay sesión — verificar si tiene perfil completo
+    const { data: profile } = await supabase
+      .from('users')
+      .select('name, phone')
+      .eq('id', session.user.id)
+      .single()
+    
+    if (profile && profile.name && profile.phone) {
+      window.location.href = '/dashboard'
+    } else {
+      window.location.href = '/registro'
+    }
+    return // ← Importante: corta aquí, no sigue a Google
   }
+
+  // Solo si NO hay sesión → ir a Google
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+
+  if (error) {
+    console.error('Error login:', error.message)
+  }
+}
 
   const dianaSize    = isMobile ? 120 : 148
   const heroFontSize = isMobile ? 80  : 104

@@ -261,3 +261,42 @@ FUENTES:       Bebas Neue (títulos) + Outfit (cuerpo)
 - [ ] Páginas Ranking y Perfil
 - [ ] Formulario crear quinielas desde /admin
 - [ ] Tabs quinielas en tabla posiciones (se ven apretados en desktop)
+
+## Sesión 11 — 9 de abril de 2026 — Primera venta real 🎉
+
+### Lo que se hizo
+- ✅ Bug doble login eliminado — archivo renombrado de middleware.ts a proxy.ts
+- ✅ Función exportada renombrada de `middleware` a `proxy` (requerimiento Next.js 16)
+- ✅ Fix `supabase is not defined` en landing page (faltaba inicializar el cliente en Home())
+- ✅ Fix `framer-motion` SSR en /registro — eliminado completamente, reemplazado con divs/buttons nativos
+- ✅ Fix `useEffect` roto en /registro — faltaba la palabra `useEffect` y había una línea suelta dentro de guardarPerfil()
+- ✅ Dashboard rediseñado — logo con NavDiana animada igual que landing
+- ✅ Cards de quinielas con identidad visual por competencia (borde izquierdo de color)
+- ✅ Todos los botones de acción siempre en amarillo dorado — consistencia de marca
+- ✅ Menú cerrar sesión en avatar del topbar — tap → menú desplegable con Mi perfil y Cerrar sesión
+- ✅ Página /ranking creada — podio top 3, lista completa, EN VIVO, resalta "Tú"
+- ✅ Página /perfil creada — avatar, stats, historial de quinielas, datos de contacto, cerrar sesión
+- ✅ Nav inferior 100% funcional — sin ningún 404 en ningún botón
+- ✅ Mercado Pago credenciales de producción activadas y configuradas en Vercel
+- ✅ PRIMER PAGO REAL PROCESADO — Ivie y su esposa, $100 c/u = $200 pozo real
+- ✅ Deploy limpio en producción
+
+### Errores encontrados y soluciones
+| Error | Causa | Solución |
+|-------|-------|----------|
+| `middleware deprecated` | Next.js 16 renombró la convención | Renombrar archivo y función a `proxy` |
+| `supabase is not defined` | Cliente no inicializado en Home() | Agregar `createBrowserClient` dentro del componente |
+| `useState is not a function` en Vercel | framer-motion no compatible con SSR | Eliminar framer-motion completamente del registro |
+| `useEffect` roto | Faltaba la palabra useEffect y había línea suelta | Corregir sintaxis completa |
+
+### Hito histórico
+Primera transacción real de Atínale: 9 de abril de 2026
+Participantes: Ivie Eduardo + esposa
+Monto: $200 MXN (2 × $100)
+Pozo neto: $180 MXN
+Comisión plataforma: $20 MXN (10%)
+MP producción: funcionando ✅
+
+## Contexto Técnico Rápido — Referencia de sesión a sesión
+
+### Arranque local

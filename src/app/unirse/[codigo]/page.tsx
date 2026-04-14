@@ -57,11 +57,13 @@ export default function UnirseCodigoPage() {
       return
     }
 
+    if (poolData.registration_closes_at) {
     const cierreAt = new Date(poolData.registration_closes_at)
     if (cierreAt < new Date()) {
-      setError('El registro para esta sala ya cerró.')
-      setLoading(false)
-      return
+        setError('El registro para esta sala ya cerró.')
+        setLoading(false)
+        return
+    }
     }
 
     if (u) {

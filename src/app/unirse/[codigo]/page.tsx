@@ -98,11 +98,13 @@ export default function UnirseCodigoPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          poolId: pool.id,
-          userId: user.id,
-          amount: pool.entry_fee,
-          poolName: pool.name,
-        }),
+            poolId: pool.id,
+            userId: user.id,
+            poolName: pool.name,
+            entryFee: pool.entry_fee,
+            userEmail: user.email,
+            userName: user.user_metadata?.full_name || user.email,
+            }),
       })
 
       const data = await res.json()

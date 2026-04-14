@@ -5,10 +5,11 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const redirectTo = searchParams.get('redirect') || '/dashboard'
 
   if (code) {
     const cookieStore = await cookies()
-    
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,9 +37,9 @@ export async function GET(request: Request) {
         .single()
 
       if (profile && profile.name && profile.phone) {
-        return NextResponse.redirect(`${origin}/dashboard`)
+        return NextResponse.redirect(`${origin}${redirectTo}`)
       } else {
-        return NextResponse.redirect(`${origin}/registro`)
+        return NextResponse.redirect(`${origin}/registro?redirect=${encodeURIComponent(redirectTo)}`)
       }
     }
   }

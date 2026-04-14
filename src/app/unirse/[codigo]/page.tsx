@@ -109,8 +109,8 @@ export default function UnirseCodigoPage() {
 
       const data = await res.json()
 
-      if (data.init_point) {
-        window.location.href = data.init_point
+      if (data.url) {
+        window.location.href = data.url
       } else {
         setError('No se pudo iniciar el pago. Intenta de nuevo.')
         setPaying(false)

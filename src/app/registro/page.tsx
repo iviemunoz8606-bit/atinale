@@ -57,7 +57,7 @@ export default function Registro() {
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}` }
     })
     if (error) {
       setError('Error al conectar con Google. Intenta de nuevo.')

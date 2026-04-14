@@ -13,6 +13,7 @@ export default function Registro() {
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [referido, setReferido] = useState('')
+  const [redirectTo, setRedirectTo] = useState('/dashboard')
   const [error, setError] = useState('')
   const [isMobile, setIsMobile] = useState(false)
 
@@ -24,6 +25,8 @@ export default function Registro() {
     const params = new URLSearchParams(window.location.search)
     const ref = params.get('ref')
     if (ref) setReferido(ref)
+    const redirect = params.get('redirect')
+    if (redirect) setRedirectTo(redirect)
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session) {
@@ -35,7 +38,10 @@ export default function Registro() {
         if (!perfil || !perfil.name || !perfil.phone) {
           setStep('perfil')
         } else {
-          window.location.href = '/dashboard'
+          const params2 = new URLSearchParams(window.location.search)
+          const r = params2.get('redirect') || localStorage.getItem('atinale_redirect') || '/dashboard'
+          localStorage.removeItem('atinale_redirect')
+          window.location.href = r
         }
       }
     })
@@ -46,6 +52,9 @@ export default function Registro() {
   const loginConGoogle = async () => {
     setLoading(true)
     setError('')
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('atinale_redirect', redirectTo)
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` }
@@ -76,7 +85,7 @@ export default function Registro() {
 
     if (error) { setError('Error al guardar tu perfil. Intenta de nuevo.'); setLoading(false); return }
 
-    window.location.href = '/dashboard'
+    window.location.href = redirectTo
   }
 
   return (

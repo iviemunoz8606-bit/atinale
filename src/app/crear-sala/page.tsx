@@ -38,7 +38,9 @@ export default function CrearSala() {
   const pozo = monto * personas
   const comision = Math.round(pozo * comPct / 100)
   const premio = Math.round(pozo * (100 - 10 - comPct) / 100)
-
+  
+  const fmt = (n: number) => '$' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { router.push('/'); return }
@@ -238,7 +240,7 @@ export default function CrearSala() {
                 fontSize: 9,
                 color: m === monto ? 'rgba(245,183,49,0.8)' : 'rgba(255,255,255,0.2)'
               }}>
-                ${m >= 1000 ? '1k' : m}
+                ${m >= 1000 ? '1k' : m.toString()}
               </span>
             ))}
           </div>
@@ -274,12 +276,11 @@ export default function CrearSala() {
       <div style={styles.resumen}>
         <div style={styles.resumenTitle}>Resumen de tu sala</div>
         {[
-          { key: 'Nombre', val: nombre || 'Sin nombre aún', color: nombre ? '#fff' : 'rgba(255,255,255,0.3)' },
-          { key: 'Entrada', val: `$${monto.toLocaleString()} MXN`, color: '#F5B731' },
+          { key: 'Entrada', val: `${fmt(monto)} MXN`, color: '#F5B731' },
           { key: 'Personas máx', val: `${personas} personas`, color: '#fff' },
-          { key: 'Pozo máximo', val: `$${pozo.toLocaleString()}`, color: '#F5B731' },
-          { key: `Tu comisión (${comPct}%)`, val: `$${comision.toLocaleString()} si se llena`, color: '#00C46A' },
-          { key: 'Premio neto ganador', val: `$${premio.toLocaleString()}`, color: '#4FADFF' },
+          { key: 'Pozo máximo', val: fmt(pozo), color: '#F5B731' },
+          { key: `Tu comisión (${comPct}%)`, val: `${fmt(comision)} si se llena`, color: '#00C46A' },
+          { key: 'Premio neto ganador', val: fmt(premio), color: '#4FADFF' },
         ].map((r, i) => (
           <div key={i} style={styles.resRow}>
             <span style={styles.resKey}>{r.key}</span>

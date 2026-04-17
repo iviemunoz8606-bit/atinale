@@ -386,7 +386,7 @@ export default function Dashboard() {
                 <div style={{ fontSize: 13 }}>Vuelve pronto — el Mundial arranca el 11 de junio</div>
               </div>
             ) : (
-              pools.map((pool, i) => {
+              pools.filter(pool => pool.type === 'public' || pool.creator_id === user?.id).map((pool, i) => {
                 const theme = getCompTheme(pool.competition)
                 const pot = pool.total_pot > 0 ? pool.total_pot : pool.current_participants * pool.entry_fee
                 const netPrize = Math.round(pot * 0.9)

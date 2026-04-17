@@ -166,7 +166,8 @@ export default function Dashboard() {
       const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).single()
       if (!userData) { router.push('/registro'); return }
       setUser(userData)
-      const { data: poolsData } = await supabase.from('pools').select('*') const { data: publicPools } = await supabase.from('pools').select('*').eq('status', 'open').eq('type', 'public').order('starts_at', { ascending: true })
+      const { data: poolsData } = await supabase.from('pools').select('*')
+      const { data: publicPools } = await supabase.from('pools').select('*').eq('status', 'open').eq('type', 'public').order('starts_at', { ascending: true })
       const { data: myPrivatePools } = await supabase.from('pools').select('*').eq('status', 'open').eq('type', 'private').eq('creator_id', session.user.id).order('starts_at', { ascending: true })
       const allPools = [...(publicPools || []), ...(myPrivatePools || [])]
       setPools(allPools)

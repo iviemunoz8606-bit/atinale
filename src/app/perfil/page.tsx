@@ -63,12 +63,7 @@ export default function Perfil() {
     return comp
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#080C16' }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  )
+  if (loading) return null
 
   const totalPoints = user?.total_points || 0
   const quinielasAprobadas = myPools.filter(m => m.payment_status === 'approved').length

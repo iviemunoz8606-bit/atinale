@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Loading from '@/app/loading'
 
 export default function Ranking() {
   const supabase = createBrowserClient(
@@ -44,12 +45,7 @@ export default function Ranking() {
     '#FF4D6D,#C9930A', '#F5B731,#00C46A'
   ]
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#080C16', flexDirection: 'column', gap: 16 }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  )
+  if (loading) return <Loading /> 
 
   return (
     <div style={{ background: '#080C16', minHeight: '100vh', fontFamily: "'Outfit','Helvetica Neue',sans-serif", color: '#F0F2F8', paddingBottom: 100 }}>

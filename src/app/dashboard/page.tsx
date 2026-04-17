@@ -291,6 +291,17 @@ export default function Dashboard() {
         {/* Avatar + menú */}
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Link href="/crear-sala" style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: '7px 14px', borderRadius: 20,
+                background: 'linear-gradient(135deg,#F5B731,#C9930A)',
+                color: '#080C16', fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.5px', whiteSpace: 'nowrap',
+                cursor: 'pointer',
+              }}>
+                + Crear sala
+              </div>
+            </Link>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{user.name}</div>
               <div style={{ fontSize: 11, color: '#F5B731' }}>⚽ {totalMyPoints} pts</div>

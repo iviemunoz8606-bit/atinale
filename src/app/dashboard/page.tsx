@@ -212,14 +212,7 @@ export default function Dashboard() {
     setMyPools((memberData as any) || [])
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#080C16', flexDirection: 'column', gap: 16 }}>
-      <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731', animation: 'spin 0.8s linear infinite' }} />
-      <p style={{ color: '#6B7280', fontSize: 14 }}>Cargando...</p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  )
-
+  if (loading) return null
   if (!user) return null
 
   const myRank = myPools.length > 0 ? Math.min(...myPools.map(m => m.rank || 999)) : null

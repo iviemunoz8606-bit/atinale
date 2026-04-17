@@ -413,20 +413,7 @@ export default function QuinielaPredictions() {
   const pct = totalGroup > 0 ? Math.round((predictedCount / totalGroup) * 100) : 0
 
   // ── ESTADOS DE CARGA ──────────────────────────────────────────────────────
-  if (loading) return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', background: '#0A0D12', flexDirection: 'column', gap: 16
-    }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: '50%',
-        border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731',
-        animation: 'spin 0.8s linear infinite'
-      }} />
-      <p style={{ color: '#6B7280', fontSize: 14, fontFamily: 'sans-serif' }}>Verificando acceso...</p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  )
+  if (loading) return null
 
   // ── GUARD: SIN PAGO APROBADO ──────────────────────────────────────────────
   if (paymentStatus !== 'approved') {

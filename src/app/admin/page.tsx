@@ -176,13 +176,7 @@ export default function AdminPage() {
   const fmt = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
 
   // ── Loading ──
-  if (loading) return (
-    <div style={{ background: '#0A0D12', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-      <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(245,183,49,0.2)', borderTopColor: '#F5B731', animation: 'spin 0.8s linear infinite' }} />
-      <p style={{ color: '#6B7280', fontSize: 14 }}>Verificando acceso...</p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  )
+  if (loading) return null
 
   const tabStyle = (tab) => ({
     padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',

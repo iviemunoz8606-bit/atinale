@@ -40,7 +40,7 @@ function formatMXN(amount: number) {
 }
 
 function timeUntil(dateStr: string) {
-  const diff = new Date(dateStr).getTime() - Date.now()
+  const diff = new Date(dateStr + 'Z').getTime() - Date.now()
   if (diff <= 0) return 'Cerrada'
   const days = Math.floor(diff / 86400000)
   const hours = Math.floor((diff % 86400000) / 3600000)
@@ -438,7 +438,7 @@ export default function Dashboard() {
                         <span style={{ color: '#6B7280' }}>Cierra en:</span>
                         <span style={{ color: '#FF4D6D', fontWeight: 700 }}>{timeUntil(pool.registration_closes_at)}</span>
                         <span style={{ color: '#6B7280', marginLeft: 'auto', fontSize: 10 }}>
-                          {new Date(pool.registration_closes_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
+                          {new Date(pool.registration_closes_at + 'Z').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' })}
                         </span>
                       </div>
                     </div>

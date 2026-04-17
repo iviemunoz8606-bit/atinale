@@ -300,3 +300,73 @@ MP producción: funcionando ✅
 ## Contexto Técnico Rápido — Referencia de sesión a sesión
 
 ### Arranque local
+
+# SESIÓN 13 — 17 de abril de 2026
+
+## LO QUE CONSTRUIMOS
+
+### /unirse/[codigo] — página completa
+- Lee el access_code de la URL
+- Valida: código inválido, sala llena, registro cerrado, ya es miembro
+- Muestra tarjeta de sala con pozo, lugares, fecha cierre
+- Botón de pago conectado a MP
+- Fix: sala sin fecha de cierre no bloquea acceso (null check)
+- Fix: parámetros correctos a /api/mp/crear-preferencia (entryFee, userEmail, userName)
+- Fix: leer data.url en lugar de data.init_point en la respuesta
+
+### Registro con redirect
+- registro/page.tsx acepta ?redirect= param
+- Al completar perfil manda al redirect en lugar de siempre /dashboard
+- auth/callback/route.ts pasa el ?redirect= hacia adelante en todos los casos
+- Flujo: /unirse/SALA-Q137 → sin cuenta → /registro?redirect=/unirse/SALA-Q137 → Google → callback → registro completa datos → /unirse/SALA-Q137
+
+### Dashboard fixes
+- Salas privadas ocultas del dashboard (.eq('type','public'))
+- Botón "+ Crear sala" en navbar visible para todos
+- Fix fecha UTC: timeZone 'America/Mexico_City' en toLocaleDateString
+- Quiniela J17 fecha corregida en Supabase a 2026-04-25 01:55:00+00
+
+### loading.tsx global
+- Diana animada con 4 anillos rotando en direcciones alternas
+- Aplica automáticamente a todas las páginas de Next.js
+- "Cargando..." en letras pequeñas debajo
+
+## DECISIONES DE PRODUCTO
+
+### Nombre
+- Existe otro "Atínale" (plataforma de productos/regalos, no deportes)
+- Decisión: mantener identidad visual, comprar atinale.com en Namecheap
+- No cambiar diseño ni diana
+
+### Sistema alias + emoji
+- Usuarios eligen alias público (no nombre real) + emoji de galería 40 opciones
+- Filtro lista negra + moderación manual admin
+- Ranking muestra alias + emoji, no fotos de Google
+- Primer lugar: corona 👑 + borde dorado + banner "VA GANANDO $X,XXX"
+
+### Estrategia 3 estados landing
+- Estado 1: Demo Liguilla en vivo (captación antes del Mundial)
+- Estado 2: Landing actual (registro abierto)
+- Estado 3: Mundial en vivo (mismo componente que Estado 1, dinámico)
+- Estados 1 y 3 son el mismo componente — se construye una vez
+
+### Correo bienvenida
+- Tono amistoso: "más que dinero, es diversión"
+- Servicio: Resend (gratis 3,000/mes)
+- Requiere dominio propio
+
+## APRENDIZAJES TÉCNICOS
+- UTC en Supabase: México CDT = UTC−5 en verano. Guardar 01:55 UTC para 8:55pm México
+- El warning DEP0169 de url.parse() en logs de Vercel no es un error real — es interno del SDK de MP
+- Las salas privadas necesitan filtro explícito .eq('type','public') en el query del dashboard
+- El parámetro redirect viaja por URL (no localStorage) desde el login de Google
+
+## PENDIENTE INMEDIATO
+1. Alias + emoji en registro (columna alias en tabla users primero)
+2. Ranking público con alias+emoji+corona líder
+3. Partidos Liguilla (insertar 27 abril)
+4. Estado 1 landing — Demo Liguilla
+5. Toggle admin para cambiar estados
+6. Correo bienvenida con Resend
+7. Sistema de referidos
+8. Formulario crear quinielas /admin

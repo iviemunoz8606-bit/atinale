@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Loading from '@/app/loading'
 
 export default function AdminPage() {
   const supabase = createBrowserClient(
@@ -176,7 +177,7 @@ export default function AdminPage() {
   const fmt = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
 
   // ── Loading ──
-  if (loading) return null
+  if (loading) return <Loading />
 
   const tabStyle = (tab) => ({
     padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',

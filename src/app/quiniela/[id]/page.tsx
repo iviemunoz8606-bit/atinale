@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import Loading from '@/app/loading'
 
 type Match = {
   id: string
@@ -413,7 +414,7 @@ export default function QuinielaPredictions() {
   const pct = totalGroup > 0 ? Math.round((predictedCount / totalGroup) * 100) : 0
 
   // ── ESTADOS DE CARGA ──────────────────────────────────────────────────────
-  if (loading) return null
+  if (loading) return <Loading />
 
   // ── GUARD: SIN PAGO APROBADO ──────────────────────────────────────────────
   if (paymentStatus !== 'approved') {

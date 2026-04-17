@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Loading from '@/app/loading'
 
 export default function Perfil() {
   const supabase = createBrowserClient(
@@ -63,7 +64,7 @@ export default function Perfil() {
     return comp
   }
 
-  if (loading) return null
+  if (loading) return <Loading />
 
   const totalPoints = user?.total_points || 0
   const quinielasAprobadas = myPools.filter(m => m.payment_status === 'approved').length

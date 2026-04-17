@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import JoinPoolModal from '@/components/JoinPoolModal'
+import Loading from '@/app/loading'
 
 // ─── TIPOS ───────────────────────────────────────────────────────────────────
 type User = {
@@ -212,7 +213,7 @@ export default function Dashboard() {
     setMyPools((memberData as any) || [])
   }
 
-  if (loading) return null
+  if (loading) return <Loading />
   if (!user) return null
 
   const myRank = myPools.length > 0 ? Math.min(...myPools.map(m => m.rank || 999)) : null

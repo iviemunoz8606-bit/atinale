@@ -3,6 +3,13 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 
+const EMOJIS = [
+  '⚽','🏆','🎯','🔥','👑','⚡','🦁','🐯','🦅','🐺',
+  '🚀','💀','🌟','🏹','🦊','🐉','🎪','🎭','💎','🛡️',
+  '⚔️','🌪️','🦈','🐆','🏔️','🌊','🎸','🤖','👾','🃏',
+  '🧨','🎲','🦋','🌙','☄️','🎠','🦚','🐝','🌵','🎯'
+]
+
 export default function Registro() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,18 +17,14 @@ export default function Registro() {
   )
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'login' | 'perfil'>('login')
-  const [nombre, setNombre] = useState('')
+  const [alias, setAlias] = useState('')
+  const [emoji, setEmoji] = useState('⚽')
   const [telefono, setTelefono] = useState('')
   const [referido, setReferido] = useState('')
   const [redirectTo, setRedirectTo] = useState('/dashboard')
   const [error, setError] = useState('')
-  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-
     const params = new URLSearchParams(window.location.search)
     const ref = params.get('ref')
     if (ref) setReferido(ref)
@@ -45,8 +48,6 @@ export default function Registro() {
         }
       }
     })
-
-    return () => window.removeEventListener('resize', check)
   }, [])
 
   const loginConGoogle = async () => {
@@ -66,7 +67,8 @@ export default function Registro() {
   }
 
   const guardarPerfil = async () => {
-    if (!nombre.trim()) { setError('Por favor escribe tu nombre'); return }
+    if (!alias.trim()) { setError('Elige un apodo para el ranking'); return }
+    if (alias.trim().length > 20) { setError('El apodo no puede tener más de 20 caracteres'); return }
     if (!telefono.trim() || telefono.length < 10) { setError('Por favor escribe tu teléfono (10 dígitos)'); return }
 
     setLoading(true)
@@ -77,7 +79,7 @@ export default function Registro() {
 
     const { error } = await supabase.from('users').upsert({
       id: user.id,
-      name: nombre.trim(),
+      name: alias.trim(),
       email: user.email,
       phone: telefono.trim(),
       referred_by: referido || null,
@@ -89,128 +91,431 @@ export default function Registro() {
   }
 
   return (
-    <div style={{
-      background: 'linear-gradient(160deg, #0A0F2E 0%, #0D0D1A 40%, #0A1628 100%)',
-      minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', fontFamily: 'system-ui, sans-serif', padding: '2rem 1rem'
-    }}>
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #1A1050 0%, #0F1A3A 100%)',
-          border: '1px solid #534AB7', borderRadius: 28,
-          padding: isMobile ? '2rem 1.5rem' : '3rem 2.5rem',
-          width: '100%', maxWidth: 440, position: 'relative', overflow: 'hidden'
-        }}>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap');
+        @keyframes spin-cw  { to { transform: translate(-50%,-50%) rotate(360deg)  } }
+        @keyframes spin-ccw { to { transform: translate(-50%,-50%) rotate(-360deg) } }
+        @keyframes fadeUp   { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
+        @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-        <div style={{
-          position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)',
-          width: 300, height: 200, borderRadius: '50%',
-          background: '#534AB720', filter: 'blur(60px)', pointerEvents: 'none'
-        }}/>
+        .reg-root {
+          background: #080C16;
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Outfit', sans-serif;
+          padding: 24px 16px 48px;
+        }
+        .reg-card {
+          background: #111520;
+          border: 0.5px solid rgba(245,183,49,0.15);
+          border-radius: 24px;
+          width: 100%;
+          max-width: 420px;
+          padding: 36px 28px 32px;
+          animation: fadeUp 0.4s ease both;
+          position: relative;
+          overflow: hidden;
+        }
+        .reg-card::before {
+          content: '';
+          position: absolute;
+          top: -60px; left: 50%;
+          transform: translateX(-50%);
+          width: 280px; height: 160px;
+          border-radius: 50%;
+          background: rgba(245,183,49,0.06);
+          filter: blur(40px);
+          pointer-events: none;
+        }
 
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 42, color: '#fff', letterSpacing: '4px', lineHeight: 1 }}>
-            ATÍNALE
+        /* DIANA */
+        .diana-wrap {
+          position: relative;
+          width: 72px; height: 72px;
+          margin: 0 auto 20px;
+        }
+        .diana-ring {
+          position: absolute;
+          border-radius: 50%;
+          border: 1.5px solid;
+          top: 50%; left: 50%;
+        }
+        .dr1 { width:72px;height:72px; border-color:rgba(245,183,49,0.12); animation: spin-cw  10s linear infinite; }
+        .dr2 { width:54px;height:54px; border-color:rgba(245,183,49,0.22); animation: spin-ccw 7s  linear infinite; }
+        .dr3 { width:36px;height:36px; border-color:rgba(245,183,49,0.4);  animation: spin-cw  4s  linear infinite; }
+        .dr4 { width:20px;height:20px; border-color:rgba(245,183,49,0.7);  animation: spin-ccw 2.5s linear infinite; }
+        .diana-dot {
+          position: absolute; top:50%; left:50%;
+          transform: translate(-50%,-50%);
+          width:6px; height:6px;
+          background:#F5B731; border-radius:50%;
+        }
+
+        /* LOGO */
+        .reg-logo {
+          font-family: 'Bebas Neue', sans-serif;
+          font-size: 38px;
+          letter-spacing: 6px;
+          background: linear-gradient(90deg, #C9930A, #F5B731, #fff, #F5B731, #C9930A);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          text-align: center;
+          line-height: 1;
+          margin-bottom: 4px;
+        }
+        .reg-tagline {
+          font-size: 10px;
+          color: rgba(255,255,255,0.3);
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          text-align: center;
+          margin-bottom: 28px;
+        }
+
+        /* POZO CARD */
+        .pozo-card {
+          background: #0d1220;
+          border: 0.5px solid rgba(245,183,49,0.2);
+          border-radius: 14px;
+          padding: 14px 18px;
+          text-align: center;
+          margin-bottom: 24px;
+        }
+        .pozo-label { font-size:10px; color:rgba(255,255,255,0.3); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+        .pozo-num   { font-family:'Bebas Neue',sans-serif; font-size:44px; color:#F5B731; line-height:1; }
+        .pozo-sub   { font-size:11px; color:rgba(255,255,255,0.2); margin-top:2px; }
+
+        /* GOOGLE BTN */
+        .btn-google {
+          width: 100%;
+          background: #fff;
+          color: #111;
+          border: none;
+          border-radius: 50px;
+          padding: 15px 24px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: opacity 0.2s, transform 0.1s;
+          margin-bottom: 16px;
+        }
+        .btn-google:hover  { opacity: 0.93; }
+        .btn-google:active { transform: scale(0.98); }
+        .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* INPUTS */
+        .field-label {
+          font-size: 11px;
+          color: rgba(255,255,255,0.4);
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          display: block;
+          margin-bottom: 8px;
+        }
+        .field-optional { color: rgba(255,255,255,0.2); font-size:10px; text-transform:none; letter-spacing:0; }
+        .reg-input {
+          width: 100%;
+          background: #0d1220;
+          border: 0.5px solid rgba(255,255,255,0.1);
+          border-radius: 12px;
+          padding: 13px 16px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 15px;
+          color: #fff;
+          outline: none;
+          box-sizing: border-box;
+          transition: border-color 0.2s;
+          margin-bottom: 16px;
+        }
+        .reg-input:focus { border-color: rgba(245,183,49,0.4); }
+        .reg-input::placeholder { color: rgba(255,255,255,0.2); }
+        .reg-input.referido { color:#F5B731; letter-spacing:2px; }
+
+        /* ALIAS ROW */
+        .alias-row {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+        .emoji-selected {
+          width: 52px; height: 52px;
+          background: #0d1220;
+          border: 0.5px solid rgba(245,183,49,0.3);
+          border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 26px;
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: border-color 0.2s;
+        }
+        .emoji-selected:hover { border-color: rgba(245,183,49,0.6); }
+        .alias-row .reg-input { margin-bottom: 0; flex: 1; }
+
+        /* EMOJI GRID */
+        .emoji-grid-wrap {
+          background: #0d1220;
+          border: 0.5px solid rgba(245,183,49,0.15);
+          border-radius: 14px;
+          padding: 14px;
+          margin-bottom: 16px;
+        }
+        .emoji-grid-label {
+          font-size: 10px;
+          color: rgba(255,255,255,0.3);
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          margin-bottom: 10px;
+        }
+        .emoji-grid {
+          display: grid;
+          grid-template-columns: repeat(10, 1fr);
+          gap: 4px;
+        }
+        .emoji-btn {
+          aspect-ratio: 1;
+          background: transparent;
+          border: 1.5px solid transparent;
+          border-radius: 8px;
+          font-size: 20px;
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: background 0.15s, border-color 0.15s;
+          padding: 0;
+        }
+        .emoji-btn:hover    { background: rgba(245,183,49,0.08); }
+        .emoji-btn.selected { border-color: #F5B731; background: rgba(245,183,49,0.12); }
+
+        /* PREVIEW RANKING */
+        .preview-ranking {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(245,183,49,0.05);
+          border: 0.5px solid rgba(245,183,49,0.15);
+          border-radius: 10px;
+          padding: 10px 14px;
+          margin-bottom: 20px;
+        }
+        .preview-avatar {
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          background: rgba(245,183,49,0.15);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+        .preview-info { flex: 1; }
+        .preview-name { font-size: 14px; font-weight: 600; color: #fff; }
+        .preview-sub  { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 1px; }
+        .preview-pts  { font-family:'Bebas Neue',sans-serif; font-size:22px; color:#F5B731; }
+
+        /* BTN GOLD */
+        .btn-gold {
+          width: 100%;
+          background: #F5B731;
+          color: #080C16;
+          border: none;
+          border-radius: 50px;
+          padding: 16px 24px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn-gold:hover  { opacity: 0.92; }
+        .btn-gold:active { transform: scale(0.98); }
+        .btn-gold:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ERROR */
+        .reg-error {
+          background: rgba(226,75,74,0.1);
+          border: 0.5px solid rgba(226,75,74,0.3);
+          border-radius: 10px;
+          padding: 11px 14px;
+          color: #E24B4A;
+          font-size: 13px;
+          text-align: center;
+          margin-bottom: 14px;
+        }
+
+        .reg-fine {
+          font-size: 11px;
+          color: rgba(255,255,255,0.2);
+          text-align: center;
+          margin-top: 14px;
+          line-height: 1.5;
+        }
+
+        @media (max-width: 420px) {
+          .reg-card { padding: 28px 18px 24px; }
+          .emoji-grid { grid-template-columns: repeat(8, 1fr); }
+        }
+      `}</style>
+
+      <div className="reg-root">
+        <div className="reg-card">
+
+          {/* DIANA */}
+          <div className="diana-wrap">
+            <div className="diana-ring dr1" />
+            <div className="diana-ring dr2" />
+            <div className="diana-ring dr3" />
+            <div className="diana-ring dr4" />
+            <div className="diana-dot" />
           </div>
-          <div style={{ fontSize: 11, color: '#7F77DD', letterSpacing: '3px' }}>QUINIELAS DEPORTIVAS</div>
-        </div>
 
-        {step === 'login' && (
-          <div>
-            <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>
-              Únete a la quiniela
-            </h2>
-            <p style={{ color: '#AFA9EC', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 1.5 }}>
-              Entra con tu cuenta de Google en un clic — sin contraseñas
-            </p>
-            <div style={{
-              background: '#0A0F1E', border: '1px solid #2A2050',
-              borderRadius: 16, padding: '1rem', textAlign: 'center', marginBottom: 28
-            }}>
-              <p style={{ color: '#AFA9EC', fontSize: 12, marginBottom: 4, letterSpacing: 2 }}>💰 PREMIO ACTUAL</p>
-              <p style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#EFC84A', fontSize: 48, lineHeight: 1 }}>$5,400</p>
-              <p style={{ color: '#5F6E8A', fontSize: 12 }}>MXN · 30 jugadores</p>
+          {/* LOGO */}
+          <div className="reg-logo">ATÍNALE</div>
+          <div className="reg-tagline">Predice y Gana</div>
+
+          {/* ── STEP LOGIN ── */}
+          {step === 'login' && (
+            <div>
+              <div style={{ textAlign:'center', marginBottom:24 }}>
+                <div style={{ fontSize:22, fontWeight:700, color:'#fff', marginBottom:6 }}>
+                  Únete a la quiniela
+                </div>
+                <div style={{ fontSize:13, color:'rgba(255,255,255,0.4)', lineHeight:1.5 }}>
+                  Entra con Google en un clic — sin contraseñas
+                </div>
+              </div>
+
+              <div className="pozo-card">
+                <div className="pozo-label">Pozo acumulado</div>
+                <div className="pozo-num">$5,400</div>
+                <div className="pozo-sub">Premio neto estimado · 30 jugadores</div>
+              </div>
+
+              {error && <div className="reg-error">{error}</div>}
+
+              <button className="btn-google" onClick={loginConGoogle} disabled={loading}>
+                {loading ? 'Conectando...' : (
+                  <>
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continuar con Google
+                  </>
+                )}
+              </button>
+
+              <p className="reg-fine">
+                Al continuar aceptas participar bajo las reglas de Atínale
+              </p>
             </div>
-            {error && (
-              <div style={{ background: '#FF444420', border: '1px solid #FF4444', borderRadius: 12, padding: '12px 16px', color: '#FF6666', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>
-                {error}
-              </div>
-            )}
-            <button
-              onClick={loginConGoogle} disabled={loading}
-              style={{
-                width: '100%', background: '#ffffff', color: '#1a1a1a', border: 'none',
-                borderRadius: 50, padding: '16px 24px', fontSize: 17, fontWeight: 700,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-                opacity: loading ? 0.7 : 1, transition: 'transform 0.15s',
-              }}>
-              {loading ? <span>Conectando...</span> : (
-                <>
-                  <svg width="22" height="22" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Continuar con Google
-                </>
-              )}
-            </button>
-            <p style={{ color: '#5F6E8A', fontSize: 13, textAlign: 'center', marginTop: 20, lineHeight: 1.5 }}>
-              Al continuar aceptas participar en la quiniela bajo las reglas de Atínale
-            </p>
-          </div>
-        )}
+          )}
 
-        {step === 'perfil' && (
-          <div>
-            <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>
-              ¡Ya casi estás!
-            </h2>
-            <p style={{ color: '#AFA9EC', fontSize: 15, textAlign: 'center', marginBottom: 28 }}>
-              Completa tu perfil para aparecer en el ranking
-            </p>
-            {['NOMBRE COMPLETO', 'TELÉFONO (WhatsApp)', 'CÓDIGO DE REFERIDO'].map((label, i) => (
-              <div key={i} style={{ marginBottom: i === 2 ? 24 : 16 }}>
-                <label style={{ color: '#AFA9EC', fontSize: 13, fontWeight: 600, letterSpacing: 1, display: 'block', marginBottom: 8 }}>
-                  {label} {i === 2 && <span style={{ color: '#5F6E8A', fontWeight: 400 }}>(opcional)</span>}
-                </label>
+          {/* ── STEP PERFIL ── */}
+          {step === 'perfil' && (
+            <div>
+              <div style={{ textAlign:'center', marginBottom:24 }}>
+                <div style={{ fontSize:22, fontWeight:700, color:'#fff', marginBottom:6 }}>
+                  ¡Ya casi estás!
+                </div>
+                <div style={{ fontSize:13, color:'rgba(255,255,255,0.4)', lineHeight:1.5 }}>
+                  Elige tu apodo y emoji — así aparecerás en el ranking público
+                </div>
+              </div>
+
+              {/* ALIAS + EMOJI SELECTED */}
+              <label className="field-label">Tu apodo en el ranking</label>
+              <div className="alias-row">
+                <div
+                  className="emoji-selected"
+                  onClick={() => {}}
+                  title="Elige tu emoji abajo"
+                >
+                  {emoji}
+                </div>
                 <input
-                  type={i === 1 ? 'tel' : 'text'}
-                  value={i === 0 ? nombre : i === 1 ? telefono : referido}
-                  onChange={e => {
-                    if (i === 0) setNombre(e.target.value)
-                    if (i === 1) setTelefono(e.target.value.replace(/\D/g, '').slice(0, 10))
-                    if (i === 2) setReferido(e.target.value.toUpperCase())
-                  }}
-                  placeholder={i === 0 ? 'Como quieres aparecer en el ranking' : i === 1 ? '10 dígitos — para avisarte si ganas' : 'Si alguien te invitó'}
-                  style={{
-                    width: '100%', background: '#0A0F1E', border: '1px solid #2A2050',
-                    borderRadius: 12, padding: '14px 16px',
-                    color: i === 2 ? '#EFC84A' : '#fff', fontSize: 16,
-                    outline: 'none', boxSizing: 'border-box',
-                    letterSpacing: i === 2 ? 2 : 'normal'
-                  }}/>
+                  className="reg-input"
+                  type="text"
+                  value={alias}
+                  onChange={e => setAlias(e.target.value.slice(0, 20))}
+                  placeholder="Ej: ElReyDelGol"
+                  maxLength={20}
+                />
               </div>
-            ))}
-            {error && (
-              <div style={{ background: '#FF444420', border: '1px solid #FF4444', borderRadius: 12, padding: '12px 16px', color: '#FF6666', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>
-                {error}
+              <div style={{ fontSize:11, color:'rgba(255,255,255,0.2)', marginTop:-10, marginBottom:14 }}>
+                {alias.length}/20 caracteres · Este nombre será público
               </div>
-            )}
-            <button
-              onClick={guardarPerfil} disabled={loading}
-              style={{
-                width: '100%', background: '#EFC84A', color: '#0D0D1A', border: 'none',
-                borderRadius: 50, padding: '18px 24px', fontSize: 18, fontWeight: 800,
-                cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1
-              }}>
-              {loading ? 'Guardando...' : '🏆 Entrar a la quiniela →'}
-            </button>
-          </div>
-        )}
+
+              {/* EMOJI GRID */}
+              <div className="emoji-grid-wrap">
+                <div className="emoji-grid-label">Elige tu emoji</div>
+                <div className="emoji-grid">
+                  {EMOJIS.map((e, i) => (
+                    <button
+                      key={i}
+                      className={`emoji-btn${emoji === e ? ' selected' : ''}`}
+                      onClick={() => setEmoji(e)}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* PREVIEW */}
+              <div className="preview-ranking">
+                <div className="preview-avatar">{emoji}</div>
+                <div className="preview-info">
+                  <div className="preview-name">{alias || 'Tu apodo'}</div>
+                  <div className="preview-sub">Así te verán en el ranking</div>
+                </div>
+                <div className="preview-pts">0</div>
+              </div>
+
+              {/* TELÉFONO */}
+              <label className="field-label">Teléfono WhatsApp</label>
+              <input
+                className="reg-input"
+                type="tel"
+                value={telefono}
+                onChange={e => setTelefono(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="10 dígitos — para avisarte si ganas"
+              />
+
+              {/* REFERIDO */}
+              <label className="field-label">
+                Código de referido <span className="field-optional">(opcional)</span>
+              </label>
+              <input
+                className="reg-input referido"
+                type="text"
+                value={referido}
+                onChange={e => setReferido(e.target.value.toUpperCase())}
+                placeholder="Si alguien te invitó"
+              />
+
+              {error && <div className="reg-error">{error}</div>}
+
+              <button className="btn-gold" onClick={guardarPerfil} disabled={loading}>
+                {loading ? 'Guardando...' : '🏆 Entrar a la quiniela →'}
+              </button>
+
+              <p className="reg-fine">
+                Tu número solo se usa para avisarte si ganas · Sin spam
+              </p>
+            </div>
+          )}
+
+        </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -62,10 +62,11 @@ export default function Perfil() {
 
     const { data: memberData } = await supabase
       .from('pool_members')
-      .select('id, points, rank, payment_status, created_at, pool:pools(id, name, competition, entry_fee, status)')
+      .select('id, points, rank, payment_status, pool:pools(id, name, competition, entry_fee, status)')
       .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
     setMyPools(memberData || [])
+
+    console.log('POOLS:', memberData)
 
     const { data: predsData } = await supabase
       .from('predictions')

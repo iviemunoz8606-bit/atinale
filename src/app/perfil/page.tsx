@@ -91,12 +91,15 @@ export default function Perfil() {
     setSaving(true)
     setSaveMsg('')
     const { data: { session } } = await supabase.auth.getSession()
-    const { error } = await supabase.from('users').upsert({
-      id: session.user.id,
-      name: editAlias.trim(),
-      emoji: editEmoji,
-      phone: editPhone.trim(),
-    })
+    const { error } = await supabase
+      .from('users')
+      .update({
+        name: editAlias.trim(),
+        emoji: editEmoji,
+        phone: editPhone.trim(),
+      })
+      .eq('id', session.user.id)
+
     if (error) { setSaveMsg('Error al guardar. Intenta de nuevo.'); setSaving(false); return }
     setUser(prev => ({ ...prev, name: editAlias.trim(), emoji: editEmoji, phone: editPhone.trim() }))
     setSaving(false)

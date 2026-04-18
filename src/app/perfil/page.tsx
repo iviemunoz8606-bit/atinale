@@ -38,6 +38,7 @@ export default function Perfil() {
   const [myPools, setMyPools] = useState([])
   const [predictions, setPredictions] = useState([])
   const [payments, setPayments] = useState([])
+  const [myCreatedPools, setMyCreatedPools] = useState([])
   const [loading, setLoading] = useState(true)
   const [signingOut, setSigningOut] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -73,6 +74,13 @@ export default function Perfil() {
       .order('created_at', { ascending: false })
       .limit(20)
     setPredictions(predsData || [])
+
+    const { data: createdPools } = await supabase
+      .from('pools')
+      .select('id, name, competition, entry_fee, max_participants, current_participants, total_pot, creator_commission_pct, access_code, status')
+      .eq('creator_id', session.user.id)
+      .order('created_at', { ascending: false })
+    setMyCreatedPools(createdPools || [])
 
     const { data: paysData } = await supabase
       .from('payments')
@@ -344,6 +352,76 @@ export default function Perfil() {
             ))
           )}
         </div>
+
+        {/* SALAS QUE ADMINISTRO */}
+        {myCreatedPools.length > 0 && (
+          <div style={{ marginBottom: 20, animation: 'fadeUp 0.4s ease 0.13s both' }}>
+            <div className="sec-label">
+              Salas que administro
+              <span style={{ fontSize: 11, background: 'rgba(245,183,49,0.12)', color: '#F5B731', borderRadius: 20, padding: '2px 8px', fontWeight: 600, letterSpacing: 0 }}>
+                {myCreatedPools.length}
+              </span>
+            </div>
+            {myCreatedPools.map(pool => {
+              const filled = pool.current_participants || 0
+              const max = pool.max_participants || 1
+              const pct = Math.round((filled / max) * 100)
+              const commPct = pool.creator_commission_pct || 3
+              const comm = Math.round((pool.total_pot || 0) * commPct / 100)
+              return (
+                <div key={pool.id} className="pool-card" style={{ borderLeft: `3px solid ${compColor(pool.competition)}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{pool.name}</div>
+                      <div style={{ fontSize: 10, color: compColor(pool.competition), fontWeight: 700, letterSpacing: 1 }}>{compLabel(pool.competition)}</div>
+                    </div>
+                    <div style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: pool.status === 'open' ? 'rgba(0,196,106,0.12)' : 'rgba(226,75,74,0.12)', color: pool.status === 'open' ? '#00C46A' : '#E24B4A' }}>
+                      {pool.status === 'open' ? 'Abierta' : 'Cerrada'}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>ENTRADA</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#F5B731' }}>${(pool.entry_fee || 0).toLocaleString('es-MX')}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>PARTICIPANTES</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#F0F2F8' }}>{filled} / {max}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>POZO</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#F5B731' }}>${(pool.total_pot || 0).toLocaleString('es-MX')}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>MI COMISIÓN ({commPct}%)</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#00C46A' }}>${comm.toLocaleString('es-MX')}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 5 }}>
+                      <div style={{ width: `${pct}%`, background: '#F5B731', borderRadius: 4, height: 5, transition: 'width 0.4s' }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{pct}%</span>
+                  </div>
+                  {pool.access_code && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => navigator.clipboard?.writeText(pool.access_code)}
+                        style={{ flex: 1, fontSize: 12, padding: '8px 0', borderRadius: 10, background: 'rgba(245,183,49,0.08)', border: '0.5px solid rgba(245,183,49,0.3)', color: '#F5B731', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        📋 Copiar código
+                      </button>
+                      <button
+                        onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/unirse/${pool.access_code}`)}
+                        style={{ flex: 1, fontSize: 12, padding: '8px 0', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        🔗 Copiar link
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* FEED ACTIVIDAD */}
         {feed.length > 0 && (

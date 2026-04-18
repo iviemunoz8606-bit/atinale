@@ -66,8 +66,6 @@ export default function Perfil() {
       .eq('user_id', session.user.id)
     setMyPools(memberData || [])
 
-    console.log('POOLS:', memberData)
-
     const { data: predsData } = await supabase
       .from('predictions')
       .select('id, points_earned, created_at, match:matches(home_team, away_team, home_flag, away_flag, home_score, away_score, status)')
@@ -139,14 +137,14 @@ export default function Perfil() {
     feedItems.push({
       icon: '🎟️',
       text: `Te uniste a ${m.pool?.name}`,
-      time: m.created_at,
+      time: new Date().toISOString(),
       color: '#4FADFF',
     })
     if (m.payment_status === 'approved') {
       feedItems.push({
         icon: '✅',
         text: `Pago aprobado · ${m.pool?.name}`,
-        time: m.created_at,
+        time: new Date().toISOString(),
         color: '#00C46A',
       })
     }

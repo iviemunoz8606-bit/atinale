@@ -370,3 +370,78 @@ MP producción: funcionando ✅
 6. Correo bienvenida con Resend
 7. Sistema de referidos
 8. Formulario crear quinielas /admin
+
+# Sesión 14 — 17 de abril 2026 — UX fixes + Rediseño registro y perfil
+
+## Lo que se construyó y arregló
+
+**Fix salas privadas en dashboard:**
+- ✅ Query separado: públicas + privadas donde creator_id = user.id
+- ✅ Fix JSX: .filter(pool => pool.type === 'public' || pool.creator_id === user?.id) en "Disponibles"
+- ✅ Salas privadas de otros usuarios ya no aparecen en el dashboard de nadie
+- ✅ Salas "Prueba" y "Los ajustadores prueba" eliminadas de Supabase
+
+**Fix loaders — diana animada en todas las páginas:**
+- ✅ Identificados 3 archivos con loader viejo: dashboard, admin, quiniela/[id], unirse/[codigo]
+- ✅ Todos reemplazados: if(loading) return <Loading /> + import Loading from '@/app/loading'
+- ✅ Diana animada consistente en toda la app
+
+**Rediseño completo /registro:**
+- ✅ Identidad visual Atínale: fondo #080C16, tarjeta #111520, dorado #F5B731, Bebas Neue
+- ✅ Diana animada arriba del logo
+- ✅ Galería de 40 emojis curados en step perfil
+- ✅ Campo alias (apodo público, máx 20 chars) con contador
+- ✅ Preview en tiempo real "Así te verán en el ranking"
+- ✅ ALTER TABLE users ADD COLUMN IF NOT EXISTS emoji text DEFAULT '⚽'
+- ✅ guardarPerfil() guarda emoji: emoji en Supabase
+
+**Fix dashboard — emoji + nombre completo:**
+- ✅ Avatar navbar: círculo con inicial → emoji del usuario
+- ✅ Saludo "HOLA, EL" → "HOLA, EL REY IVIE" (quitado .split(' ')[0])
+
+**Rediseño completo /perfil:**
+- ✅ Emoji grande como avatar + botón ✏ abre panel de edición inline
+- ✅ Panel edición: alias + teléfono + picker 40 emojis + botón guardar
+- ✅ Fix guardar: upsert → update().eq('id') para evitar conflicto con auth.users
+- ✅ Stats 2x2: puntos totales, mejor posición, quinielas jugadas, exactos
+- ✅ Logros automáticos: primer pago, primer exacto, top 3, líder, fan activo, referido
+- ✅ Quinielas conectadas a Supabase — fix query pool_members sin created_at
+- ✅ Feed últimos 5 eventos (unirse, pago aprobado, puntos ganados)
+- ✅ Badge quiniela: usa pool.status (open/closed) no payment_status
+- ✅ Sección "Link invitación" en quinielas privadas del creador con botón Copiar
+
+**Fix URL compartir sala:**
+- ✅ crear-sala/page.tsx generaba link sin /unirse/ — corregido a ${origin}/unirse/${codigo}
+- ✅ El link de WhatsApp ahora lleva directo a la página de unirse
+
+## Notas técnicas importantes
+- pool_members NO tiene columna created_at — nunca usar .order('created_at') en ese query
+- Para editar perfil usar .update().eq('id') no .upsert() — evita conflicto con auth.users
+- Emoji guardado en public.users columna emoji (text, default ⚽)
+- El creador de una sala privada NO aparece en pool_members — solo aparece si pagó entrada
+- Salas privadas visibles para creador: filter(pool.type==='public' || pool.creator_id===user.id)
+- Badge quiniela: usar pool.status no payment_status
+
+## Pendientes identificados en sesión 14
+- [ ] Sección "Salas que administro" en /perfil (creator_id = user.id, sin pagar entrada)
+- [ ] Quinielas cerradas separar en historial vs activas en /perfil
+- [ ] Alias + emoji en /ranking público
+- [ ] Rediseño /ranking — podio, filtros, mis vecinos (mockup aprobado sesión 13)
+- [ ] Reestructurar dashboard — menos cascada, más limpio
+- [ ] Cron job anti-pausa Supabase (antes 1 mayo — URGENTE)
+- [ ] Upgrade Supabase Pro ~$25/mes (antes 1 mayo — URGENTE)
+- [ ] Insertar partidos Liguilla cuando se conozcan clasificados J17 (27 abr)
+- [ ] Estado 1 landing — Demo Liguilla en vivo
+- [ ] Sistema de referidos con código único +5pts
+- [ ] Modo Próximamente con captura de emails (antes 27 mayo)
+
+## Contexto técnico rápido
+STACK:      Next.js 16 (--webpack) + Supabase + Vercel + MP PRODUCCIÓN
+OS:         Windows 11 + VS Code + CMD
+ARRANQUE:   npm run dev -- --webpack
+REGLAS:     // @ts-nocheck + 'use client' primeras 2 líneas · NUNCA framer-motion
+SUPABASE:   createBrowserClient de @supabase/ssr siempre
+MOBILE:     CSS media queries puras — NO window.innerWidth
+COLORES:    BG #080C16 | CARD #111520 | Dorado #F5B731/#C9930A | Verde #00C46A
+FUENTES:    Bebas Neue (títulos) + Outfit (cuerpo)
+UTC:        México CDT verano = UTC-5. Guardar 01:55 UTC = 8:55pm México

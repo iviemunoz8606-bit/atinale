@@ -83,6 +83,7 @@ export default function Registro() {
       email: user.email,
       phone: telefono.trim(),
       referred_by: referido || null,
+      emoji: emoji,
     })
 
     if (error) { setError('Error al guardar tu perfil. Intenta de nuevo.'); setLoading(false); return }

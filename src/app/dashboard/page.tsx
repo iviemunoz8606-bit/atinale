@@ -308,7 +308,7 @@ export default function Dashboard() {
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, borderRadius: '50%', transition: 'opacity 0.2s' }}>
               {user.avatar_url
                 ? <img src={user.avatar_url} alt={user.name} style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid rgba(245,183,49,0.3)', objectFit: 'cover', display: 'block' }} />
-                : <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#F5B731,#00C46A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: '#080C16', border: '2px solid rgba(245,183,49,0.3)' }}>{getInitial(user.name)}</div>
+                : <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(245,183,49,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: '2px solid rgba(245,183,49,0.3)' }}>{(user as any).emoji || '⚽'}</div>
               }
             </button>
           </div>
@@ -341,7 +341,7 @@ export default function Dashboard() {
         <div style={{ marginBottom: 24, animation: 'fadeUp 0.4s ease both' }}>
           <div style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>Bienvenido de vuelta</div>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 40, lineHeight: 1 }}>
-            HOLA, <span style={{ color: '#F5B731' }}>{user.name.split(' ')[0].toUpperCase()}</span> 👋
+            HOLA, <span style={{ color: '#F5B731' }}>{user.name.toUpperCase()}</span> 👋
           </div>
         </div>
 

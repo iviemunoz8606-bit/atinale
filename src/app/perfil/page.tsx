@@ -62,7 +62,7 @@ export default function Perfil() {
 
     const { data: memberData } = await supabase
       .from('pool_members')
-      .select('id, points, rank, payment_status, pool:pools(id, name, competition, entry_fee, status)')
+      .select('id, points, rank, payment_status, pool:pools(id, name, competition, entry_fee, status, access_code, type)')
       .eq('user_id', session.user.id)
     setMyPools(memberData || [])
 
@@ -329,6 +329,17 @@ export default function Perfil() {
                     <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, color: '#00C46A', lineHeight: 1 }}>{m.rank ? `#${m.rank}` : '—'}</div>
                   </div>
                 </div>
+                {m.pool?.access_code && m.pool?.type === 'private' && (
+                  <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Link invitación:</div>
+                    <div style={{ fontSize: 11, color: '#F5B731', fontWeight: 700, letterSpacing: 1 }}>{m.pool.access_code}</div>
+                    <button
+                      onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/unirse/${m.pool.access_code}`)}
+                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(245,183,49,0.1)', border: '0.5px solid rgba(245,183,49,0.3)', color: '#F5B731', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      📋 Copiar link
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}

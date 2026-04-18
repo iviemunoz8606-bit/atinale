@@ -107,9 +107,13 @@ export default function Perfil() {
       .limit(20)
     setPredictions(predsData || [])
 
-    const { data: createdPools } = await supabase
+   const { data: createdPools } = await supabase
       .from('pools')
-      .select('id, name, competition, entry_fee, max_participants, current_participants, total_pot, creator_commission_pct, access_code, status')
+      .select(`
+        id, name, competition, entry_fee, max_participants, current_participants, 
+        total_pot, creator_commission_pct, access_code, status,
+        pool_members(id, payment_status, user:users(name, emoji))
+      `)
       .eq('creator_id', session.user.id)
       .order('created_at', { ascending: false })
     setMyCreatedPools(createdPools || [])
@@ -435,6 +439,24 @@ export default function Perfil() {
                     </div>
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{pct}%</span>
                   </div>
+                  {pool.pool_members && pool.pool_members.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Participantes</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {pool.pool_members.map((m, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 16 }}>{m.user?.emoji || '⚽'}</span>
+                              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{m.user?.name || 'Usuario'}</span>
+                            </div>
+                            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: m.payment_status === 'approved' ? 'rgba(0,196,106,0.12)' : 'rgba(245,183,49,0.12)', color: m.payment_status === 'approved' ? '#00C46A' : '#F5B731' }}>
+                              {m.payment_status === 'approved' ? '✅ Pagó' : '⏳ Pendiente'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {pool.access_code && (
                     <PoolCopyButtons code={pool.access_code} />
                   )}

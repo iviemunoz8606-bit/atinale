@@ -316,7 +316,7 @@ export default function Perfil() {
                     <div style={{ fontSize: 10, color: compColor(m.pool?.competition), fontWeight: 700, letterSpacing: 1 }}>{compLabel(m.pool?.competition)}</div>
                   </div>
                   <div style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: m.payment_status === 'approved' ? 'rgba(0,196,106,0.12)' : 'rgba(245,183,49,0.12)', color: m.payment_status === 'approved' ? '#00C46A' : '#F5B731' }}>
-                    {m.payment_status === 'approved' ? '✅ Activa' : '⏳ Pendiente'}
+                    {m.pool?.status === 'open' ? '✅ Activa' : m.pool?.status === 'closed' ? '🔒 Cerrada' : '⏳ Pendiente'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 20 }}>

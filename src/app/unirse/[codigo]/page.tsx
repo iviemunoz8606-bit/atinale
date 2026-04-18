@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import Loading from '@/app/loading'
 
 export default function UnirseCodigoPage() {
   const params = useParams()
@@ -159,18 +160,8 @@ export default function UnirseCodigoPage() {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 40,
-            height: 40,
-            border: '3px solid rgba(245,183,49,0.2)',
-            borderTop: '3px solid #F5B731',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-            margin: '0 auto 12px',
-          }} />
-          <p style={{ color: '#666', fontSize: 14 }}>Buscando sala...</p>
-        </div>
+        
+        if (loading) return <Loading />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )

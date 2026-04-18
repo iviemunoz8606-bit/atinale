@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import Loading from '@/app/loading'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,7 +103,7 @@ export default function CrearSala() {
               style={styles.copiarBtn}
               onClick={() => {
                 navigator.clipboard.writeText(
-                  `¡Únete a mi sala "${creada.name}" en Atínale! 🎯\nUsa el código: ${creada.access_code}\nEntra en: https://atinale-ecru.vercel.app`
+                  `¡Únete a mi sala "${creada.name}" en Atínale! 🎯\nUsa el código: ${creada.access_code}\nEntra en: ${window.location.origin}/unirse/${creada.access_code}`
                 )
                 alert('¡Copiado! Pégalo en WhatsApp 📲')
               }}

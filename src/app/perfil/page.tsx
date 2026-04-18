@@ -28,6 +28,38 @@ function compLabel(comp) {
   return comp
 }
 
+function PoolCopyButtons({ code }) {
+  const [copiedCode, setCopiedCode] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
+
+  function copyCode() {
+    navigator.clipboard?.writeText(code)
+    setCopiedCode(true)
+    setTimeout(() => setCopiedCode(false), 2000)
+  }
+
+  function copyLink() {
+    navigator.clipboard?.writeText(`${window.location.origin}/unirse/${code}`)
+    setCopiedLink(true)
+    setTimeout(() => setCopiedLink(false), 2000)
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      <button
+        onClick={copyCode}
+        style={{ flex: 1, fontSize: 12, padding: '8px 0', borderRadius: 10, background: copiedCode ? 'rgba(0,196,106,0.12)' : 'rgba(245,183,49,0.08)', border: `0.5px solid ${copiedCode ? 'rgba(0,196,106,0.4)' : 'rgba(245,183,49,0.3)'}`, color: copiedCode ? '#00C46A' : '#F5B731', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+        {copiedCode ? '✅ ¡Copiado!' : '📋 Copiar código'}
+      </button>
+      <button
+        onClick={copyLink}
+        style={{ flex: 1, fontSize: 12, padding: '8px 0', borderRadius: 10, background: copiedLink ? 'rgba(0,196,106,0.12)' : 'rgba(255,255,255,0.04)', border: `0.5px solid ${copiedLink ? 'rgba(0,196,106,0.4)' : 'rgba(255,255,255,0.1)'}`, color: copiedLink ? '#00C46A' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+        {copiedLink ? '✅ ¡Copiado!' : '🔗 Copiar link'}
+      </button>
+    </div>
+  )
+}
+
 export default function Perfil() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -404,18 +436,7 @@ export default function Perfil() {
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{pct}%</span>
                   </div>
                   {pool.access_code && (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        onClick={() => navigator.clipboard?.writeText(pool.access_code)}
-                        style={{ flex: 1, fontSize: 12, padding: '8px 0', borderRadius: 10, background: 'rgba(245,183,49,0.08)', border: '0.5px solid rgba(245,183,49,0.3)', color: '#F5B731', cursor: 'pointer', fontFamily: 'inherit' }}>
-                        📋 Copiar código
-                      </button>
-                      <button
-                        onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/unirse/${pool.access_code}`)}
-                        style={{ flex: 1, fontSize: 12, padding: '8px 0', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                        🔗 Copiar link
-                      </button>
-                    </div>
+                    <PoolCopyButtons code={pool.access_code} />
                   )}
                 </div>
               )

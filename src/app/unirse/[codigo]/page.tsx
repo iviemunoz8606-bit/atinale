@@ -151,21 +151,7 @@ export default function UnirseCodigoPage() {
     })
   }
 
-  if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#080C16',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        
-        if (loading) return <Loading />
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      </div>
-    )
-  }
+ if (loading) return <Loading />
 
   if (error) {
     return (

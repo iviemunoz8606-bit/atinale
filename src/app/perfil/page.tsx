@@ -7,6 +7,27 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Loading from '@/app/loading'
 
+const EMOJIS = [
+  '⚽','🏆','🎯','🔥','👑','⚡','🦁','🐯','🦅','🐺',
+  '🚀','💀','🌟','🏹','🦊','🐉','🎪','🎭','💎','🛡️',
+  '⚔️','🌪️','🦈','🐆','🏔️','🌊','🎸','🤖','👾','🃏',
+  '🧨','🎲','🦋','🌙','☄️','🎠','🦚','🐝','🌵','🎯'
+]
+
+function compColor(comp) {
+  if (comp === 'FIFA_2026') return '#00C46A'
+  if (comp === 'LIGA_MX') return '#E8192C'
+  if (comp === 'UEFA_CL') return '#4FADFF'
+  return '#6B7280'
+}
+
+function compLabel(comp) {
+  if (comp === 'FIFA_2026') return '🌍 Mundial FIFA 2026'
+  if (comp === 'LIGA_MX') return '🦅 Liga MX'
+  if (comp === 'UEFA_CL') return '⭐ UEFA Champions'
+  return comp
+}
+
 export default function Perfil() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,8 +36,16 @@ export default function Perfil() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [myPools, setMyPools] = useState([])
+  const [predictions, setPredictions] = useState([])
+  const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [signingOut, setSigningOut] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editAlias, setEditAlias] = useState('')
+  const [editEmoji, setEditEmoji] = useState('⚽')
+  const [editPhone, setEditPhone] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
 
   useEffect(() => { loadPerfil() }, [])
 
@@ -25,19 +54,54 @@ export default function Perfil() {
     if (!session) { router.push('/'); return }
 
     const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
+      .from('users').select('*').eq('id', session.user.id).single()
     setUser(userData)
+    setEditAlias(userData?.name || '')
+    setEditEmoji(userData?.emoji || '⚽')
+    setEditPhone(userData?.phone || '')
 
     const { data: memberData } = await supabase
       .from('pool_members')
-      .select('id, points, rank, payment_status, pool:pools(name, competition, entry_fee)')
+      .select('id, points, rank, payment_status, created_at, pool:pools(id, name, competition, entry_fee, status)')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
     setMyPools(memberData || [])
+
+    const { data: predsData } = await supabase
+      .from('predictions')
+      .select('id, points_earned, created_at, match:matches(home_team, away_team, home_flag, away_flag, home_score, away_score, status)')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setPredictions(predsData || [])
+
+    const { data: paysData } = await supabase
+      .from('payments')
+      .select('id, amount, status, created_at, pool:pools(name)')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+    setPayments(paysData || [])
+
     setLoading(false)
+  }
+
+  async function guardarEdicion() {
+    if (!editAlias.trim()) { setSaveMsg('El apodo no puede estar vacío'); return }
+    if (editAlias.trim().length > 20) { setSaveMsg('Máximo 20 caracteres'); return }
+    setSaving(true)
+    setSaveMsg('')
+    const { data: { session } } = await supabase.auth.getSession()
+    const { error } = await supabase.from('users').upsert({
+      id: session.user.id,
+      name: editAlias.trim(),
+      emoji: editEmoji,
+      phone: editPhone.trim(),
+    })
+    if (error) { setSaveMsg('Error al guardar. Intenta de nuevo.'); setSaving(false); return }
+    setUser(prev => ({ ...prev, name: editAlias.trim(), emoji: editEmoji, phone: editPhone.trim() }))
+    setSaving(false)
+    setSaveMsg('¡Guardado!')
+    setTimeout(() => { setSaveMsg(''); setEditOpen(false) }, 1200)
   }
 
   async function handleSignOut() {
@@ -46,115 +110,221 @@ export default function Perfil() {
     router.push('/')
   }
 
-  function getInitial(name) {
-    return name ? name.charAt(0).toUpperCase() : '?'
-  }
-
-  function compColor(comp) {
-    if (comp === 'FIFA_2026') return '#00C46A'
-    if (comp === 'LIGA_MX') return '#E8192C'
-    if (comp === 'UEFA_CL') return '#4FADFF'
-    return '#6B7280'
-  }
-
-  function compLabel(comp) {
-    if (comp === 'FIFA_2026') return '🌍 Mundial FIFA 2026'
-    if (comp === 'LIGA_MX') return '🦅 Liga MX'
-    if (comp === 'UEFA_CL') return '⭐ UEFA Champions'
-    return comp
-  }
-
   if (loading) return <Loading />
 
   const totalPoints = user?.total_points || 0
   const quinielasAprobadas = myPools.filter(m => m.payment_status === 'approved').length
+  const exactos = predictions.filter(p => p.points_earned === 3).length
+  const bestRank = myPools.reduce((best, m) => {
+    if (m.rank && (!best || m.rank < best)) return m.rank
+    return best
+  }, null)
+
+  // BADGES automáticos
+  const badges = []
+  if (payments.some(p => p.status === 'approved')) badges.push({ icon: '💳', label: 'Primer pago', color: '#00C46A' })
+  if (exactos > 0) badges.push({ icon: '🎯', label: 'Primer exacto', color: '#F5B731' })
+  if (bestRank && bestRank <= 3) badges.push({ icon: '🥉', label: 'Top 3', color: '#CD7C3A' })
+  if (bestRank === 1) badges.push({ icon: '👑', label: 'Líder', color: '#F5B731' })
+  if (quinielasAprobadas >= 3) badges.push({ icon: '🔥', label: 'Fan activo', color: '#E24B4A' })
+  if (user?.referred_by) badges.push({ icon: '🤝', label: 'Referido', color: '#4FADFF' })
+
+  // FEED últimos 5 eventos
+  const feedItems = []
+  myPools.forEach(m => {
+    feedItems.push({
+      icon: '🎟️',
+      text: `Te uniste a ${m.pool?.name}`,
+      time: m.created_at,
+      color: '#4FADFF',
+    })
+    if (m.payment_status === 'approved') {
+      feedItems.push({
+        icon: '✅',
+        text: `Pago aprobado · ${m.pool?.name}`,
+        time: m.created_at,
+        color: '#00C46A',
+      })
+    }
+  })
+  predictions.filter(p => p.points_earned > 0).forEach(p => {
+    feedItems.push({
+      icon: p.points_earned === 3 ? '🎯' : '✓',
+      text: `+${p.points_earned}pts · ${p.match?.home_team} vs ${p.match?.away_team}`,
+      time: p.created_at,
+      color: p.points_earned === 3 ? '#F5B731' : '#00C46A',
+    })
+  })
+  feedItems.sort((a, b) => new Date(b.time) - new Date(a.time))
+  const feed = feedItems.slice(0, 5)
+
+  function timeAgo(dateStr) {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `hace ${mins}m`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `hace ${hrs}h`
+    const days = Math.floor(hrs / 24)
+    return `hace ${days}d`
+  }
 
   return (
     <div style={{ background: '#080C16', minHeight: '100vh', fontFamily: "'Outfit','Helvetica Neue',sans-serif", color: '#F0F2F8', paddingBottom: 100 }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+        @keyframes spin-cw  { to { transform: translate(-50%,-50%) rotate(360deg)  } }
+        @keyframes spin-ccw { to { transform: translate(-50%,-50%) rotate(-360deg) } }
+        .edit-input {
+          width: 100%; background: #0d1220;
+          border: 0.5px solid rgba(255,255,255,0.1);
+          border-radius: 10px; padding: 11px 14px;
+          color: #fff; font-size: 14px;
+          font-family: 'Outfit', sans-serif;
+          outline: none; margin-bottom: 12px;
+          transition: border-color 0.2s;
+        }
+        .edit-input:focus { border-color: rgba(245,183,49,0.4); }
+        .edit-input::placeholder { color: rgba(255,255,255,0.2); }
+        .emj-btn {
+          aspect-ratio: 1; background: transparent;
+          border: 1.5px solid transparent; border-radius: 6px;
+          font-size: 18px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .emj-btn:hover { background: rgba(245,183,49,0.08); }
+        .emj-btn.sel { border-color: #F5B731; background: rgba(245,183,49,0.12); }
+        .pool-card { background: #111520; border: 0.5px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+        .feed-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid rgba(255,255,255,0.05); }
+        .feed-row:last-child { border-bottom: none; }
+        .badge-pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+        .sec-label { font-size: 10px; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .sec-label::after { content: ''; flex: 1; height: 0.5px; background: rgba(255,255,255,0.06); }
       `}</style>
 
       {/* TOPBAR */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', background: 'rgba(8,12,22,0.96)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', background: 'rgba(8,12,22,0.97)', borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
         <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', color: '#fff' }}>←</div>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#fff', cursor: 'pointer' }}>←</div>
         </Link>
-        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 2, background: 'linear-gradient(135deg,#F5B731,#00C46A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          MI PERFIL
-        </div>
+        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, letterSpacing: 3, color: '#F5B731' }}>MI PERFIL</div>
       </div>
 
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 16px' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
 
-        {/* AVATAR + NOMBRE */}
+        {/* HERO */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24, animation: 'fadeUp 0.4s ease both' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg,#F5B731,#00C46A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 32, color: '#080C16', border: '3px solid rgba(245,183,49,0.3)', marginBottom: 12, overflow: 'hidden' }}>
-            {user?.avatar_url ? <img src={user.avatar_url} style={{ width: 80, height: 80, objectFit: 'cover' }} /> : getInitial(user?.name)}
+          <div style={{ position: 'relative', marginBottom: 14 }}>
+            <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'rgba(245,183,49,0.1)', border: '2px solid rgba(245,183,49,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>
+              {user?.emoji || '⚽'}
+            </div>
+            <button
+              onClick={() => setEditOpen(o => !o)}
+              style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: '50%', background: '#F5B731', border: '2px solid #080C16', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, cursor: 'pointer', color: '#080C16', fontWeight: 700 }}>
+              ✏
+            </button>
           </div>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, letterSpacing: 1 }}>{user?.name}</div>
-          <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>{user?.email}</div>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, letterSpacing: 2 }}>{user?.name}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 3, marginBottom: 10 }}>{user?.email}</div>
           {user?.referral_code && (
-            <div style={{ marginTop: 8, padding: '4px 14px', background: 'rgba(245,183,49,0.1)', border: '1px solid rgba(245,183,49,0.25)', borderRadius: 20, fontSize: 12, color: '#F5B731', fontWeight: 700, letterSpacing: 1 }}>
-              Código: {user.referral_code}
+            <div
+              onClick={() => navigator.clipboard?.writeText(user.referral_code)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(245,183,49,0.08)', border: '0.5px solid rgba(245,183,49,0.25)', borderRadius: 20, padding: '5px 14px', fontSize: 12, color: '#F5B731', cursor: 'pointer' }}>
+              🔗 Código: {user.referral_code} · Copiar
             </div>
           )}
         </div>
 
+        {/* PANEL EDICIÓN */}
+        {editOpen && (
+          <div style={{ background: '#111520', border: '0.5px solid rgba(245,183,49,0.2)', borderRadius: 16, padding: 16, marginBottom: 20, animation: 'fadeUp 0.25s ease both' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>Apodo público</div>
+            <input className="edit-input" value={editAlias} onChange={e => setEditAlias(e.target.value.slice(0, 20))} placeholder="Tu apodo en el ranking" maxLength={20} />
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>Teléfono WhatsApp</div>
+            <input className="edit-input" type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10 dígitos" />
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>Tu emoji</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 3, marginBottom: 14 }}>
+              {EMOJIS.map((e, i) => (
+                <button key={i} className={`emj-btn${editEmoji === e ? ' sel' : ''}`} onClick={() => setEditEmoji(e)}>{e}</button>
+              ))}
+            </div>
+            {saveMsg && (
+              <div style={{ fontSize: 13, color: saveMsg === '¡Guardado!' ? '#00C46A' : '#E24B4A', textAlign: 'center', marginBottom: 10 }}>{saveMsg}</div>
+            )}
+            <button
+              onClick={guardarEdicion}
+              disabled={saving}
+              style={{ width: '100%', background: '#F5B731', color: '#080C16', border: 'none', borderRadius: 50, padding: '13px', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: 'inherit' }}>
+              {saving ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+        )}
+
         {/* STATS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20, animation: 'fadeUp 0.4s ease 0.05s both' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20, animation: 'fadeUp 0.4s ease 0.05s both' }}>
           {[
-            { label: 'Puntos', value: totalPoints, color: '#F5B731' },
-            { label: 'Quinielas', value: quinielasAprobadas, color: '#00C46A' },
-            { label: 'Historial', value: myPools.length, color: '#4FADFF' },
+            { label: 'Puntos totales',       value: totalPoints,           color: '#F5B731' },
+            { label: 'Mejor posición',        value: bestRank ? `#${bestRank}` : '—', color: '#00C46A' },
+            { label: 'Quinielas jugadas',     value: quinielasAprobadas,    color: '#4FADFF' },
+            { label: 'Predicciones exactas',  value: exactos,               color: '#F5B731' },
           ].map((s, i) => (
-            <div key={i} style={{ background: '#111520', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 12px', position: 'relative', overflow: 'hidden', textAlign: 'center' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: s.color }} />
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: '#6B7280', marginTop: 4 }}>{s.label}</div>
+            <div key={i} style={{ background: '#111520', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: s.color, borderRadius: '14px 14px 0 0' }} />
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* MIS QUINIELAS */}
-        <div style={{ marginBottom: 16, animation: 'fadeUp 0.4s ease 0.1s both' }}>
-          <div style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            Mis quinielas
-            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+        {/* LOGROS */}
+        {badges.length > 0 && (
+          <div style={{ marginBottom: 20, animation: 'fadeUp 0.4s ease 0.1s both' }}>
+            <div className="sec-label">Logros</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {badges.map((b, i) => (
+                <div key={i} className="badge-pill" style={{ background: `${b.color}18`, border: `0.5px solid ${b.color}40`, color: b.color }}>
+                  {b.icon} {b.label}
+                </div>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* MIS QUINIELAS */}
+        <div style={{ marginBottom: 20, animation: 'fadeUp 0.4s ease 0.12s both' }}>
+          <div className="sec-label">Mis quinielas</div>
           {myPools.length === 0 ? (
-            <div style={{ background: '#111520', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: 24, textAlign: 'center', color: '#6B7280' }}>
+            <div style={{ background: '#111520', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: 24, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>🎯</div>
               <div style={{ fontSize: 13 }}>Aún no te has unido a ninguna quiniela</div>
               <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-                <button style={{ marginTop: 12, padding: '8px 20px', borderRadius: 20, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}>
+                <button style={{ marginTop: 12, padding: '8px 20px', borderRadius: 20, background: '#F5B731', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Ver quinielas →
                 </button>
               </Link>
             </div>
           ) : (
-            myPools.map((m, i) => (
-              <div key={m.id} style={{ background: '#111520', border: `1px solid rgba(255,255,255,0.07)`, borderLeft: `3px solid ${compColor(m.pool?.competition)}`, borderRadius: 12, padding: '12px 14px', marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            myPools.map(m => (
+              <div key={m.id} className="pool-card" style={{ borderLeft: `3px solid ${compColor(m.pool?.competition)}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{m.pool?.name}</div>
-                    <div style={{ fontSize: 10, color: compColor(m.pool?.competition), marginTop: 2, fontWeight: 700, letterSpacing: 1 }}>{compLabel(m.pool?.competition)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{m.pool?.name}</div>
+                    <div style={{ fontSize: 10, color: compColor(m.pool?.competition), fontWeight: 700, letterSpacing: 1 }}>{compLabel(m.pool?.competition)}</div>
                   </div>
-                  <div style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: m.payment_status === 'approved' ? 'rgba(0,196,106,0.15)' : 'rgba(245,183,49,0.15)', color: m.payment_status === 'approved' ? '#00C46A' : '#F5B731' }}>
+                  <div style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: m.payment_status === 'approved' ? 'rgba(0,196,106,0.12)' : 'rgba(245,183,49,0.12)', color: m.payment_status === 'approved' ? '#00C46A' : '#F5B731' }}>
                     {m.payment_status === 'approved' ? '✅ Activa' : '⏳ Pendiente'}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+                <div style={{ display: 'flex', gap: 20 }}>
                   <div>
-                    <div style={{ fontSize: 10, color: '#6B7280' }}>MIS PUNTOS</div>
-                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: '#F5B731' }}>{m.points || 0}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>MIS PUNTOS</div>
+                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, color: '#F5B731', lineHeight: 1 }}>{m.points || 0}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 10, color: '#6B7280' }}>POSICIÓN</div>
-                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: '#00C46A' }}>{m.rank ? `#${m.rank}` : '—'}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>POSICIÓN</div>
+                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, color: '#00C46A', lineHeight: 1 }}>{m.rank ? `#${m.rank}` : '—'}</div>
                   </div>
                 </div>
               </div>
@@ -162,44 +332,47 @@ export default function Perfil() {
           )}
         </div>
 
-        {/* DATOS DE CONTACTO */}
-        <div style={{ background: '#111520', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px', marginBottom: 16, animation: 'fadeUp 0.4s ease 0.15s both' }}>
-          <div style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Datos de contacto</div>
-          {[
-            { label: 'Nombre', value: user?.name },
-            { label: 'Email', value: user?.email },
-            { label: 'Teléfono', value: user?.phone || '—' },
-          ].map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-              <div style={{ fontSize: 13, color: '#6B7280' }}>{item.label}</div>
-              <div style={{ fontSize: 13, color: '#F0F2F8', fontWeight: 600 }}>{item.value}</div>
+        {/* FEED ACTIVIDAD */}
+        {feed.length > 0 && (
+          <div style={{ marginBottom: 20, animation: 'fadeUp 0.4s ease 0.15s both' }}>
+            <div className="sec-label">Actividad reciente</div>
+            <div style={{ background: '#111520', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '4px 14px' }}>
+              {feed.map((f, i) => (
+                <div key={i} className="feed-row">
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: `${f.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, marginTop: 2 }}>{f.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{f.text}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{timeAgo(f.time)}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* CERRAR SESIÓN */}
         <button
           onClick={handleSignOut}
           disabled={signingOut}
-          style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'rgba(232,25,44,0.08)', border: '1px solid rgba(232,25,44,0.25)', color: '#FF4D6D', fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 15, cursor: signingOut ? 'not-allowed' : 'pointer', opacity: signingOut ? 0.6 : 1, animation: 'fadeUp 0.4s ease 0.2s both' }}>
+          style={{ width: '100%', padding: 14, borderRadius: 14, background: 'rgba(226,75,74,0.08)', border: '0.5px solid rgba(226,75,74,0.25)', color: '#E24B4A', fontFamily: 'inherit', fontWeight: 700, fontSize: 15, cursor: signingOut ? 'not-allowed' : 'pointer', opacity: signingOut ? 0.6 : 1, animation: 'fadeUp 0.4s ease 0.2s both' }}>
           {signingOut ? '⏳ Cerrando sesión...' : '🚪 Cerrar sesión'}
         </button>
 
       </div>
 
       {/* BOTTOM NAV */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(10,13,18,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', padding: '8px 0 20px' }}>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(10,13,18,0.97)', borderTop: '0.5px solid rgba(255,255,255,0.07)', display: 'flex', padding: '8px 0 20px' }}>
         {[
           { icon: '🏠', label: 'Inicio',    href: '/dashboard', active: false },
           { icon: '⚽', label: 'Quinielas', href: '/dashboard', active: false },
           { icon: '🎯', label: 'Predecir',  href: '/dashboard', active: false },
           { icon: '🏆', label: 'Ranking',   href: '/ranking',   active: false },
           { icon: '👤', label: 'Perfil',    href: '/perfil',    active: true  },
-        ].map((item) => (
+        ].map(item => (
           <Link key={item.label} href={item.href} style={{ flex: 1, textDecoration: 'none' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 6 }}>
-              <div style={{ fontSize: 22, filter: item.active ? 'drop-shadow(0 0 6px #F5B731)' : 'none' }}>{item.icon}</div>
-              <div style={{ fontSize: 10, color: item.active ? '#F5B731' : '#6B7280' }}>{item.label}</div>
+              <div style={{ fontSize: 22 }}>{item.icon}</div>
+              <div style={{ fontSize: 10, color: item.active ? '#F5B731' : 'rgba(255,255,255,0.3)' }}>{item.label}</div>
             </div>
           </Link>
         ))}

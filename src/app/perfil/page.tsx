@@ -117,13 +117,26 @@ export default function Perfil() {
       const poolIds = createdPools.map(p => p.id)
       const { data: membersData } = await supabase
         .from('pool_members')
-        .select('id, pool_id, payment_status, user_id, users(name, emoji)')
+        .select('id, pool_id, payment_status, user_id')
         .in('pool_id', poolIds)
       
+      const userIds = [...new Set((membersData || []).map(m => m.user_id))]
+      let usersMap = {}
+      if (userIds.length > 0) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, name, emoji')
+          .in('id', userIds)
+        ;(usersData || []).forEach(u => { usersMap[u.id] = u })
+      }
+
       const poolsWithMembers = createdPools.map(pool => ({
         ...pool,
-        pool_members: (membersData || []).filter(m => m.pool_id === pool.id)
+        pool_members: (membersData || [])
+          .filter(m => m.pool_id === pool.id)
+          .map(m => ({ ...m, users: usersMap[m.user_id] || null }))
       }))
+
       setMyCreatedPools(poolsWithMembers)
     } else {
       setMyCreatedPools([])

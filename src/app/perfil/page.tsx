@@ -109,14 +109,25 @@ export default function Perfil() {
 
    const { data: createdPools } = await supabase
       .from('pools')
-      .select(`
-        id, name, competition, entry_fee, max_participants, current_participants, 
-        total_pot, creator_commission_pct, access_code, status,
-        pool_members(id, payment_status, user:users(name, emoji))
-      `)
+      .select('id, name, competition, entry_fee, max_participants, current_participants, total_pot, creator_commission_pct, access_code, status')
       .eq('creator_id', session.user.id)
       .order('created_at', { ascending: false })
-    setMyCreatedPools(createdPools || [])
+
+    if (createdPools && createdPools.length > 0) {
+      const poolIds = createdPools.map(p => p.id)
+      const { data: membersData } = await supabase
+        .from('pool_members')
+        .select('id, pool_id, payment_status, user_id, users(name, emoji)')
+        .in('pool_id', poolIds)
+      
+      const poolsWithMembers = createdPools.map(pool => ({
+        ...pool,
+        pool_members: (membersData || []).filter(m => m.pool_id === pool.id)
+      }))
+      setMyCreatedPools(poolsWithMembers)
+    } else {
+      setMyCreatedPools([])
+    }
 
     const { data: paysData } = await supabase
       .from('payments')

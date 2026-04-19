@@ -457,8 +457,8 @@ export default function Perfil() {
                         {pool.pool_members.map((m, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: 16 }}>{m.user?.emoji || '⚽'}</span>
-                              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{m.user?.name || 'Usuario'}</span>
+                              <span style={{ fontSize: 16 }}>{m.users?.emoji || '⚽'}</span>
+                              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{m.users?.name || 'Usuario'}</span>
                             </div>
                             <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: m.payment_status === 'approved' ? 'rgba(0,196,106,0.12)' : 'rgba(245,183,49,0.12)', color: m.payment_status === 'approved' ? '#00C46A' : '#F5B731' }}>
                               {m.payment_status === 'approved' ? '✅ Pagó' : '⏳ Pendiente'}

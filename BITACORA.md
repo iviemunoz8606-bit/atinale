@@ -445,3 +445,31 @@ MOBILE:     CSS media queries puras — NO window.innerWidth
 COLORES:    BG #080C16 | CARD #111520 | Dorado #F5B731/#C9930A | Verde #00C46A
 FUENTES:    Bebas Neue (títulos) + Outfit (cuerpo)
 UTC:        México CDT verano = UTC-5. Guardar 01:55 UTC = 8:55pm México
+
+
+## SESIÓN 15 — 18 abril 2026
+
+### ✅ Completado
+
+#### 1. Cron job anti-pausa Supabase
+- Endpoint `/api/ping` creado y desplegado en producción
+- cron-job.org configurado — se ejecuta todos los días a las 3:00 AM
+- Test exitoso: 200 OK confirmado
+
+#### 2. Salas que administro en /perfil
+- Nueva sección debajo de "Mis quinielas"
+- Muestra: nombre de sala, competición, entrada, participantes, pozo, comisión estimada, barra de progreso
+- Lista de participantes con emoji, nombre y badge de pago (✅ Pagó / ⏳ Pendiente)
+- Botones "Copiar código" y "Copiar link" con feedback visual (cambia a ✅ ¡Copiado! por 2 segundos)
+
+### 🔧 Problemas resueltos
+- RLS bloqueaba al creador leer `pool_members` ajenos → nueva política `creator_can_read_pool_members`
+- RLS bloqueaba leer `users` de esos members → nueva política `creator_can_read_member_users`
+- Nested select de Supabase con foreign key no funcionaba → separado en dos queries independientes
+
+### ⏳ Pendiente
+- Alias + emoji en /ranking público
+- Rediseño /ranking — podio, filtros, mis vecinos
+- Reestructurar dashboard
+- Insertar partidos Liguilla (27 abr)
+- Estado 1 landing (27 abr)

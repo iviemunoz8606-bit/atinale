@@ -57,9 +57,9 @@ export default function Ranking() {
   useEffect(() => { loadRanking() }, [])
 
   async function loadRanking() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
-    setCurrentUserId(session.user.id)
+    const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/'); return }
+      setCurrentUserId(user.id)
 
     // Query original conservada — suma total_points de todas las quinielas
     const { data } = await supabase
@@ -71,7 +71,7 @@ export default function Ranking() {
     if (data) {
       const ranked = data.map((u, i) => ({ ...u, rank: i + 1 }))
       setUsers(ranked)
-      const me = ranked.find(u => u.id === session.user.id)
+      const me = ranked.find(u => u.id === user.id)
       if (me) setCurrentUser(me)
     }
     setLoading(false)

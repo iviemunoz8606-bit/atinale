@@ -368,7 +368,7 @@ export default function Predecir() {
                         {/* Contenido */}
                         <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
-                            <img src={match.home_flag} style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4 }} />
+                            
                             <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.8)', textAlign: 'center', lineHeight: 1.2 }}>{match.home_team}</span>
                           </div>
 
@@ -425,7 +425,7 @@ export default function Predecir() {
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
-                            <img src={match.away_flag} style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4 }} />
+                            
                             <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.8)', textAlign: 'center', lineHeight: 1.2 }}>{match.away_team}</span>
                           </div>
                         </div>

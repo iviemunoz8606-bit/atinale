@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Loading from '@/app/loading'
+import BottomNav from '@/components/BottomNav'
 
 type Match = {
   id: string
@@ -661,27 +662,7 @@ export default function QuinielaPredictions() {
         })}
       </div>
 
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(10,13,18,0.95)', backdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
-        display: 'flex', padding: '8px 0 20px'
-      }}>
-        {[
-          { icon: '🏠', label: 'Inicio', href: '/dashboard' },
-          { icon: '⭐', label: 'Quinielas', href: '/dashboard' },
-          { icon: '🎯', label: 'Predecir', href: '#' },
-          { icon: '🏆', label: 'Ranking', href: '/ranking' },
-          { icon: '👤', label: 'Perfil', href: '/perfil' },
-        ].map((item) => (
-          <Link key={item.label} href={item.href} style={{ flex: 1, textDecoration: 'none' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 6 }}>
-              <div style={{ fontSize: 22 }}>{item.icon}</div>
-              <div style={{ fontSize: 10, color: item.href === '#' ? '#F5B731' : '#6B7280' }}>{item.label}</div>
-            </div>
-          </Link>
-        ))}
-      </div>
+    <BottomNav />
     </div>
   )
 }

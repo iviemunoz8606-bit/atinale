@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Loading from '@/app/loading'
+import BottomNav from '@/components/BottomNav'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -399,44 +400,8 @@ export default function Ranking() {
         </div>
       </div>
 
-      {/* ── BOTTOM NAV (5 items — igual que antes) ── */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(10,13,18,0.97)', backdropFilter: 'blur(20px)',
-        borderTop: '0.5px solid rgba(255,255,255,.07)',
-        display: 'flex', padding: '8px 0 16px',
-      }}>
-        {[
-          { icon: '🏠',    label: 'Inicio',    href: '/dashboard', active: false, isDiana: false },
-          { icon: 'diana', label: 'Quinielas', href: '/dashboard', active: false, isDiana: true  },
-          { icon: '🎯',    label: 'Predecir',  href: '/dashboard', active: false, isDiana: false },
-          { icon: '🏆',    label: 'Ranking',   href: '/ranking',   active: true,  isDiana: false },
-          { icon: '👤',    label: 'Perfil',    href: '/perfil',    active: false, isDiana: false },
-        ].map((item) => (
-          <Link key={item.label} href={item.href} style={{ flex: 1, textDecoration: 'none' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: 4 }}>
-              {item.isDiana
-                ? <DianaNav active={item.active} />
-                : (
-                  <span style={{
-                    fontSize: 20,
-                    filter: item.active
-                      ? 'drop-shadow(0 0 6px #F5B731)'
-                      : 'grayscale(1) brightness(.4)',
-                  }}>{item.icon}</span>
-                )
-              }
-              <span style={{
-                fontSize: 9,
-                color: item.active ? '#F5B731' : 'rgba(255,255,255,.25)',
-                textTransform: 'uppercase', letterSpacing: 1,
-              }}>
-                {item.label}
-              </span>
-            </div>
-          </Link>
-        ))}
-      </nav>
+    <BottomNav />
+
     </>
   )
 }

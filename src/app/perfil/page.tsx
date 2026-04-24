@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Loading from '@/app/loading'
+import BottomNav from '@/components/BottomNav'
 
 const EMOJIS = [
   '⚽','🏆','🎯','🔥','👑','⚡','🦁','🐯','🦅','🐺',
@@ -518,23 +519,7 @@ export default function Perfil() {
 
       </div>
 
-      {/* BOTTOM NAV */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(10,13,18,0.97)', borderTop: '0.5px solid rgba(255,255,255,0.07)', display: 'flex', padding: '8px 0 20px' }}>
-        {[
-          { icon: '🏠', label: 'Inicio',    href: '/dashboard', active: false },
-          { icon: '⚽', label: 'Quinielas', href: '/dashboard', active: false },
-          { icon: '🎯', label: 'Predecir',  href: '/dashboard', active: false },
-          { icon: '🏆', label: 'Ranking',   href: '/ranking',   active: false },
-          { icon: '👤', label: 'Perfil',    href: '/perfil',    active: true  },
-        ].map(item => (
-          <Link key={item.label} href={item.href} style={{ flex: 1, textDecoration: 'none' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 6 }}>
-              <div style={{ fontSize: 22 }}>{item.icon}</div>
-              <div style={{ fontSize: 10, color: item.active ? '#F5B731' : 'rgba(255,255,255,0.3)' }}>{item.label}</div>
-            </div>
-          </Link>
-        ))}
-      </div>
+    <BottomNav />  
     </div>
   )
 }

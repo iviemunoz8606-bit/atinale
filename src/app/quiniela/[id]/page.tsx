@@ -284,7 +284,7 @@ export default function QuinielaPredictions() {
     const { data: matchData } = await supabase
       .from('matches')
       .select('*')
-      .eq('round', 'Fase de Grupos')
+      .eq('competition', pool?.competition || poolData?.competition)
       .order('scheduled_at', { ascending: true })
 
     setMatches(matchData || [])

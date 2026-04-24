@@ -56,7 +56,7 @@ export default function LiguillaMX() {
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
-  function handleCTA() {
+  async function handleCTA() {
     if (!user) {
       const supabase2 = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
       await supabase2.auth.signInWithOAuth({

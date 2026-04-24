@@ -50,7 +50,7 @@ export default function DianaHero({ size = 180 }: { size?: number }) {
       </div>
       <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
         <div style={{ animation:'starPulse 2.2s ease-in-out infinite' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#F5B731">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#F5B731">
             <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
           </svg>
         </div>

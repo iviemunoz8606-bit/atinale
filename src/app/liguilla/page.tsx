@@ -108,8 +108,8 @@ export default function LiguillaMX() {
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, letterSpacing: '4px', background: 'linear-gradient(135deg,#C9930A,#F5B731,#fff,#F5B731,#C9930A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', position: 'relative', zIndex: 2 }}>
               ATÍNALE
             </div>
-            <div style={{ position: 'absolute', width: 32, height: 32, right: -12, top: '50%', transform: 'translateY(-50%)', zIndex: 1 }}>
-              <DianaHero size={32} />
+            <div style={{ position: 'absolute', width: 48, height: 48, right: -18, top: '50%', transform: 'translateY(-50%)', zIndex: 1 }}>
+              <DianaHero size={48} />
             </div>
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 6 }}>Quinielas Deportivas</div>

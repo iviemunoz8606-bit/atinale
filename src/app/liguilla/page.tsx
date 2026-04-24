@@ -134,7 +134,7 @@ export default function LiguillaMX() {
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>💰 Pozo acumulado</div>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 64, color: '#E8192C', lineHeight: 1 }}>{formatMXN(pot)}</div>
             <div style={{ fontSize: 13, color: '#006847', marginTop: 4 }}>
-              Premio neto: {formatMXN(Math.round(pot * 0.9))}
+              🏆 ¡Te puedes ganar hasta {formatMXN(Math.round(pot * 0.9))}!
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>
               Comisión plataforma: {formatMXN(Math.round(pot * 0.1))} (10%)

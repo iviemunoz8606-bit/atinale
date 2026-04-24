@@ -57,7 +57,14 @@ export default function LiguillaMX() {
   }
 
   function handleCTA() {
-    if (!user) { router.push('/'); return }
+    if (!user) {
+      const supabase2 = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+      await supabase2.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback?redirect=/liguilla` }
+      })
+      return
+    }
     if (!membership) { setShowModal(true); return }
     if (membership.payment_status === 'approved') { router.push(`/quiniela/${POOL_ID}`); return }
     setShowModal(true)

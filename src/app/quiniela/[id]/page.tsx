@@ -245,7 +245,7 @@ export default function QuinielaPredictions() {
   const [drafts, setDrafts] = useState<Record<string, { home: string; away: string }>>({})
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeGroup, setActiveGroup] = useState<string>('A')
+  const [activeGroup, setActiveGroup] = useState<string>('Jornada')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null) // null = cargando
@@ -404,11 +404,11 @@ export default function QuinielaPredictions() {
   }
 
   const groups: Record<string, Match[]> = {}
-  for (const m of matches) {
-    const g = m.group_name || 'A'
-    if (!groups[g]) groups[g] = []
-    groups[g].push(m)
-  }
+    for (const m of matches) {
+      const g = m.group_name || 'Jornada'
+      if (!groups[g]) groups[g] = []
+      groups[g].push(m)
+    }
   const groupKeys = Object.keys(groups).sort()
   const totalGroup = matches.filter(m => !isLocked(m.scheduled_at, m.status)).length
   const predictedCount = Object.keys(predictions).length

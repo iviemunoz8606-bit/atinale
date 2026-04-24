@@ -618,7 +618,7 @@ export default function QuinielaPredictions() {
 
               <div style={{ padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <img src={match.home_flag} alt={match.home_team} style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
+                 
                   <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>{match.home_team}</div>
                 </div>
 
@@ -639,7 +639,7 @@ export default function QuinielaPredictions() {
                 </div>
 
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <img src={match.away_flag} alt={match.away_team} style={{ width: 44, height: 30, objectFit: 'cover', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
+                  
                   <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>{match.away_team}</div>
                 </div>
               </div>

@@ -7,477 +7,382 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Loading from '@/app/loading'
 
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+const fmt = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
+
 export default function AdminPage() {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'participantes' | 'resultados'>('participantes')
+  const [members, setMembers] = useState([])
+  const [matches, setMatches] = useState([])
+  const [pools, setPools] = useState([])
+  const [stats, setStats] = useState({ recaudado: 0, comision: 0, participantes: 0, pendientes: 0 })
+  const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({})
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+  const [filterPool, setFilterPool] = useState<string>('todos')
+  const [filterComp, setFilterComp] = useState<string>('todos')
 
-  const [loading, setLoading]         = useState(true)
-  const [activeTab, setActiveTab]     = useState<'comprobantes' | 'resultados'>('comprobantes')
-  const [payments, setPayments]       = useState([])
-  const [matches, setMatches]         = useState([])
-  const [stats, setStats]             = useState({ recaudado: 0, comision: 0, participantes: 0, pendientes: 0 })
-  const [savingId, setSavingId]       = useState<string | null>(null)
-  const [scores, setScores]           = useState<Record<string, { home: string; away: string }>>({})
-  const [toast, setToast]             = useState<string | null>(null)
+  useEffect(() => { init() }, [])
 
-  // ── Verificar admin al entrar ──
-  useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/'); return }
+  async function init() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/'); return }
+    const { data: userData } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+    if (!userData?.is_admin) { router.push('/dashboard'); return }
+    await loadData()
+    setLoading(false)
+  }
 
-      const { data: userData } = await supabase
-        .from('users').select('is_admin').eq('id', user.id).single()
-
-      if (!userData?.is_admin) { router.push('/dashboard'); return }
-
-      await loadData()
-      setLoading(false)
-    }
-    init()
-  }, [])
-
-  // ── Cargar todos los datos ──
   async function loadData() {
-    // Pagos con info de usuario y quiniela
-    const { data: paymentsData } = await supabase
-      .from('payments')
-      .select('*, users(name, email, phone), pools(name, entry_fee)')
-      .order('created_at', { ascending: false })
-    setPayments(paymentsData || [])
+    // Pools
+    const { data: poolsData } = await supabase.from('pools').select('id, name, competition, entry_fee, total_pot, current_participants').order('created_at', { ascending: false })
+    setPools(poolsData || [])
 
-    // Partidos sin resultado todavía
+    // Miembros con info de usuario y pool
+    const { data: membersData } = await supabase
+      .from('pool_members')
+      .select('id, pool_id, user_id, payment_status, points, rank, pool:pools(id, name, competition, entry_fee), user:users(id, name, email, phone)')
+      .order('pool_id', { ascending: true })
+    setMembers(membersData || [])
+
+    // Partidos de todas las competencias activas
     const { data: matchesData } = await supabase
       .from('matches')
       .select('*')
-      .eq('round', 'Fase de Grupos')
-      .order('match_date', { ascending: true })
+      .order('scheduled_at', { ascending: true })
     setMatches(matchesData || [])
 
-    // Stats generales
-    const { data: approved } = await supabase
-      .from('payments').select('amount').eq('status', 'approved')
-    const total = approved?.reduce((s, p) => s + (p.amount || 0), 0) || 0
-    const pending = paymentsData?.filter(p => p.status === 'pending').length || 0
+    // Stats
+    const approved = (membersData || []).filter(m => m.payment_status === 'approved')
+    const recaudado = approved.reduce((s, m) => s + (m.pool?.entry_fee || 0), 0)
+    const pendientes = (membersData || []).filter(m => m.payment_status === 'pending').length
 
-    const { count: participantes } = await supabase
-      .from('pool_members')
-      .select('*', { count: 'exact', head: true })
-      .eq('payment_status', 'approved')
-
-    setStats({ recaudado: total, comision: total * 0.1, participantes: participantes || 0, pendientes: pending })
+    setStats({
+      recaudado,
+      comision: recaudado * 0.1,
+      participantes: approved.length,
+      pendientes,
+    })
   }
 
-  // ── Mostrar toast ──
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
   }
 
-  // ── Aprobar pago ──
-  async function handleApprove(payment) {
-    const { error: e1 } = await supabase
-      .from('payments').update({ status: 'approved' }).eq('id', payment.id)
-    if (e1) { showToast('❌ Error al aprobar'); return }
-
-    const { error: e2 } = await supabase
+  async function handleApprove(member) {
+    const { error } = await supabase
       .from('pool_members')
       .update({ payment_status: 'approved' })
-      .eq('user_id', payment.user_id)
-      .eq('pool_id', payment.pool_id)
-    if (e2) { showToast('❌ Error actualizando membresía'); return }
-
-    // Incrementar participantes en el pool
-    await supabase.rpc('increment_participants', { p_pool_id: payment.pool_id })
-
-    showToast('✅ Pago aprobado — usuario activo')
+      .eq('id', member.id)
+    if (error) { showToast('❌ Error al aprobar'); return }
+    await supabase.rpc('increment_participants', { p_pool_id: member.pool_id })
+    showToast(`✅ ${member.user?.name} aprobado`)
     await loadData()
   }
 
-  // ── Rechazar pago ──
-  async function handleReject(paymentId: string) {
-    await supabase.from('payments').update({ status: 'rejected' }).eq('id', paymentId)
-    showToast('🚫 Pago rechazado')
+  async function handleReject(member) {
+    await supabase.from('pool_members').update({ payment_status: 'rejected' }).eq('id', member.id)
+    showToast(`🚫 ${member.user?.name} rechazado`)
     await loadData()
   }
 
-  // ── Ver comprobante ──
-  async function verComprobante(path: string) {
-    const { data } = await supabase.storage
-      .from('comprobantes').createSignedUrl(path, 3600)
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
-    else showToast('❌ No se pudo abrir el comprobante')
-  }
-
-  // ── Guardar resultado y calcular puntos ──
   async function handleSaveResult(match) {
     const s = scores[match.id]
-    if (!s || s.home === '' || s.away === '') {
-      showToast('⚠️ Ingresa ambos marcadores')
-      return
-    }
-
+    if (!s || s.home === '' || s.away === '') { showToast('⚠️ Ingresa ambos marcadores'); return }
     setSavingId(match.id)
+
     const homeScore = parseInt(s.home)
     const awayScore = parseInt(s.away)
 
-    // 1. Guardar resultado en matches
-    const { error: matchError } = await supabase
+    const { error } = await supabase
       .from('matches')
       .update({ home_score: homeScore, away_score: awayScore, status: 'finished' })
       .eq('id', match.id)
+    if (error) { showToast('❌ Error guardando'); setSavingId(null); return }
 
-    if (matchError) { showToast('❌ Error guardando resultado'); setSavingId(null); return }
+    // Calcular puntos
+    const { data: preds } = await supabase.from('predictions').select('*').eq('match_id', match.id)
+    const realResult = homeScore > awayScore ? 'home' : awayScore > homeScore ? 'away' : 'draw'
 
-    // 2. Obtener todas las predicciones de este partido
-    const { data: predictions } = await supabase
-      .from('predictions').select('*').eq('match_id', match.id)
+    for (const pred of preds || []) {
+      const predResult = pred.predicted_home > pred.predicted_away ? 'home'
+        : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
+      let pts = 0
+      if (pred.predicted_home === homeScore && pred.predicted_away === awayScore) pts = 3
+      else if (predResult === realResult) pts = 1
 
-    if (predictions && predictions.length > 0) {
-      const realResult = homeScore > awayScore ? 'home' : awayScore > homeScore ? 'away' : 'draw'
-
-      for (const pred of predictions) {
-        // Calcular puntos
-        const predResult = pred.predicted_home > pred.predicted_away ? 'home'
-          : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
-
-        let pts = 0
-        if (pred.predicted_home === homeScore && pred.predicted_away === awayScore) {
-          pts = 3 // Marcador exacto ⭐
-        } else if (predResult === realResult) {
-          pts = 1 // Resultado correcto
-        }
-
-        // Actualizar puntos en la predicción
-        if (pts > 0) {
-          await supabase
-            .from('predictions').update({ points: pts }).eq('id', pred.id)
-
-          // Sumar puntos al miembro del pool
-          await supabase.rpc('add_points_to_member', {
-            p_user_id: pred.user_id,
-            p_pool_id: pred.pool_id,
-            p_points: pts,
-          })
-        }
+      if (pts > 0) {
+        await supabase.from('predictions').update({ points_earned: pts }).eq('id', pred.id)
+        await supabase.rpc('add_points_to_member', { p_user_id: pred.user_id, p_pool_id: pred.pool_id, p_points: pts })
       }
     }
 
-    // Limpiar el score del input
     setScores(prev => { const n = { ...prev }; delete n[match.id]; return n })
     setSavingId(null)
-    showToast(`⚽ Resultado guardado: ${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`)
+    showToast(`⚽ ${match.home_team} ${homeScore}-${awayScore} ${match.away_team} guardado`)
     await loadData()
   }
 
-  // ── Formato dinero ──
-  const fmt = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
-
-  // ── Loading ──
   if (loading) return <Loading />
 
-  const tabStyle = (tab) => ({
-    padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',
-    fontFamily: 'Bebas Neue, sans-serif', fontSize: '0.95rem', letterSpacing: '0.08em',
-    background: activeTab === tab ? '#F5B731' : 'rgba(255,255,255,0.05)',
-    color: activeTab === tab ? '#000' : '#666',
-    transition: 'all 0.2s',
-    position: 'relative' as const,
-  })
+  const filteredMembers = members.filter(m => filterPool === 'todos' || m.pool_id === filterPool)
+  const pendingMembers = filteredMembers.filter(m => m.payment_status === 'pending')
+  const approvedMembers = filteredMembers.filter(m => m.payment_status === 'approved')
+  const rejectedMembers = filteredMembers.filter(m => m.payment_status === 'rejected')
 
-  const finishedMatches  = matches.filter(m => m.status === 'finished')
-  const pendingMatches   = matches.filter(m => m.status !== 'finished' && new Date(m.match_date) < new Date())
-  const upcomingMatches  = matches.filter(m => m.status !== 'finished' && new Date(m.match_date) >= new Date())
+  const filteredMatches = matches.filter(m => filterComp === 'todos' || m.competition === filterComp)
+  const competitions = [...new Set(matches.map(m => m.competition))]
+
+  const finishedMatches = filteredMatches.filter(m => m.status === 'finished')
+  const pendingMatches = filteredMatches.filter(m => m.status !== 'finished' && new Date(m.scheduled_at) < new Date())
+  const upcomingMatches = filteredMatches.filter(m => m.status !== 'finished' && new Date(m.scheduled_at) >= new Date())
 
   return (
     <div style={{ background: '#0A0D12', minHeight: '100vh', fontFamily: "'Outfit', sans-serif", color: '#F0F2F8' }}>
-
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes spin    { to { transform: rotate(360deg) } }
-        @keyframes fadeUp  { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
-        @keyframes slideIn { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
-      {/* ── TOAST ── */}
       {toast && (
         <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 999, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', borderRadius: 12, padding: '12px 20px', fontSize: 14, fontWeight: 600, color: '#fff', animation: 'slideIn 0.3s ease', whiteSpace: 'nowrap', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
           {toast}
         </div>
       )}
 
-      {/* ── TOPBAR ── */}
+      {/* TOPBAR */}
       <div style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'rgba(10,13,18,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <div>
-          <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 24, letterSpacing: 2, background: 'linear-gradient(135deg,#F5B731,#00C46A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            ATÍNALE
-          </div>
+          <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 24, letterSpacing: 2, background: 'linear-gradient(135deg,#F5B731,#00C46A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>ATÍNALE</div>
           <div style={{ fontSize: 10, color: '#F5B731', letterSpacing: '0.15em', marginTop: -2 }}>PANEL DE ADMIN</div>
         </div>
         <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-          <div style={{ padding: '8px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#888', fontSize: 13, cursor: 'pointer' }}>
-            ← Dashboard
-          </div>
+          <div style={{ padding: '8px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#888', fontSize: 13, cursor: 'pointer' }}>← Dashboard</div>
         </Link>
       </div>
 
-      <div style={{ maxWidth: 500, margin: '0 auto', padding: '20px 16px 80px' }}>
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '20px 16px 80px' }}>
 
-        {/* ── STATS ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+        {/* STATS */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
           {[
-            { label: 'TOTAL RECAUDADO', value: fmt(stats.recaudado), color: '#00C46A',  icon: '💰' },
-            { label: 'COMISIÓN 10%',    value: fmt(stats.comision),  color: '#F5B731',  icon: '📊' },
-            { label: 'PARTICIPANTES',   value: stats.participantes,  color: '#4FADFF',  icon: '👥' },
-            { label: 'PAGOS PENDIENTES',value: stats.pendientes,     color: stats.pendientes > 0 ? '#f97316' : '#555', icon: '⏳' },
+            { label: 'RECAUDADO', value: fmt(stats.recaudado), color: '#00C46A', icon: '💰' },
+            { label: 'COMISIÓN 10%', value: fmt(stats.comision), color: '#F5B731', icon: '📊' },
+            { label: 'PARTICIPANTES', value: stats.participantes, color: '#4FADFF', icon: '👥' },
+            { label: 'PENDIENTES', value: stats.pendientes, color: stats.pendientes > 0 ? '#f97316' : '#555', icon: '⏳' },
           ].map((card, i) => (
-            <div key={i} style={{ background: '#111520', borderRadius: 14, padding: 16, border: `1px solid rgba(255,255,255,0.06)`, position: 'relative', overflow: 'hidden', animation: `fadeUp 0.4s ease ${i * 0.05}s both` }}>
+            <div key={i} style={{ background: '#111520', borderRadius: 12, padding: 14, border: '0.5px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden', animation: `fadeUp 0.3s ease ${i * 0.05}s both` }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: card.color }} />
-              <div style={{ fontSize: 18, marginBottom: 6 }}>{card.icon}</div>
-              <div style={{ color: '#555', fontSize: '0.68rem', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.12em', marginBottom: 4 }}>{card.label}</div>
-              <div style={{ color: card.color, fontSize: '1.6rem', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.03em', lineHeight: 1 }}>{card.value}</div>
+              <div style={{ fontSize: 16, marginBottom: 4 }}>{card.icon}</div>
+              <div style={{ color: '#444', fontSize: 9, fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.12em', marginBottom: 2 }}>{card.label}</div>
+              <div style={{ color: card.color, fontSize: 26, fontFamily: 'Bebas Neue, sans-serif', lineHeight: 1 }}>{card.value}</div>
             </div>
           ))}
         </div>
 
-        {/* ── TABS ── */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          <button style={tabStyle('comprobantes')} onClick={() => setActiveTab('comprobantes')}>
-            📎 Comprobantes
-            {stats.pendientes > 0 && (
-              <span style={{ marginLeft: 6, background: '#f97316', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
-                {stats.pendientes}
-              </span>
-            )}
-          </button>
-          <button style={tabStyle('resultados')} onClick={() => setActiveTab('resultados')}>
-            ⚽ Resultados
-            {pendingMatches.length > 0 && (
-              <span style={{ marginLeft: 6, background: '#F5B731', color: '#000', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
-                {pendingMatches.length}
-              </span>
-            )}
-          </button>
+        {/* TABS */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {[
+            { key: 'participantes', label: '👥 Participantes', badge: stats.pendientes },
+            { key: 'resultados', label: '⚽ Resultados', badge: pendingMatches.length },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key as any)} style={{
+              flex: 1, padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              fontFamily: 'Bebas Neue, sans-serif', fontSize: 15, letterSpacing: 1,
+              background: activeTab === tab.key ? '#F5B731' : 'rgba(255,255,255,0.05)',
+              color: activeTab === tab.key ? '#000' : '#666', transition: 'all 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              {tab.label}
+              {tab.badge > 0 && (
+                <span style={{ background: activeTab === tab.key ? '#000' : '#f97316', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* ══════════════════════════════════
-            TAB: COMPROBANTES
-        ══════════════════════════════════ */}
-        {activeTab === 'comprobantes' && (
+        {/* ── TAB PARTICIPANTES ── */}
+        {activeTab === 'participantes' && (
           <div>
-            {payments.length === 0 && (
+            {/* Filtro por quiniela */}
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 16, paddingBottom: 2 }}>
+              <button onClick={() => setFilterPool('todos')} style={{ padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: filterPool === 'todos' ? 700 : 400, background: filterPool === 'todos' ? '#F5B731' : 'rgba(255,255,255,.06)', color: filterPool === 'todos' ? '#080C16' : 'rgba(255,255,255,.4)' }}>
+                Todas
+              </button>
+              {pools.map(pool => (
+                <button key={pool.id} onClick={() => setFilterPool(pool.id)} style={{ padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: filterPool === pool.id ? 700 : 400, background: filterPool === pool.id ? '#F5B731' : 'rgba(255,255,255,.06)', color: filterPool === pool.id ? '#080C16' : 'rgba(255,255,255,.4)' }}>
+                  {pool.name}
+                </button>
+              ))}
+            </div>
+
+            {members.length === 0 && (
               <div style={{ textAlign: 'center', padding: '48px 0', color: '#555' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📭</div>
-                <p>No hay comprobantes todavía</p>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+                <p>Nadie se ha unido aún</p>
               </div>
             )}
 
-            {/* Pendientes primero */}
-            {['pending', 'approved', 'rejected'].map(statusGroup => {
-              const group = payments.filter(p => p.status === statusGroup)
-              if (group.length === 0) return null
+            {/* Pendientes */}
+            {pendingMembers.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: '#f97316', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 10 }}>⏳ PENDIENTES ({pendingMembers.length})</div>
+                {pendingMembers.map(m => (
+                  <MemberCard key={m.id} member={m} onApprove={handleApprove} onReject={handleReject} showActions />
+                ))}
+              </div>
+            )}
 
-              const groupLabel = statusGroup === 'pending' ? '⏳ Pendientes de revisión'
-                : statusGroup === 'approved' ? '✅ Aprobados' : '🚫 Rechazados'
+            {/* Aprobados */}
+            {approvedMembers.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: '#00C46A', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 10 }}>✅ ACTIVOS ({approvedMembers.length})</div>
+                {approvedMembers.map(m => (
+                  <MemberCard key={m.id} member={m} onApprove={handleApprove} onReject={handleReject} showActions={false} />
+                ))}
+              </div>
+            )}
 
-              return (
-                <div key={statusGroup} style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10, fontFamily: 'Bebas Neue, sans-serif', fontSize: '0.85rem' }}>
-                    {groupLabel} ({group.length})
-                  </div>
-
-                  {group.map(payment => (
-                    <div key={payment.id} style={{ background: '#111520', borderRadius: 14, padding: 16, marginBottom: 10, border: `1px solid ${statusGroup === 'pending' ? 'rgba(249,115,22,0.3)' : statusGroup === 'approved' ? 'rgba(0,196,106,0.2)' : 'rgba(255,77,77,0.15)'}`, animation: 'fadeUp 0.3s ease both' }}>
-
-                      {/* Info usuario */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>
-                            {payment.users?.name || 'Sin nombre'}
-                          </div>
-                          <div style={{ color: '#666', fontSize: 12, marginTop: 2 }}>{payment.users?.email}</div>
-                          {payment.users?.phone && (
-                            <div style={{ color: '#555', fontSize: 12 }}>📱 {payment.users.phone}</div>
-                          )}
-                          <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>
-                            📋 {payment.pools?.name}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: '1.4rem', color: '#F5B731' }}>
-                            {fmt(payment.amount)}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>
-                            {new Date(payment.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Ver comprobante */}
-                      {payment.receipt_url && (
-                        <button
-                          onClick={() => verComprobante(payment.receipt_url)}
-                          style={{ width: '100%', padding: '8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#aaa', fontSize: 13, cursor: 'pointer', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                        >
-                          👁️ Ver comprobante de pago
-                        </button>
-                      )}
-
-                      {/* Botones aprobar/rechazar — solo si pendiente */}
-                      {statusGroup === 'pending' && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                          <button
-                            onClick={() => handleApprove(payment)}
-                            style={{ padding: '11px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(0,196,106,0.15)', color: '#00C46A', fontFamily: 'Bebas Neue, sans-serif', fontSize: '1rem', letterSpacing: '0.08em', transition: 'all 0.15s' }}
-                          >
-                            ✅ APROBAR
-                          </button>
-                          <button
-                            onClick={() => handleReject(payment.id)}
-                            style={{ padding: '11px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(255,77,77,0.1)', color: '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', fontSize: '1rem', letterSpacing: '0.08em', transition: 'all 0.15s' }}
-                          >
-                            ✗ RECHAZAR
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )
-            })}
+            {/* Rechazados */}
+            {rejectedMembers.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 10 }}>🚫 RECHAZADOS ({rejectedMembers.length})</div>
+                {rejectedMembers.map(m => (
+                  <MemberCard key={m.id} member={m} onApprove={handleApprove} onReject={handleReject} showActions={false} />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* ══════════════════════════════════
-            TAB: RESULTADOS
-        ══════════════════════════════════ */}
+        {/* ── TAB RESULTADOS ── */}
         {activeTab === 'resultados' && (
           <div>
-            {/* Partidos jugados sin resultado cargado */}
+            {/* Filtro por competencia */}
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 16, paddingBottom: 2 }}>
+              <button onClick={() => setFilterComp('todos')} style={{ padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: filterComp === 'todos' ? 700 : 400, background: filterComp === 'todos' ? '#F5B731' : 'rgba(255,255,255,.06)', color: filterComp === 'todos' ? '#080C16' : 'rgba(255,255,255,.4)' }}>
+                Todas
+              </button>
+              {competitions.map(comp => (
+                <button key={comp} onClick={() => setFilterComp(comp)} style={{ padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: filterComp === comp ? 700 : 400, background: filterComp === comp ? '#F5B731' : 'rgba(255,255,255,.06)', color: filterComp === comp ? '#080C16' : 'rgba(255,255,255,.4)' }}>
+                  {comp === 'LIGA_MX' ? '🦅 Liga MX' : comp === 'FIFA_2026' ? '🌍 FIFA 2026' : comp}
+                </button>
+              ))}
+            </div>
+
+            {/* Necesitan resultado */}
             {pendingMatches.length > 0 && (
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ fontSize: '0.85rem', fontFamily: 'Bebas Neue, sans-serif', color: '#f97316', letterSpacing: '0.12em', marginBottom: 10 }}>
-                  ⚠️ NECESITAN RESULTADO ({pendingMatches.length})
-                </div>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, color: '#f97316', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 10 }}>⚠️ NECESITAN RESULTADO ({pendingMatches.length})</div>
                 {pendingMatches.map(match => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    scores={scores}
-                    setScores={setScores}
-                    savingId={savingId}
-                    onSave={handleSaveResult}
-                    highlight
-                  />
+                  <MatchCard key={match.id} match={match} scores={scores} setScores={setScores} savingId={savingId} onSave={handleSaveResult} highlight />
                 ))}
               </div>
             )}
 
-            {/* Próximos partidos */}
+            {/* Próximos */}
             {upcomingMatches.length > 0 && (
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ fontSize: '0.85rem', fontFamily: 'Bebas Neue, sans-serif', color: '#555', letterSpacing: '0.12em', marginBottom: 10 }}>
-                  📅 PRÓXIMOS PARTIDOS ({upcomingMatches.length})
-                </div>
-                {upcomingMatches.slice(0, 6).map(match => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    scores={scores}
-                    setScores={setScores}
-                    savingId={savingId}
-                    onSave={handleSaveResult}
-                    highlight={false}
-                  />
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, color: '#555', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 10 }}>📅 PRÓXIMOS ({upcomingMatches.length})</div>
+                {upcomingMatches.slice(0, 10).map(match => (
+                  <MatchCard key={match.id} match={match} scores={scores} setScores={setScores} savingId={savingId} onSave={handleSaveResult} highlight={false} />
                 ))}
               </div>
             )}
 
-            {/* Resultados ya cargados */}
+            {/* Finalizados */}
             {finishedMatches.length > 0 && (
               <div>
-                <div style={{ fontSize: '0.85rem', fontFamily: 'Bebas Neue, sans-serif', color: '#00C46A', letterSpacing: '0.12em', marginBottom: 10 }}>
-                  ✅ RESULTADOS CARGADOS ({finishedMatches.length})
-                </div>
+                <div style={{ fontSize: 11, color: '#00C46A', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 10 }}>✅ FINALIZADOS ({finishedMatches.length})</div>
                 {finishedMatches.map(match => (
-                  <div key={match.id} style={{ background: '#111520', borderRadius: 12, padding: '12px 14px', marginBottom: 8, border: '1px solid rgba(0,196,106,0.15)', display: 'flex', alignItems: 'center', gap: 10, opacity: 0.7 }}>
-                    {match.home_flag && <img src={match.home_flag} style={{ width: 22, height: 15, borderRadius: 3, objectFit: 'cover' }} />}
+                  <div key={match.id} style={{ background: '#111520', borderRadius: 12, padding: '10px 14px', marginBottom: 8, border: '0.5px solid rgba(0,196,106,0.15)', display: 'flex', alignItems: 'center', gap: 10, opacity: 0.7 }}>
                     <span style={{ color: '#ccc', fontSize: 13, flex: 1 }}>{match.home_team}</span>
-                    <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, color: '#00C46A', padding: '2px 12px', background: 'rgba(0,196,106,0.1)', borderRadius: 8 }}>
+                    <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, color: '#00C46A', padding: '2px 14px', background: 'rgba(0,196,106,0.1)', borderRadius: 8 }}>
                       {match.home_score} - {match.away_score}
                     </span>
                     <span style={{ color: '#ccc', fontSize: 13, flex: 1, textAlign: 'right' }}>{match.away_team}</span>
-                    {match.away_flag && <img src={match.away_flag} style={{ width: 22, height: 15, borderRadius: 3, objectFit: 'cover' }} />}
                   </div>
                 ))}
               </div>
             )}
-
-            {pendingMatches.length === 0 && upcomingMatches.length === 0 && finishedMatches.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: '#555' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚽</div>
-                <p>No hay partidos cargados</p>
-              </div>
-            )}
           </div>
         )}
-
       </div>
     </div>
   )
 }
 
-// ── Componente tarjeta de partido ──
-function MatchCard({ match, scores, setScores, savingId, onSave, highlight }) {
-  const matchDate = new Date(match.match_date)
-  const isSaving  = savingId === match.id
-  const s         = scores[match.id] || { home: '', away: '' }
-
+// ── Tarjeta de miembro ──
+function MemberCard({ member, onApprove, onReject, showActions }) {
+  const statusColor = member.payment_status === 'approved' ? '#00C46A' : member.payment_status === 'pending' ? '#f97316' : '#ff4d4d'
   return (
-    <div style={{ background: '#111520', borderRadius: 14, padding: 16, marginBottom: 10, border: `1px solid ${highlight ? 'rgba(249,115,22,0.35)' : 'rgba(255,255,255,0.06)'}`, animation: 'fadeUp 0.3s ease both' }}>
-      {/* Fecha y grupo */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 11, color: '#555' }}>
-        <span>Grupo {match.group_name}</span>
-        <span>{matchDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-      </div>
-
-      {/* Equipos */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-          {match.home_flag && <img src={match.home_flag} style={{ width: 26, height: 18, borderRadius: 3, objectFit: 'cover' }} />}
-          <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{match.home_team}</span>
+    <div style={{ background: '#111520', borderRadius: 12, padding: 14, marginBottom: 8, border: `0.5px solid ${statusColor}30`, animation: 'fadeUp 0.3s ease both' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: showActions ? 10 : 0 }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>{member.user?.name || 'Sin nombre'}</div>
+          <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{member.user?.email}</div>
+          {member.user?.phone && <div style={{ fontSize: 11, color: '#555' }}>📱 {member.user.phone}</div>}
+          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>📋 {member.pool?.name}</div>
         </div>
-        <span style={{ color: '#444', fontSize: 12 }}>vs</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
-          <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{match.away_team}</span>
-          {match.away_flag && <img src={match.away_flag} style={{ width: 26, height: 18, borderRadius: 3, objectFit: 'cover' }} />}
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: '#F5B731' }}>{fmt(member.pool?.entry_fee || 0)}</div>
+          <div style={{ fontSize: 10, color: statusColor, fontWeight: 700, marginTop: 2, textTransform: 'uppercase' }}>{member.payment_status}</div>
+          {member.payment_status === 'approved' && (
+            <div style={{ fontSize: 11, color: '#4FADFF', marginTop: 2 }}>{member.points || 0} pts · #{member.rank || '—'}</div>
+          )}
         </div>
       </div>
+      {showActions && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <button onClick={() => onApprove(member)} style={{ padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(0,196,106,0.15)', color: '#00C46A', fontFamily: 'Bebas Neue, sans-serif', fontSize: 14, letterSpacing: 1 }}>✅ APROBAR</button>
+          <button onClick={() => onReject(member)} style={{ padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(255,77,77,0.1)', color: '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', fontSize: 14, letterSpacing: 1 }}>✗ RECHAZAR</button>
+        </div>
+      )}
+    </div>
+  )
+}
 
-      {/* Inputs de marcador */}
+// ── Tarjeta de partido ──
+function MatchCard({ match, scores, setScores, savingId, onSave, highlight }) {
+  const isSaving = savingId === match.id
+  const s = scores[match.id] || { home: '', away: '' }
+  const fecha = new Date(match.scheduled_at).toLocaleDateString('es-MX', {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City'
+  })
+  return (
+    <div style={{ background: '#111520', borderRadius: 12, padding: 14, marginBottom: 8, border: `0.5px solid ${highlight ? 'rgba(249,115,22,0.35)' : 'rgba(255,255,255,0.06)'}`, animation: 'fadeUp 0.3s ease both' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 10, color: '#555' }}>
+        <span>{match.competition === 'LIGA_MX' ? '🦅 Liga MX' : '🌍 FIFA 2026'}</span>
+        <span>{fecha}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, flex: 1 }}>{match.home_team}</span>
+        <span style={{ color: '#444', fontSize: 11 }}>vs</span>
+        <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, flex: 1, textAlign: 'right' }}>{match.away_team}</span>
+      </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input
-          type="number" min="0" max="20" placeholder="0"
-          value={s.home}
+        <input type="number" min="0" max="20" placeholder="0" value={s.home}
           onChange={e => setScores(prev => ({ ...prev, [match.id]: { ...prev[match.id], home: e.target.value } }))}
-          style={{ width: 56, padding: '10px 8px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', color: '#fff', textAlign: 'center', fontSize: '1.2rem', fontFamily: 'Bebas Neue, sans-serif', outline: 'none' }}
+          style={{ width: 52, padding: '8px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', color: '#fff', textAlign: 'center', fontSize: 20, fontFamily: 'Bebas Neue, sans-serif', outline: 'none' }}
         />
-        <span style={{ color: '#444', fontSize: 18, fontFamily: 'Bebas Neue, sans-serif' }}>-</span>
-        <input
-          type="number" min="0" max="20" placeholder="0"
-          value={s.away}
+        <span style={{ color: '#444', fontSize: 16, fontFamily: 'Bebas Neue, sans-serif' }}>-</span>
+        <input type="number" min="0" max="20" placeholder="0" value={s.away}
           onChange={e => setScores(prev => ({ ...prev, [match.id]: { ...prev[match.id], away: e.target.value } }))}
-          style={{ width: 56, padding: '10px 8px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', color: '#fff', textAlign: 'center', fontSize: '1.2rem', fontFamily: 'Bebas Neue, sans-serif', outline: 'none' }}
+          style={{ width: 52, padding: '8px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', color: '#fff', textAlign: 'center', fontSize: 20, fontFamily: 'Bebas Neue, sans-serif', outline: 'none' }}
         />
-        <button
-          onClick={() => onSave(match)}
-          disabled={isSaving || s.home === '' || s.away === ''}
-          style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', cursor: isSaving || s.home === '' || s.away === '' ? 'not-allowed' : 'pointer', background: isSaving || s.home === '' || s.away === '' ? '#1a1f2e' : 'linear-gradient(135deg,#F5B731,#e0a820)', color: isSaving || s.home === '' || s.away === '' ? '#444' : '#000', fontFamily: 'Bebas Neue, sans-serif', fontSize: '0.95rem', letterSpacing: '0.08em', transition: 'all 0.15s' }}
-        >
+        <button onClick={() => onSave(match)} disabled={isSaving || s.home === '' || s.away === ''}
+          style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', cursor: isSaving || s.home === '' || s.away === '' ? 'not-allowed' : 'pointer', background: isSaving || s.home === '' || s.away === '' ? '#1a1f2e' : 'linear-gradient(135deg,#F5B731,#C9930A)', color: isSaving || s.home === '' || s.away === '' ? '#444' : '#000', fontFamily: 'Bebas Neue, sans-serif', fontSize: 14, letterSpacing: 1 }}>
           {isSaving ? 'GUARDANDO...' : 'GUARDAR ⚡'}
         </button>
       </div>

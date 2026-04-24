@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import JoinPoolModal from '@/components/JoinPoolModal'
 import Loading from '@/app/loading'
+import DianaHero from '@/components/DianaHero'
 
 const POOL_ID = 'c7b6e451-d671-41d8-b615-723a98098fb8'
 
@@ -103,8 +104,15 @@ export default function LiguillaMX() {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, letterSpacing: '4px', background: 'linear-gradient(135deg,#F5B731,#E8A020,#F5B731)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>ATÍNALE 🎯</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 4 }}>Quinielas Deportivas</div>
+          <div style={{ position: 'relative', display: 'inline-block', paddingRight: 20 }}>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, letterSpacing: '4px', background: 'linear-gradient(135deg,#C9930A,#F5B731,#fff,#F5B731,#C9930A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', position: 'relative', zIndex: 2 }}>
+              ATÍNALE
+            </div>
+            <div style={{ position: 'absolute', width: 48, height: 48, right: -18, top: '50%', transform: 'translateY(-50%)', zIndex: 1 }}>
+              <DianaHero size={48} />
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 6 }}>Quinielas Deportivas</div>
         </div>
 
         {/* Card principal */}

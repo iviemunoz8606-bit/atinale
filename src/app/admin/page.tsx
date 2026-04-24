@@ -16,6 +16,10 @@ const fmt = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currency:
 
 export default function AdminPage() {
   const router = useRouter()
+  const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'participantes' | 'resultados'>('participantes')
   const [members, setMembers] = useState([])

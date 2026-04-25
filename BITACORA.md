@@ -447,7 +447,7 @@ FUENTES:    Bebas Neue (títulos) + Outfit (cuerpo)
 UTC:        México CDT verano = UTC-5. Guardar 01:55 UTC = 8:55pm México
 
 
-## SESIÓN 15 — 18 abril 2026
+## SESIÓN (Ver que sesion es) —20 de abril del 2026 
 
 ### ✅ Completado
 
@@ -473,3 +473,77 @@ UTC:        México CDT verano = UTC-5. Guardar 01:55 UTC = 8:55pm México
 - Reestructurar dashboard
 - Insertar partidos Liguilla (27 abr)
 - Estado 1 landing (27 abr)
+
+## Sesión 15 — 24-25 de abril 2026 — PRIMER LANZAMIENTO REAL
+
+### Hitos
+- 10 participantes pagados · $1,000 en el pozo · $900 premio neto
+- Primer partido jugado: Puebla 1-2 Querétaro
+- Armalobo lidera con 3pts (marcador exacto)
+- Sistema funcionando en producción con usuarios reales
+
+### Lo que se construyó
+- /liguilla: OAuth directo, diana animada, mensaje motivador premio neto
+- DianaHero extraído a componente /components/DianaHero.tsx
+- Admin rediseñado: resumen global, desglose por quiniela, tab jugadores/resultados/análisis
+- API route /api/admin/members con service role key para ver todos los participantes
+- Webhook corregido: suma entry_fee a total_pot en cada pago aprobado
+- /predecir: removido useSearchParams (causaba crash), sin Suspense wrapper
+- /quiniela/[id]: filtra por competition del pool, no por round hardcodeado
+
+### Bugs corregidos
+- useSearchParams en /predecir crasheaba la página
+- Admin solo mostraba datos propios (RLS) → service role key via API route
+- total_pot no subía con pagos → webhook ahora suma amount al pozo
+- Escudos Liga MX rotos (sofifa/ESPN bloqueaban) → removidos, solo nombres
+- Filtro partidos /quiniela usaba round='Fase de Grupos' → ahora usa competition
+
+### Bugs pendientes (ver contexto siguiente sesión)
+CONTEXTO ATÍNALE — Sesión 16 — 25 abril 2026
+Stack: Next.js 16 + Supabase + Vercel + Mercado Pago
+Repo: iviemunoz8606-bit/atinale · URL: atinale-ecru.vercel.app
+Windows 11, VS Code, CMD · Dev: npm run dev -- --webpack
+Reglas: // @ts-nocheck + 'use client' · createBrowserClient · nunca framer-motion
+
+ESTADO ACTUAL
+- 10 participantes · $1,000 pozo · Jornada 17 Liga MX activa
+- Pool ID Jornada 17: c7b6e451-d671-41d8-b615-723a98098fb8
+- Armalobo: 3pts (único con puntos, acertó Puebla 1-2 Querétaro exacto)
+- Puebla 1-2 Querétaro ya guardado con status='finished' en BD
+
+PARTIDOS HOY (25 abril, hora México Centro)
+1. Pachuca vs Pumas UNAM — 5:00pm
+2. Tigres UANL vs Mazatlán FC — 5:00pm  
+3. Toluca vs León — 7:05pm
+4. Guadalajara vs Tijuana — 7:07pm
+5. FC Juárez vs Atlético de San Luis — 9:00pm
+
+BUGS CRÍTICOS A RESOLVER HOY (en orden)
+1. Puntos no se calculan automáticamente al guardar resultado en admin
+   → handleSaveResult actualiza pool_members.points pero NO users.total_points
+   → Hay que agregar UPDATE users SET total_points al final del handleSaveResult
+
+2. Predicciones no se revelan cuando inicia partido
+   → Transparencia clave: cuando status='live' o 'finished', mostrar predicciones de TODOS
+   → Fix en /quiniela/[id]: query adicional de todas las predicciones del partido
+
+3. Horarios muestran 1 hora menos
+   → Partidos de hoy en BD están en UTC correcto pero se muestran mal
+   → Verificar scheduled_at de Pachuca vs Pumas: debe ser 2026-04-25 23:00:00+00
+   → Si está mal: UPDATE matches SET scheduled_at = scheduled_at + interval '1 hour' WHERE competition='LIGA_MX' AND status != 'finished'
+
+4. Registro no se cierra automáticamente cuando inicia primer partido
+   → Alguien pagó después de que Puebla ya había iniciado
+   → Fix: en webhook verificar si algún match del pool ya tiene scheduled_at <= now()
+
+BUGS IMPORTANTES (después de los críticos)
+5. Ranking en tiempo real provisional (con marcador live)
+6. total_pot desincronizado — monitorear si sigue sumando con nuevos pagos
+7. Admin muestra todas las quinielas de prueba — limpiar Supabase
+
+NOTAS TÉCNICAS
+- points_earned en predictions + points en pool_members + total_points en users = tres lugares que se deben actualizar juntos
+- scheduled_at en Supabase está en UTC, México Centro verano = UTC-6
+- handleSaveResult está en /app/admin/page.tsx
+- API admin members: /app/api/admin/members/route.ts con SUPABASE_SERVICE_ROLE_KEY
+- Nunca .order('created_at') en pool_members (no tiene esa columna)

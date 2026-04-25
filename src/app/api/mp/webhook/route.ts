@@ -57,8 +57,12 @@ export async function POST(req: NextRequest) {
       { onConflict: 'user_id,pool_id' }
     )
 
-    // 3. Incrementar participantes en el pool
-    await supabase.rpc('increment_participants', { p_pool_id: poolId })
+    // 3. Incrementar participantes y pozo
+      await supabase.rpc('increment_participants', { p_pool_id: poolId })
+
+      // 4. Sumar al pozo
+      const { data: pool } = await supabase.from('pools').select('total_pot').eq('id', poolId).single()
+      await supabase.from('pools').update({ total_pot: (pool?.total_pot || 0) + amount }).eq('id', poolId)
 
     return NextResponse.json({ ok: true })
   } catch (error: any) {

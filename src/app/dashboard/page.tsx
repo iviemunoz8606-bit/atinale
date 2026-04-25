@@ -401,12 +401,12 @@ export default function Dashboard() {
                         </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                           {member.payment_status === 'approved' ? (
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <Link href={`/quiniela/${member.pool_id}`} style={{ textDecoration: 'none' }}>
-                                <div style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Ver →</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <Link href={`/predecir`} style={{ textDecoration: 'none' }}>
+                                <div style={{ background: 'linear-gradient(135deg,#F5B731,#C9930A)', borderRadius: 20, padding: '7px 16px', fontSize: 18, textAlign: 'center', cursor: 'pointer' }}>🎯</div>
                               </Link>
                               <Link href={`/ranking?pool=${member.pool_id}`} style={{ textDecoration: 'none' }}>
-                                <div style={{ background: 'linear-gradient(135deg,#F5B731,#C9930A)', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#080C16', cursor: 'pointer' }}>🏆 Ranking</div>
+                                <div style={{ background: 'rgba(79,173,255,0.15)', border: '0.5px solid rgba(79,173,255,0.3)', borderRadius: 20, padding: '7px 16px', fontSize: 18, textAlign: 'center', cursor: 'pointer' }}>🏆</div>
                               </Link>
                             </div>
                           ) : (

@@ -39,6 +39,7 @@ export default function AdminPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [filterPool, setFilterPool] = useState<string>('todos')
   const [filterComp, setFilterComp] = useState<string>('todos')
+  const [stats, setStats] = useState({ recaudado: 0, comision: 0, participantes: 0, pendientes: 0 })
 
   useEffect(() => { init() }, [])
 

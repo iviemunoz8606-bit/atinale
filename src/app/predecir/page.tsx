@@ -179,8 +179,8 @@ export default function Predecir() {
   if (!user) return null
 
   const totalMatches = activeFilter === 'todos' || activeFilter === 'pendientes'
-    ? [...new Set(matches.map(m => m.id))].length
-    : matches.filter(m => myPools.find(p => p.pool_id === activeFilter)?.pool?.competition === m.competition).length
+  ? filteredMatches.length
+  : matches.filter(m => myPools.find(p => p.pool_id === activeFilter)?.pool?.competition === m.competition).length
 
   const predictedCount = activeFilter === 'todos' || activeFilter === 'pendientes'
     ? new Set(predictions.map(p => p.match_id)).size

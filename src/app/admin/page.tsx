@@ -51,7 +51,7 @@ export default function AdminPage() {
     // Miembros con info de usuario y pool
     const { data: membersData } = await supabase
       .from('pool_members')
-      .select('id, pool_id, user_id, payment_status, points, rank, pool:pools(id, name, competition, entry_fee), user:users(id, name, email, phone)')
+      .select('id, pool_id, user_id, payment_status, points, rank, pools(id, name, competition, entry_fee), users(id, name, email, phone)')
       .order('pool_id', { ascending: true })
     setMembers(membersData || [])
 
@@ -93,7 +93,7 @@ export default function AdminPage() {
 
   async function handleReject(member) {
     await supabase.from('pool_members').update({ payment_status: 'rejected' }).eq('id', member.id)
-    showToast(`🚫 ${member.user?.name} rechazado`)
+    showToast(`🚫 ${member.users?.name} rechazado`)
     await loadData()
   }
 
@@ -334,13 +334,13 @@ function MemberCard({ member, onApprove, onReject, showActions }) {
     <div style={{ background: '#111520', borderRadius: 12, padding: 14, marginBottom: 8, border: `0.5px solid ${statusColor}30`, animation: 'fadeUp 0.3s ease both' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: showActions ? 10 : 0 }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>{member.user?.name || 'Sin nombre'}</div>
-          <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{member.user?.email}</div>
-          {member.user?.phone && <div style={{ fontSize: 11, color: '#555' }}>📱 {member.user.phone}</div>}
-          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>📋 {member.pool?.name}</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>{member.users?.name || 'Sin nombre'}</div>
+          <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{member.users?.email}</div>
+          {member.user?.phone && <div style={{ fontSize: 11, color: '#555' }}>📱 {member.users.phone}</div>}
+          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>📋 {member.pools?.name}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: '#F5B731' }}>{fmt(member.pool?.entry_fee || 0)}</div>
+          <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: '#F5B731' }}>{fmt(member.pools?.entry_fee || 0)}</div>
           <div style={{ fontSize: 10, color: statusColor, fontWeight: 700, marginTop: 2, textTransform: 'uppercase' }}>{member.payment_status}</div>
           {member.payment_status === 'approved' && (
             <div style={{ fontSize: 11, color: '#4FADFF', marginTop: 2 }}>{member.points || 0} pts · #{member.rank || '—'}</div>

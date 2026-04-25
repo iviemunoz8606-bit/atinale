@@ -525,7 +525,7 @@ export default function QuinielaPredictions() {
             }}>
               {pool?.name || 'Quiniela'}
             </div>
-            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>Fase de Grupos · 48 partidos</div>
+            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{matches.length} partidos</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: pct === 100 ? '#00C46A' : '#F5B731', lineHeight: 1 }}>{pct}%</div>

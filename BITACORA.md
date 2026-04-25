@@ -547,3 +547,34 @@ NOTAS TÉCNICAS
 - handleSaveResult está en /app/admin/page.tsx
 - API admin members: /app/api/admin/members/route.ts con SUPABASE_SERVICE_ROLE_KEY
 - Nunca .order('created_at') en pool_members (no tiene esa columna)
+
+## Sesión 16 — 25 abril 2026
+
+### Completado
+
+- Fix Bug 1: función SQL `add_points_to_member` ahora actualiza `users.total_points` además de `pool_members.points`
+- Fix Bug 3: horarios de 3 partidos Liga MX corregidos en BD (UTC-6 México Centro verano)
+- Admin: flujo completo `upcoming → live → finished` con recálculo de puntos sin acumular, editar horario desde tarjeta, leyenda "Hora Centro México"
+- RLS `matches`: nueva política UPDATE solo para admins
+- `/predecir`: emoji 🎯✅❌ + puntos ganados en partidos `live` y `finished`
+- `/quiniela/[id]`: marcador real corregido (home/away estaban invertidos) + emoji y puntos
+- `/ranking`: vista por quiniela con podio, tabla de posiciones, partidos expandibles con predicciones de todos en tiempo real
+- RLS `pool_members`: reemplazadas 3 políticas conflictivas por una sola `using(true)` para usuarios autenticados
+- Webhook `/api/mp/webhook`: no activa membresía si algún partido del pool ya inició (`live` o `finished`)
+- Dashboard: botones 🎯 (predecir) y 🏆 (ranking) en cards de quiniela aprobada
+
+### Estado actual
+
+- 10 participantes · $1,000 pozo · Jornada 17 activa
+- Pool ID Jornada 17: c7b6e451-d671-41d8-b615-723a98098fb8
+- Armalobo líder con 3pts (acertó Puebla 1-2 Querétaro exacto)
+- Partidos hoy: Pachuca vs Pumas 5pm, Tigres vs Mazatlán 5pm, Toluca vs León 7:05pm, Guadalajara vs Tijuana 7:07pm, FC Juárez vs San Luis 9pm
+
+### Pendientes
+
+- Banderas en `/ranking` y `/predecir` para mejor visual
+- Limpiar quinielas de prueba en Supabase
+- Insertar partidos Liguilla (~27 abril, después de J17)
+- Supabase Pro upgrade — urgente antes del 1 de mayo
+- WhatsApp canal de difusión para comunidad
+- Revisar UX del botón 🏆 desde dashboard (parámetro `pool=id` funciona)

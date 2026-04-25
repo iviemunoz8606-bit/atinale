@@ -67,6 +67,16 @@ export default function Ranking() {
 
   useEffect(() => { init() }, [])
 
+  useEffect(() => {
+    if (myPools.length === 0) return
+    const params = new URLSearchParams(window.location.search)
+    const poolId = params.get('pool')
+    if (poolId) {
+      const found = myPools.find(m => m.pool?.id === poolId)
+      if (found) loadPoolData(found.pool)
+    }
+  }, [myPools])
+
   async function init() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/'); return }

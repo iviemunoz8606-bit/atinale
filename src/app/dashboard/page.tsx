@@ -401,9 +401,14 @@ export default function Dashboard() {
                         </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                           {member.payment_status === 'approved' ? (
-                            <Link href={`/quiniela/${member.pool_id}`} style={{ textDecoration: 'none' }}>
-                              <div style={{ background: 'linear-gradient(135deg,#F5B731,#C9930A)', borderRadius: 20, padding: '8px 18px', fontSize: 12, fontWeight: 700, color: '#080C16', cursor: 'pointer' }}>Ver →</div>
-                            </Link>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <Link href={`/quiniela/${member.pool_id}`} style={{ textDecoration: 'none' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Ver →</div>
+                              </Link>
+                              <Link href={`/ranking?pool=${member.pool_id}`} style={{ textDecoration: 'none' }}>
+                                <div style={{ background: 'linear-gradient(135deg,#F5B731,#C9930A)', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#080C16', cursor: 'pointer' }}>🏆 Ranking</div>
+                              </Link>
+                            </div>
                           ) : (
                             <span style={{ fontSize: 11, color: '#F5B731' }}>⏳ Validando</span>
                           )}

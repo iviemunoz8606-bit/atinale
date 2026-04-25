@@ -59,31 +59,14 @@ export default function AdminPage() {
       .order('created_at', { ascending: false })
     setPools(poolsData || [])
 
-    // Members separado
-    const { data: membersRaw } = await supabase
-      .from('pool_members')
-      .select('id, pool_id, user_id, payment_status, points, rank')
-
-    const userIds = [...new Set((membersRaw || []).map(m => m.user_id))]
-    const poolIds = [...new Set((membersRaw || []).map(m => m.pool_id))]
-
-    const { data: usersData } = userIds.length > 0
-      ? await supabase.from('users').select('id, name, email, phone').in('id', userIds)
-      : { data: [] }
-
-    const { data: poolsMapData } = poolIds.length > 0
-      ? await supabase.from('pools').select('id, name, competition, entry_fee').in('id', poolIds)
-      : { data: [] }
-
-    const usersMap = Object.fromEntries((usersData || []).map(u => [u.id, u]))
-    const poolsMap = Object.fromEntries((poolsMapData || []).map(p => [p.id, p]))
-
-    const combined = (membersRaw || []).map(m => ({
-      ...m,
-      userData: usersMap[m.user_id] || null,
-      poolData: poolsMap[m.pool_id] || null,
-    }))
+    const res = await fetch('/api/admin/members')
+    const combined = await res.json()
     setMembers(combined)
+
+    const approvedM = combined.filter(m => m.payment_status === 'approved')
+    const recaudado = approvedM.reduce((s, m) => s + (m.poolData?.entry_fee || 0), 0)
+    const pendientes = combined.filter(m => m.payment_status === 'pending').length
+    setStats({ recaudado, comision: recaudado * 0.1, participantes: approvedM.length, pendientes })
 
     // Partidos
     const { data: matchesData } = await supabase

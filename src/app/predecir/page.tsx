@@ -354,7 +354,22 @@ export default function Predecir() {
                                   <span style={{ color: 'rgba(255,255,255,.2)', fontSize: 16 }}>-</span>
                                   <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, background: 'rgba(255,255,255,.08)', padding: '4px 14px', borderRadius: 10 }}>{match.away_score}</div>
                                 </div>
-                                {pred && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>Tu pred: <span style={{ color: '#F5B731' }}>{pred.predicted_home} - {pred.predicted_away}</span></div>}
+                                {pred && (() => {
+                                  const realResult = match.home_score > match.away_score ? 'home' : match.away_score > match.home_score ? 'away' : 'draw'
+                                  const predResult = pred.predicted_home > pred.predicted_away ? 'home' : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
+                                  const exacto = pred.predicted_home === match.home_score && pred.predicted_away === match.away_score
+                                  const acierto = predResult === realResult
+                                  const emoji = exacto ? '🎯' : acierto ? '✅' : '❌'
+                                  const pts = exacto ? 3 : acierto ? 1 : 0
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>Tu pred: <span style={{ color: '#F5B731' }}>{pred.predicted_home} - {pred.predicted_away}</span></div>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: exacto ? '#F5B731' : acierto ? '#00C46A' : '#ff4d4d' }}>
+                                        {emoji} {pts > 0 ? `+${pts} pts` : 'Sin puntos'}
+                                      </div>
+                                    </div>
+                                  )
+                                })()}
                               </div>
                             ) : locked ? (
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

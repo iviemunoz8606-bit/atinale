@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use client'
 
+import { Suspense } from 'react'
 import { useEffect, useState, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -50,7 +51,7 @@ function isLocked(scheduledAt: string, status: string) {
   return new Date(scheduledAt).getTime() <= Date.now()
 }
 
-export default function Predecir() {
+function PredecirInner() {
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -440,5 +441,13 @@ export default function Predecir() {
       </div>
       <BottomNav />
     </div>
+  )
+}
+
+export default function Predecir() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <PredecirInner />
+    </Suspense>
   )
 }

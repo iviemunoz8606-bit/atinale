@@ -100,13 +100,23 @@ export default function Ranking() {
 
     // Miembros con puntos de esa quiniela
     const { data: members } = await supabase
-      .from('pool_members')
-      .select('user_id, points, rank, users(id, name, alias, emoji, avatar_url)')
-      .eq('pool_id', pool.id)
-      .eq('payment_status', 'approved')
-      .order('points', { ascending: false })
+    .from('pool_members')
+    .select('user_id, points')
+    .eq('pool_id', pool.id)
+    .eq('payment_status', 'approved')
+    .order('points', { ascending: false })
 
-    const ranked = (members || []).map((m, i) => ({ ...m, poolRank: i + 1 }))
+    const userIds = (members || []).map(m => m.user_id)
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('id, name, alias, emoji, avatar_url')
+      .in('id', userIds)
+
+    const ranked = (members || []).map((m, i) => ({
+      ...m,
+      poolRank: i + 1,
+      users: usersData?.find(u => u.id === m.user_id) || null
+    }))
     setPoolMembers(ranked)
 
     // Partidos de esa quiniela

@@ -46,6 +46,28 @@ export async function POST(req: NextRequest) {
       receipt_url: `mp_payment_${payment.id}`,
     })
 
+    // Verificar si algún partido del pool ya inició
+    const { data: poolData } = await supabase
+      .from('pools')
+      .select('competition')
+      .eq('id', poolId)
+      .single()
+
+    if (poolData?.competition) {
+      const { data: startedMatches } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('competition', poolData.competition)
+        .in('status', ['live', 'finished'])
+        .limit(1)
+
+      if (startedMatches && startedMatches.length > 0) {
+        // Pool ya inició — registrar pago pero NO activar membresía
+        console.log('Pago rechazado: pool ya inició', poolId)
+        return NextResponse.json({ ok: true, skipped: 'pool_started' })
+      }
+    }
+
     // 2. Crear o actualizar membresía como aprobada
     await supabase.from('pool_members').upsert(
       {

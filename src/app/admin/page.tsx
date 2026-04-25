@@ -52,28 +52,29 @@ export default function AdminPage() {
   }
 
   async function loadData() {
-    // Pools
-    const { data: poolsData } = await supabase
-      .from('pools')
-      .select('id, name, competition, entry_fee, total_pot, current_participants, max_participants')
-      .order('created_at', { ascending: false })
-    setPools(poolsData || [])
+  // Pools
+  const { data: poolsData } = await supabase
+    .from('pools')
+    .select('id, name, competition, entry_fee, total_pot, current_participants, max_participants')
+    .order('created_at', { ascending: false })
+  setPools(poolsData || [])
 
-    const res = await fetch('/api/admin/members')
-    const combined = await res.json()
-    setMembers(combined)
+  // Members via API con service role
+  const res = await fetch('/api/admin/members')
+  const combined = await res.json()
+  setMembers(combined)
 
-    const approvedM = combined.filter(m => m.payment_status === 'approved')
-    const recaudado = approvedM.reduce((s, m) => s + (m.poolData?.entry_fee || 0), 0)
-    const pendientes = combined.filter(m => m.payment_status === 'pending').length
-    setStats({ recaudado, comision: recaudado * 0.1, participantes: approvedM.length, pendientes })
+  const approvedM = combined.filter(m => m.payment_status === 'approved')
+  const recaudado = approvedM.reduce((s, m) => s + (m.poolData?.entry_fee || 0), 0)
+  const pendientes = combined.filter(m => m.payment_status === 'pending').length
+  setStats({ recaudado, comision: recaudado * 0.1, participantes: approvedM.length, pendientes })
 
-    // Partidos
-    const { data: matchesData } = await supabase
-      .from('matches')
-      .select('*')
-      .order('scheduled_at', { ascending: true })
-    setMatches(matchesData || [])
+  // Partidos
+  const { data: matchesData } = await supabase
+    .from('matches')
+    .select('*')
+    .order('scheduled_at', { ascending: true })
+  setMatches(matchesData || [])
   }
 
   function showToast(msg: string) {

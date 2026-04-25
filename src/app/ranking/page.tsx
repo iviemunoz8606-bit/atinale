@@ -40,6 +40,10 @@ function formatDate(d) {
 
 export default function Ranking() {
   const router = useRouter()
+  const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState(null)
@@ -94,7 +98,8 @@ export default function Ranking() {
   }
 
   async function loadPoolData(pool) {
-    setLoadingPool(true)
+  console.log('pool.id:', pool?.id, 'pool completo:', JSON.stringify(pool))
+  setLoadingPool(true)
     setActivePool(pool)
     setExpandedMatch(null)
 
@@ -105,6 +110,8 @@ export default function Ranking() {
     .eq('pool_id', pool.id)
     .eq('payment_status', 'approved')
     .order('points', { ascending: false })
+
+    console.log('members result:', members, 'pool_id usado:', pool.id)
 
     const userIds = (members || []).map(m => m.user_id)
     const { data: usersData } = await supabase

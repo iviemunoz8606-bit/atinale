@@ -624,14 +624,14 @@ export default function QuinielaPredictions() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input type="number" min="0" max="20" className="score-input" disabled={locked}
-                    value={draft.home}
+                    value={match.home_score !== null ? String(match.home_score) : draft.home}
                     onChange={e => setDrafts(prev => ({ ...prev, [match.id]: { home: e.target.value, away: prev[match.id]?.away ?? '' } }))}
                     placeholder="–"
                     style={{ width: 54, height: 54, borderRadius: 12, background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(245,183,49,0.08)', color: locked ? '#4B5563' : '#F5B731', fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, textAlign: 'center', border: '1px solid', borderColor: locked ? 'rgba(255,255,255,0.05)' : isChanged ? 'rgba(245,183,49,0.4)' : 'rgba(245,183,49,0.15)', cursor: locked ? 'not-allowed' : 'text', transition: 'all 0.2s' }}
                   />
                   <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: '#374151' }}>-</div>
                   <input type="number" min="0" max="20" className="score-input" disabled={locked}
-                    value={draft.away}
+                    value={match.away_score !== null ? String(match.away_score) : draft.away}
                     onChange={e => setDrafts(prev => ({ ...prev, [match.id]: { home: prev[match.id]?.home ?? '', away: e.target.value } }))}
                     placeholder="–"
                     style={{ width: 54, height: 54, borderRadius: 12, background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(245,183,49,0.08)', color: locked ? '#4B5563' : '#F5B731', fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, textAlign: 'center', border: '1px solid', borderColor: locked ? 'rgba(255,255,255,0.05)' : isChanged ? 'rgba(245,183,49,0.4)' : 'rgba(245,183,49,0.15)', cursor: locked ? 'not-allowed' : 'text', transition: 'all 0.2s' }}

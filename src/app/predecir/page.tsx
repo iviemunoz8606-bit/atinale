@@ -1,10 +1,9 @@
 // @ts-nocheck
 'use client'
 
-import { Suspense } from 'react'
 import { useEffect, useState, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Loading from '@/app/loading'
 import BottomNav from '@/components/BottomNav'
@@ -51,10 +50,9 @@ function isLocked(scheduledAt: string, status: string) {
   return new Date(scheduledAt).getTime() <= Date.now()
 }
 
-function PredecirInner() {
+export default function Predecir() {
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const [user, setUser] = useState<User | null>(null)
   const [myPools, setMyPools] = useState<PoolMember[]>([])
@@ -68,19 +66,6 @@ function PredecirInner() {
   const matchRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   useEffect(() => { loadData() }, [])
-
-  useEffect(() => {
-    const matchId = searchParams.get('match')
-    const poolId = searchParams.get('pool')
-    if (matchId && poolId && !loading) {
-      if (poolId !== 'todos') setActiveFilter(poolId)
-      setTimeout(() => {
-        const key = `${poolId}-${matchId}`
-        const el = matchRefs.current[key]
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }, 300)
-    }
-  }, [loading, searchParams])
 
   async function loadData() {
     try {
@@ -180,8 +165,8 @@ function PredecirInner() {
   if (!user) return null
 
   const totalMatches = activeFilter === 'todos' || activeFilter === 'pendientes'
-  ? filteredMatches.length
-  : matches.filter(m => myPools.find(p => p.pool_id === activeFilter)?.pool?.competition === m.competition).length
+    ? getFilteredMatches().length
+    : matches.filter(m => myPools.find(p => p.pool_id === activeFilter)?.pool?.competition === m.competition).length
 
   const predictedCount = activeFilter === 'todos' || activeFilter === 'pendientes'
     ? new Set(predictions.map(p => p.match_id)).size
@@ -333,7 +318,6 @@ function PredecirInner() {
                     return (
                       <div
                         key={key}
-                        id={key}
                         ref={el => matchRefs.current[key] = el}
                         style={{ background: '#111520', borderRadius: 14, border: isUrgent ? '0.5px solid rgba(255,77,109,.3)' : '0.5px solid rgba(255,255,255,.07)', borderLeft: `3px solid ${isUrgent ? '#FF4D6D' : theme.leftBorder}`, marginBottom: 10, overflow: 'hidden' }}
                       >
@@ -348,29 +332,18 @@ function PredecirInner() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                             <span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)' }}>📍 {match.city}</span>
                             <span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)' }}>{formatDate(match.scheduled_at)}</span>
-                            {justSaved && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#00C46A', background: 'rgba(0,196,106,.12)', padding: '2px 8px', borderRadius: 6, animation: 'savedPop 0.3s ease' }}>✓ Guardado</span>
-                            )}
-                            {!justSaved && pred && !locked && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#00C46A', background: 'rgba(0,196,106,.12)', padding: '2px 8px', borderRadius: 6 }}>✓ Guardado</span>
-                            )}
-                            {locked && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#6B7280', background: 'rgba(107,114,128,.12)', padding: '2px 8px', borderRadius: 6 }}>🔒 Cerrado</span>
-                            )}
-                            {isUrgent && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#FF4D6D', background: 'rgba(255,77,109,.15)', padding: '2px 8px', borderRadius: 6, border: '0.5px solid rgba(255,77,109,.4)', animation: 'blink 1s ease-in-out infinite' }}>🔥 ¡Hoy!</span>
-                            )}
-                            {!pred && !locked && !justSaved && !isUrgent && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#FF4D6D', background: 'rgba(255,77,109,.1)', padding: '2px 8px', borderRadius: 6 }}>⚡ Pendiente</span>
-                            )}
+                            {justSaved && <span style={{ fontSize: 10, fontWeight: 700, color: '#00C46A', background: 'rgba(0,196,106,.12)', padding: '2px 8px', borderRadius: 6, animation: 'savedPop 0.3s ease' }}>✓ Guardado</span>}
+                            {!justSaved && pred && !locked && <span style={{ fontSize: 10, fontWeight: 700, color: '#00C46A', background: 'rgba(0,196,106,.12)', padding: '2px 8px', borderRadius: 6 }}>✓ Guardado</span>}
+                            {locked && <span style={{ fontSize: 10, fontWeight: 700, color: '#6B7280', background: 'rgba(107,114,128,.12)', padding: '2px 8px', borderRadius: 6 }}>🔒 Cerrado</span>}
+                            {isUrgent && <span style={{ fontSize: 10, fontWeight: 700, color: '#FF4D6D', background: 'rgba(255,77,109,.15)', padding: '2px 8px', borderRadius: 6, border: '0.5px solid rgba(255,77,109,.4)', animation: 'blink 1s ease-in-out infinite' }}>🔥 ¡Hoy!</span>}
+                            {!pred && !locked && !justSaved && !isUrgent && <span style={{ fontSize: 10, fontWeight: 700, color: '#FF4D6D', background: 'rgba(255,77,109,.1)', padding: '2px 8px', borderRadius: 6 }}>⚡ Pendiente</span>}
                           </div>
                         </div>
 
                         {/* Contenido */}
                         <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
-                            
-                            <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.8)', textAlign: 'center', lineHeight: 1.2 }}>{match.home_team}</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.8)', textAlign: 'center', lineHeight: 1.2 }}>{match.home_team}</span>
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
@@ -381,11 +354,7 @@ function PredecirInner() {
                                   <span style={{ color: 'rgba(255,255,255,.2)', fontSize: 16 }}>-</span>
                                   <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, background: 'rgba(255,255,255,.08)', padding: '4px 14px', borderRadius: 10 }}>{match.away_score}</div>
                                 </div>
-                                {pred && (
-                                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>
-                                    Tu pred: <span style={{ color: '#F5B731' }}>{pred.predicted_home} - {pred.predicted_away}</span>
-                                  </div>
-                                )}
+                                {pred && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>Tu pred: <span style={{ color: '#F5B731' }}>{pred.predicted_home} - {pred.predicted_away}</span></div>}
                               </div>
                             ) : locked ? (
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -426,8 +395,7 @@ function PredecirInner() {
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
-                            
-                            <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.8)', textAlign: 'center', lineHeight: 1.2 }}>{match.away_team}</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.8)', textAlign: 'center', lineHeight: 1.2 }}>{match.away_team}</span>
                           </div>
                         </div>
                       </div>
@@ -441,13 +409,5 @@ function PredecirInner() {
       </div>
       <BottomNav />
     </div>
-  )
-}
-
-export default function Predecir() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <PredecirInner />
-    </Suspense>
   )
 }

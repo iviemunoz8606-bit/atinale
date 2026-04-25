@@ -53,29 +53,26 @@ export default function AdminPage() {
   }
 
   async function loadData() {
-  // Pools
-  const { data: poolsData } = await supabase
-    .from('pools')
-    .select('id, name, competition, entry_fee, total_pot, current_participants, max_participants')
-    .order('created_at', { ascending: false })
-  setPools(poolsData || [])
+    const { data: poolsData } = await supabase
+      .from('pools')
+      .select('id, name, competition, entry_fee, total_pot, current_participants, max_participants')
+      .order('created_at', { ascending: false })
+    setPools(poolsData || [])
 
-  // Members via API con service role
-  const res = await fetch('/api/admin/members')
-  const combined = await res.json()
-  setMembers(combined)
+    const res = await fetch('/api/admin/members')
+    const combined = await res.json()
+    setMembers(combined)
 
-  const approvedM = combined.filter(m => m.payment_status === 'approved')
-  const recaudado = approvedM.reduce((s, m) => s + (m.poolData?.entry_fee || 0), 0)
-  const pendientes = combined.filter(m => m.payment_status === 'pending').length
-  setStats({ recaudado, comision: recaudado * 0.1, participantes: approvedM.length, pendientes })
+    const approvedM = combined.filter(m => m.payment_status === 'approved')
+    const recaudado = approvedM.reduce((s, m) => s + (m.poolData?.entry_fee || 0), 0)
+    const pendientes = combined.filter(m => m.payment_status === 'pending').length
+    setStats({ recaudado, comision: recaudado * 0.1, participantes: approvedM.length, pendientes })
 
-  // Partidos
-  const { data: matchesData } = await supabase
-    .from('matches')
-    .select('*')
-    .order('scheduled_at', { ascending: true })
-  setMatches(matchesData || [])
+    const { data: matchesData } = await supabase
+      .from('matches')
+      .select('*')
+      .order('scheduled_at', { ascending: true })
+    setMatches(matchesData || [])
   }
 
   function showToast(msg: string) {
@@ -135,39 +132,26 @@ export default function AdminPage() {
 
   if (loading) return <Loading />
 
-  // Stats globales
   const approvedMembers = members.filter(m => m.payment_status === 'approved')
   const pendingMembers = members.filter(m => m.payment_status === 'pending')
   const recaudadoTotal = approvedMembers.reduce((s, m) => s + (m.poolData?.entry_fee || 0), 0)
 
-  // Stats por quiniela
   const poolStats = pools.map(pool => {
     const poolMembers = approvedMembers.filter(m => m.pool_id === pool.id)
     const recaudado = poolMembers.reduce((s, m) => s + (pool.entry_fee || 0), 0)
     return { ...pool, recaudado, participantesActivos: poolMembers.length }
   })
 
-  // Filtros jugadores
-  const filteredMembers = filterPool === 'todos'
-    ? members
-    : members.filter(m => m.pool_id === filterPool)
-
+  const filteredMembers = filterPool === 'todos' ? members : members.filter(m => m.pool_id === filterPool)
   const activeMembers = filteredMembers.filter(m => m.payment_status === 'approved')
   const pendingFiltered = filteredMembers.filter(m => m.payment_status === 'pending')
   const rejectedMembers = filteredMembers.filter(m => m.payment_status === 'rejected')
 
-  // Filtros partidos
-  const filteredMatches = filterComp === 'todos'
-    ? matches
-    : matches.filter(m => m.competition === filterComp)
-
+  const filteredMatches = filterComp === 'todos' ? matches : matches.filter(m => m.competition === filterComp)
   const pendingMatches = filteredMatches.filter(m => m.status !== 'finished' && new Date(m.scheduled_at) < new Date())
   const upcomingMatches = filteredMatches.filter(m => m.status !== 'finished' && new Date(m.scheduled_at) >= new Date())
   const finishedMatches = filteredMatches.filter(m => m.status === 'finished')
-
   const competitions = [...new Set(matches.map(m => m.competition))]
-
-  // Análisis — mejor predictor
   const bestPredictor = [...approvedMembers].sort((a, b) => (b.points || 0) - (a.points || 0))[0]
 
   return (
@@ -188,7 +172,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* TOPBAR */}
       <div style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'rgba(8,12,22,0.96)', backdropFilter: 'blur(20px)', borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
         <div>
           <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, letterSpacing: 2, color: '#F5B731' }}>ATÍNALE</div>
@@ -201,10 +184,8 @@ export default function AdminPage() {
 
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '16px 16px 80px' }}>
 
-        {/* ── RESUMEN GLOBAL ── */}
         <div style={{ background: '#111520', borderRadius: 16, padding: 16, marginBottom: 14, border: '0.5px solid rgba(245,183,49,0.15)', animation: 'fadeUp 0.3s ease both' }}>
           <div style={{ fontSize: 10, color: '#F5B731', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 14 }}>Resumen global</div>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
             {[
               { label: 'Total recaudado', value: fmt(recaudadoTotal), color: '#00C46A' },
@@ -218,8 +199,6 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
-
-          {/* Desglose por quiniela */}
           <div style={{ fontSize: 9, color: '#444', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Por quiniela</div>
           {poolStats.map(pool => (
             <div key={pool.id} style={{ background: '#0d1220', borderRadius: 10, padding: '10px 12px', marginBottom: 6, borderLeft: `3px solid ${compColor(pool.competition)}` }}>
@@ -235,20 +214,17 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
-
-          {/* Barra meta */}
           <div style={{ marginTop: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#555', marginBottom: 4 }}>
               <span>Meta: {fmt(5000)}</span>
               <span style={{ color: '#00C46A' }}>{Math.round((recaudadoTotal / 5000) * 100)}% alcanzado</span>
             </div>
             <div style={{ background: '#1a1f2e', borderRadius: 4, height: 5, overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(100, (recaudadoTotal / 5000) * 100)}%`, height: '100%', background: '#00C46A', borderRadius: 4, transition: 'width 0.5s' }} />
+              <div style={{ width: `${Math.min(100, (recaudadoTotal / 5000) * 100)}%`, height: '100%', background: '#00C46A', borderRadius: 4 }} />
             </div>
           </div>
         </div>
 
-        {/* ── TABS ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
           {[
             { key: 'jugadores', label: '👥 Jugadores', badge: pendingMembers.length },
@@ -272,10 +248,8 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* ══ TAB JUGADORES ══ */}
         {activeTab === 'jugadores' && (
           <div style={{ animation: 'fadeUp 0.3s ease both' }}>
-            {/* Filtro por quiniela */}
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 12, paddingBottom: 2 }}>
               {[{ id: 'todos', name: 'Todas' }, ...pools].map(pool => (
                 <button key={pool.id} className="chip" onClick={() => setFilterPool(pool.id)} style={{
@@ -283,33 +257,27 @@ export default function AdminPage() {
                   fontWeight: filterPool === pool.id ? 700 : 400,
                   background: filterPool === pool.id ? '#F5B731' : 'rgba(255,255,255,.06)',
                   color: filterPool === pool.id ? '#080C16' : 'rgba(255,255,255,.4)',
-                }}>
-                  {pool.name}
-                </button>
+                }}>{pool.name}</button>
               ))}
             </div>
-
             {members.length === 0 && (
               <div style={{ textAlign: 'center', padding: '48px 0', color: '#555' }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>👥</div>
                 <p>Nadie se ha unido aún</p>
               </div>
             )}
-
             {pendingFiltered.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, color: '#f97316', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>⏳ PENDIENTES ({pendingFiltered.length})</div>
                 {pendingFiltered.map(m => <MemberCard key={m.id} member={m} onApprove={handleApprove} onReject={handleReject} showActions />)}
               </div>
             )}
-
             {activeMembers.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, color: '#00C46A', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>✅ ACTIVOS ({activeMembers.length})</div>
                 {activeMembers.map(m => <MemberCard key={m.id} member={m} onApprove={handleApprove} onReject={handleReject} showActions={false} />)}
               </div>
             )}
-
             {rejectedMembers.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, color: '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>🚫 RECHAZADOS ({rejectedMembers.length})</div>
@@ -319,7 +287,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ══ TAB RESULTADOS ══ */}
         {activeTab === 'resultados' && (
           <div style={{ animation: 'fadeUp 0.3s ease both' }}>
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 12, paddingBottom: 2 }}>
@@ -329,35 +296,28 @@ export default function AdminPage() {
                   fontWeight: filterComp === opt.id ? 700 : 400,
                   background: filterComp === opt.id ? '#F5B731' : 'rgba(255,255,255,.06)',
                   color: filterComp === opt.id ? '#080C16' : 'rgba(255,255,255,.4)',
-                }}>
-                  {opt.label}
-                </button>
+                }}>{opt.label}</button>
               ))}
             </div>
-
             {pendingMatches.length > 0 && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: '#f97316', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>⚠️ NECESITAN RESULTADO ({pendingMatches.length})</div>
                 {pendingMatches.map(m => <MatchCard key={m.id} match={m} scores={scores} setScores={setScores} savingId={savingId} onSave={handleSaveResult} highlight />)}
               </div>
             )}
-
             {upcomingMatches.length > 0 && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: '#555', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>📅 PRÓXIMOS ({upcomingMatches.length})</div>
                 {upcomingMatches.slice(0, 10).map(m => <MatchCard key={m.id} match={m} scores={scores} setScores={setScores} savingId={savingId} onSave={handleSaveResult} highlight={false} />)}
               </div>
             )}
-
             {finishedMatches.length > 0 && (
               <div>
                 <div style={{ fontSize: 10, color: '#00C46A', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>✅ FINALIZADOS ({finishedMatches.length})</div>
                 {finishedMatches.map(m => (
                   <div key={m.id} style={{ background: '#111520', borderRadius: 10, padding: '10px 14px', marginBottom: 6, border: '0.5px solid rgba(0,196,106,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 0.7 }}>
                     <span style={{ fontSize: 12, color: '#ccc', flex: 1 }}>{m.home_team}</span>
-                    <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, color: '#00C46A', padding: '2px 12px', background: 'rgba(0,196,106,0.1)', borderRadius: 8, margin: '0 8px' }}>
-                      {m.home_score} - {m.away_score}
-                    </span>
+                    <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, color: '#00C46A', padding: '2px 12px', background: 'rgba(0,196,106,0.1)', borderRadius: 8, margin: '0 8px' }}>{m.home_score} - {m.away_score}</span>
                     <span style={{ fontSize: 12, color: '#ccc', flex: 1, textAlign: 'right' }}>{m.away_team}</span>
                   </div>
                 ))}
@@ -366,11 +326,8 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ══ TAB ANÁLISIS ══ */}
         {activeTab === 'analisis' && (
           <div style={{ animation: 'fadeUp 0.3s ease both' }}>
-
-            {/* Mini stats */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
               <div style={{ background: '#111520', borderRadius: 12, padding: 12 }}>
                 <div style={{ fontSize: 9, color: '#555', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Mejor predictor</div>
@@ -383,29 +340,23 @@ export default function AdminPage() {
                 <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>total</div>
               </div>
             </div>
-
-            {/* Tabla de posiciones */}
             <div style={{ background: '#111520', borderRadius: 12, padding: 14, marginBottom: 14 }}>
               <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Tabla de posiciones</div>
               {approvedMembers.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#555', fontSize: 12, padding: '20px 0' }}>Sin participantes aún</div>
               ) : (
-                [...approvedMembers]
-                  .sort((a, b) => (b.points || 0) - (a.points || 0))
-                  .map((m, i) => (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < approvedMembers.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
-                      <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, color: i === 0 ? '#F5B731' : i === 1 ? '#9CA3AF' : i === 2 ? '#CD7F32' : '#444', width: 24 }}>{i + 1}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{m.userData?.name || 'Usuario'}</div>
-                        <div style={{ fontSize: 10, color: '#555' }}>{m.poolData?.name}</div>
-                      </div>
-                      <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, color: i === 0 ? '#F5B731' : '#4FADFF' }}>{m.points || 0}</div>
+                [...approvedMembers].sort((a, b) => (b.points || 0) - (a.points || 0)).map((m, i) => (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < approvedMembers.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
+                    <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, color: i === 0 ? '#F5B731' : i === 1 ? '#9CA3AF' : i === 2 ? '#CD7F32' : '#444', width: 24 }}>{i + 1}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{m.userData?.name || 'Usuario'}</div>
+                      <div style={{ fontSize: 10, color: '#555' }}>{m.poolData?.name}</div>
                     </div>
-                  ))
+                    <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, color: i === 0 ? '#F5B731' : '#4FADFF' }}>{m.points || 0}</div>
+                  </div>
+                ))
               )}
             </div>
-
-            {/* Gráfica pozo por quiniela */}
             <div style={{ background: '#111520', borderRadius: 12, padding: 14 }}>
               <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Recaudado por quiniela</div>
               {poolStats.map(pool => (
@@ -415,7 +366,7 @@ export default function AdminPage() {
                     <span style={{ color: '#F5B731' }}>{fmt(pool.recaudado)}</span>
                   </div>
                   <div style={{ background: '#1a1f2e', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-                    <div style={{ width: `${pool.max_participants > 0 ? Math.min(100, (pool.participantesActivos / pool.max_participants) * 100) : 0}%`, height: '100%', background: compColor(pool.competition), borderRadius: 4, transition: 'width 0.5s' }} />
+                    <div style={{ width: `${pool.max_participants > 0 ? Math.min(100, (pool.participantesActivos / pool.max_participants) * 100) : 0}%`, height: '100%', background: compColor(pool.competition), borderRadius: 4 }} />
                   </div>
                   <div style={{ fontSize: 10, color: '#555', marginTop: 3 }}>{pool.participantesActivos} / {pool.max_participants} participantes</div>
                 </div>

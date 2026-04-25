@@ -645,16 +645,26 @@ export default function QuinielaPredictions() {
               </div>
 
               {locked && pred && (
-                <div style={{ padding: '8px 14px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>Tu predicción:</div>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: '#F5B731', background: 'rgba(245,183,49,0.1)', padding: '3px 14px', borderRadius: 8 }}>
-                    {pred.predicted_home} - {pred.predicted_away}
-                  </div>
-                  {pred.points_earned > 0 && (
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#00C46A', background: 'rgba(0,196,106,0.15)', padding: '3px 10px', borderRadius: 8 }}>
-                      +{pred.points_earned} pts 🎯
+                <div style={{ padding: '8px 14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 11, color: '#6B7280' }}>Tu predicción:</div>
+                    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: '#F5B731', background: 'rgba(245,183,49,0.1)', padding: '3px 14px', borderRadius: 8 }}>
+                      {pred.predicted_home} - {pred.predicted_away}
                     </div>
-                  )}
+                  </div>
+                  {match.home_score !== null && (() => {
+                    const realResult = match.home_score > match.away_score ? 'home' : match.away_score > match.home_score ? 'away' : 'draw'
+                    const predResult = pred.predicted_home > pred.predicted_away ? 'home' : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
+                    const exacto = pred.predicted_home === match.home_score && pred.predicted_away === match.away_score
+                    const acierto = predResult === realResult
+                    const emoji = exacto ? '🎯' : acierto ? '✅' : '❌'
+                    const pts = exacto ? 3 : acierto ? 1 : 0
+                    return (
+                      <div style={{ fontSize: 13, fontWeight: 700, color: exacto ? '#F5B731' : acierto ? '#00C46A' : '#ff4d4d' }}>
+                        {emoji} {pts > 0 ? `+${pts} pts` : 'Sin puntos'}
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
             </div>

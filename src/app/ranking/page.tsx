@@ -13,30 +13,6 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// ── Diana SVG animada para el nav ─────────────────────────────────────────────
-function DianaNav({ active }: { active: boolean }) {
-  const c1 = active ? '#F5B731' : 'rgba(255,255,255,0.25)'
-  const c2 = active ? '#F5B731' : 'rgba(255,255,255,0.32)'
-  const c3 = active ? '#F5B731' : 'rgba(255,255,255,0.42)'
-  const cd = active ? '#F5B731' : 'rgba(255,255,255,0.52)'
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="11" cy="11" r="9"   stroke={c1} strokeWidth="1" strokeDasharray="4 3"
-        style={{ transformOrigin:'50% 50%', animation:'spinOut 8s linear infinite' }} />
-      <circle cx="11" cy="11" r="6"   stroke={c2} strokeWidth="1" strokeDasharray="3 2"
-        style={{ transformOrigin:'50% 50%', animation:'spinMid 5s linear infinite reverse' }} />
-      <circle cx="11" cy="11" r="3.5" stroke={c3} strokeWidth="1"
-        style={{ transformOrigin:'50% 50%', animation:'spinIn 3s linear infinite' }} />
-      <circle cx="11" cy="11" r="1.5" fill={cd} />
-      <line x1="11" y1="2"  x2="11" y2="5"  stroke={c1} strokeWidth="1" />
-      <line x1="11" y1="17" x2="11" y2="20" stroke={c1} strokeWidth="1" />
-      <line x1="2"  y1="11" x2="5"  y2="11" stroke={c1} strokeWidth="1" />
-      <line x1="17" y1="11" x2="20" y2="11" stroke={c1} strokeWidth="1" />
-    </svg>
-  )
-}
-
-// ── Punto rojo pulsante ───────────────────────────────────────────────────────
 function LiveDot() {
   return (
     <span style={{
@@ -47,46 +23,128 @@ function LiveDot() {
   )
 }
 
+function getInitial(name) {
+  return name ? name.charAt(0).toUpperCase() : '?'
+}
+
+function getDisplayName(u) {
+  return u.alias || u.name?.split(' ')[0] || 'Jugador'
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('es-MX', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City'
+  })
+}
+
 export default function Ranking() {
   const router = useRouter()
-  const [users, setUsers]                 = useState([])
-  const [loading, setLoading]             = useState(true)
+
+  const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState(null)
-  const [currentUser, setCurrentUser]     = useState(null)
-  const [filter, setFilter]               = useState<'top' | 'vecinos' | 'todos'>('top')
+  const [currentUser, setCurrentUser] = useState(null)
 
-  useEffect(() => { loadRanking() }, [])
+  // Global
+  const [users, setUsers] = useState([])
+  const [filter, setFilter] = useState('top')
 
-  async function loadRanking() {
+  // Quinielas del usuario
+  const [myPools, setMyPools] = useState([])
+  const [activePool, setActivePool] = useState(null) // null = global
+
+  // Vista de quiniela
+  const [poolView, setPoolView] = useState<'partidos' | 'ranking'>('ranking')
+  const [poolMembers, setPoolMembers] = useState([])
+  const [poolMatches, setPoolMatches] = useState([])
+  const [allPredictions, setAllPredictions] = useState([])
+  const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
+  const [loadingPool, setLoadingPool] = useState(false)
+
+  useEffect(() => { init() }, [])
+
+  async function init() {
     const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/'); return }
-      setCurrentUserId(user.id)
+    if (!user) { router.push('/'); return }
+    setCurrentUserId(user.id)
 
-    // Query original conservada — suma total_points de todas las quinielas
-    const { data } = await supabase
+    // Ranking global
+    const { data: usersData } = await supabase
       .from('users')
       .select('id, name, alias, emoji, avatar_url, total_points')
       .order('total_points', { ascending: false })
       .limit(100)
 
-    if (data) {
-      const ranked = data.map((u, i) => ({ ...u, rank: i + 1 }))
+    if (usersData) {
+      const ranked = usersData.map((u, i) => ({ ...u, rank: i + 1 }))
       setUsers(ranked)
       const me = ranked.find(u => u.id === user.id)
       if (me) setCurrentUser(me)
     }
+
+    // Quinielas del usuario
+    const { data: memberData } = await supabase
+      .from('pool_members')
+      .select('pool_id, points, rank, pool:pools(id, name, competition, entry_fee, total_pot, current_participants)')
+      .eq('user_id', user.id)
+      .eq('payment_status', 'approved')
+
+    setMyPools(memberData || [])
     setLoading(false)
   }
 
-  function getInitial(name) {
-    return name ? name.charAt(0).toUpperCase() : '?'
+  async function loadPoolData(pool) {
+    setLoadingPool(true)
+    setActivePool(pool)
+    setExpandedMatch(null)
+
+    // Miembros con puntos de esa quiniela
+    const { data: members } = await supabase
+      .from('pool_members')
+      .select('user_id, points, rank, users(id, name, alias, emoji, avatar_url)')
+      .eq('pool_id', pool.id)
+      .eq('payment_status', 'approved')
+      .order('points', { ascending: false })
+
+    const ranked = (members || []).map((m, i) => ({ ...m, poolRank: i + 1 }))
+    setPoolMembers(ranked)
+
+    // Partidos de esa quiniela
+    const { data: matchesData } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('competition', pool.competition)
+      .order('scheduled_at', { ascending: true })
+
+    setPoolMatches(matchesData || [])
+
+    // Predicciones de TODOS los miembros para partidos live/finished
+    const liveOrFinished = (matchesData || []).filter(m => m.status === 'live' || m.status === 'finished').map(m => m.id)
+
+    if (liveOrFinished.length > 0) {
+      const { data: preds } = await supabase
+        .from('predictions')
+        .select('match_id, user_id, predicted_home, predicted_away, points_earned')
+        .eq('pool_id', pool.id)
+        .in('match_id', liveOrFinished)
+
+      setAllPredictions(preds || [])
+    } else {
+      setAllPredictions([])
+    }
+
+    setLoadingPool(false)
   }
 
-  function getDisplayName(u) {
-    return u.alias || u.name?.split(' ')[0] || 'Jugador'
+  function backToGlobal() {
+    setActivePool(null)
+    setPoolMembers([])
+    setPoolMatches([])
+    setAllPredictions([])
+    setExpandedMatch(null)
   }
 
-  // Filtrar lista
+  // Filtrar lista global
   function getList() {
     if (filter === 'top') return users.slice(0, 10)
     if (filter === 'vecinos') {
@@ -99,12 +157,11 @@ export default function Ranking() {
     return users
   }
 
-  // Podio
   const podioColors  = ['#9CA3AF', '#F5B731', '#CD7F32']
   const podioBorders = ['rgba(107,114,128,0.4)', 'rgba(245,183,49,0.8)', 'rgba(205,127,50,0.5)']
   const podioHeights = [38, 54, 26]
   const podioSizes   = [52, 64, 48]
-  const podioOrder   = [1, 0, 2] // 2do, 1ro, 3ro
+  const podioOrder   = [1, 0, 2]
 
   if (loading) return <Loading />
 
@@ -113,50 +170,64 @@ export default function Ranking() {
   const myPts  = currentUser?.total_points ?? 0
   const top3   = users.slice(0, 3)
 
+  // Pool view helpers
+  const top3Pool = poolMembers.slice(0, 3)
+  const myPoolMember = poolMembers.find(m => m.user_id === currentUserId)
+
+  function compColor(comp) {
+    if (comp === 'FIFA_2026') return '#00C46A'
+    if (comp === 'LIGA_MX') return '#E8192C'
+    if (comp === 'UEFA_CL') return '#4FADFF'
+    return '#6B7280'
+  }
+
+  function getPredictionsForMatch(matchId) {
+    return allPredictions.filter(p => p.match_id === matchId)
+  }
+
+  function getMatchEmoji(match, pred) {
+    if (match.home_score === null || pred === undefined) return null
+    const realResult = match.home_score > match.away_score ? 'home' : match.away_score > match.home_score ? 'away' : 'draw'
+    const predResult = pred.predicted_home > pred.predicted_away ? 'home' : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
+    const exacto = pred.predicted_home === match.home_score && pred.predicted_away === match.away_score
+    if (exacto) return '🎯'
+    if (predResult === realResult) return '✅'
+    return '❌'
+  }
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap');
         @keyframes blink   { 0%,100%{opacity:1} 50%{opacity:.2} }
-        @keyframes spinOut { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes spinMid { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes spinIn  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes pulse   { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { display: none; }
         html { scrollbar-width: none; }
+        .pool-chip { cursor:pointer; transition:all .2s; border:none; font-family:'Outfit',sans-serif; white-space:nowrap; }
+        .pool-chip:hover { opacity:.85; }
+        .ver-btn { width:100%; padding:7px; border:none; border-top:0.5px solid rgba(255,255,255,.07); background:rgba(255,255,255,.03); color:rgba(255,255,255,.35); font-size:11px; cursor:pointer; font-family:'Outfit',sans-serif; transition:all .2s; }
+        .ver-btn:hover { background:rgba(255,255,255,.06); color:rgba(255,255,255,.7); }
+        .tab-view { padding:7px 0; border-radius:20px; font-size:12px; cursor:pointer; border:none; font-family:'Outfit',sans-serif; transition:all .2s; flex:1; }
       `}</style>
 
-      <div style={{
-        background: '#080C16', minHeight: '100vh', color: '#fff',
-        fontFamily: "'Outfit', sans-serif", paddingBottom: 90,
-      }}>
+      <div style={{ background: '#080C16', minHeight: '100vh', color: '#fff', fontFamily: "'Outfit', sans-serif", paddingBottom: 90 }}>
 
-        {/* ── TOPBAR ── */}
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 100,
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '14px 16px 12px',
-          background: 'rgba(8,12,22,0.96)', backdropFilter: 'blur(20px)',
-          borderBottom: '0.5px solid rgba(255,255,255,0.07)',
-        }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: 10,
-              background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, color: '#fff', cursor: 'pointer',
-            }}>←</div>
-          </Link>
+        {/* TOPBAR */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px 12px', background: 'rgba(8,12,22,0.96)', backdropFilter: 'blur(20px)', borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
+          {activePool ? (
+            <button onClick={backToGlobal} style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#fff', cursor: 'pointer' }}>←</button>
+          ) : (
+            <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#fff', cursor: 'pointer' }}>←</div>
+            </Link>
+          )}
           <div>
-            <div style={{
-              fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3,
-              background: 'linear-gradient(90deg,#C9930A,#F5B731,#fff)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-            }}>RANKING GLOBAL</div>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3, background: 'linear-gradient(90deg,#C9930A,#F5B731,#fff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              {activePool ? activePool.name : 'RANKING GLOBAL'}
+            </div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>
-              Puntos acumulados entre todas las quinielas
+              {activePool ? `${activePool.competition === 'LIGA_MX' ? '🦅 Liga MX' : '🌍 FIFA 2026'} · ${poolMembers.length} participantes` : 'Puntos acumulados entre todas las quinielas'}
             </div>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -167,241 +238,341 @@ export default function Ranking() {
 
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
 
-          {/* ── MI POSICIÓN ── */}
-          {currentUser && (
-            <div style={{
-              margin: '12px 16px 0',
-              background: 'rgba(79,173,255,0.05)', border: '1px solid rgba(79,173,255,0.2)',
-              borderRadius: 13, padding: '11px 13px',
-              animation: 'fadeUp 0.3s ease both',
-            }}>
-              <div style={{ fontSize: 9, color: '#4FADFF', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 7 }}>
-                📍 Tu posición
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div>
-                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: '#4FADFF', lineHeight: 1 }}>
-                    {myRank}
-                  </div>
-                  <div style={{ fontSize: 9, color: 'rgba(79,173,255,.4)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                    de {users.length}
-                  </div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>
-                    {currentUser.emoji || ''} {getDisplayName(currentUser)}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>
-                    Puntos acumulados globales
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#4FADFF', lineHeight: 1 }}>
-                    {myPts}
-                  </div>
-                  <div style={{ fontSize: 9, color: 'rgba(79,173,255,.4)' }}>puntos</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── FILTROS ── */}
-          <div style={{ display: 'flex', gap: 6, padding: '10px 16px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {(['top', 'vecinos', 'todos'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} style={{
-                whiteSpace: 'nowrap', padding: '5px 14px', borderRadius: 20,
-                fontSize: 11, cursor: 'pointer', flexShrink: 0,
-                fontFamily: "'Outfit', sans-serif", transition: 'all .2s',
-                background: filter === f ? '#F5B731' : 'transparent',
-                color: filter === f ? '#080C16' : 'rgba(255,255,255,.35)',
-                border: `0.5px solid ${filter === f ? '#F5B731' : 'rgba(255,255,255,.1)'}`,
-                fontWeight: filter === f ? 700 : 400,
-              }}>
-                {f === 'top' ? 'Top 10' : f === 'vecinos' ? 'Mis vecinos' : `Todos (${users.length})`}
-              </button>
-            ))}
-          </div>
-
-          {/* ── PODIO TOP 3 ── */}
-          {filter === 'top' && top3.length >= 3 && (
-            <div style={{ padding: '12px 16px 4px', animation: 'fadeUp 0.4s ease both' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
-                {podioOrder.map((pi, vi) => {
-                  const u = top3[pi]
-                  if (!u) return null
-                  return (
-                    <div key={pi} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-                      {/* Avatar con corona */}
-                      <div style={{ position: 'relative', marginBottom: 5 }}>
-                        {vi === 1 && (
-                          <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 14 }}>👑</span>
-                        )}
-                        <div style={{
-                          width: podioSizes[vi], height: podioSizes[vi], borderRadius: '50%',
-                          border: `2px solid ${podioBorders[vi]}`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          background: 'rgba(255,255,255,.05)', overflow: 'hidden',
-                        }}>
-                          {u.emoji ? (
-                            <span style={{ fontSize: podioSizes[vi] * 0.42 }}>{u.emoji}</span>
-                          ) : u.avatar_url ? (
-                            <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <span style={{ fontWeight: 700, fontSize: podioSizes[vi] * 0.35, color: podioColors[vi] }}>
-                              {getInitial(u.name)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Nombre */}
-                      <div style={{
-                        fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.85)',
-                        textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden',
-                        maxWidth: 80, textOverflow: 'ellipsis', marginBottom: 1,
-                      }}>
-                        {getDisplayName(u)}
-                      </div>
-                      {/* Puntos */}
-                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 17, color: podioColors[vi], marginBottom: 4 }}>
-                        {u.total_points || 0}
-                      </div>
-                      {/* Barra del podio */}
-                      <div style={{
-                        width: '100%', height: podioHeights[vi], borderRadius: '5px 5px 0 0',
-                        background: vi === 1
-                          ? 'rgba(245,183,49,.18)'
-                          : vi === 0 ? 'rgba(156,163,175,.12)' : 'rgba(205,127,50,.14)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: podioColors[vi],
-                      }}>
-                        {pi + 1}
-                      </div>
+          {/* ── VISTA GLOBAL ── */}
+          {!activePool && (
+            <>
+              {/* Mi posición global */}
+              {currentUser && (
+                <div style={{ margin: '12px 16px 0', background: 'rgba(79,173,255,0.05)', border: '1px solid rgba(79,173,255,0.2)', borderRadius: 13, padding: '11px 13px', animation: 'fadeUp 0.3s ease both' }}>
+                  <div style={{ fontSize: 9, color: '#4FADFF', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 7 }}>📍 Tu posición</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div>
+                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: '#4FADFF', lineHeight: 1 }}>{myRank}</div>
+                      <div style={{ fontSize: 9, color: 'rgba(79,173,255,.4)', textTransform: 'uppercase', letterSpacing: 1 }}>de {users.length}</div>
                     </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{currentUser.emoji || ''} {getDisplayName(currentUser)}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>Puntos acumulados globales</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#4FADFF', lineHeight: 1 }}>{myPts}</div>
+                      <div style={{ fontSize: 9, color: 'rgba(79,173,255,.4)' }}>puntos</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Filtros global + chips de quinielas */}
+              <div style={{ display: 'flex', gap: 6, padding: '10px 16px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                {(['top', 'vecinos', 'todos'] as const).map(f => (
+                  <button key={f} onClick={() => setFilter(f)} className="pool-chip" style={{
+                    padding: '5px 14px', borderRadius: 20, fontSize: 11, flexShrink: 0,
+                    background: filter === f ? '#F5B731' : 'transparent',
+                    color: filter === f ? '#080C16' : 'rgba(255,255,255,.35)',
+                    border: `0.5px solid ${filter === f ? '#F5B731' : 'rgba(255,255,255,.1)'}`,
+                    fontWeight: filter === f ? 700 : 400,
+                  }}>
+                    {f === 'top' ? 'Top 10' : f === 'vecinos' ? 'Mis vecinos' : `Todos (${users.length})`}
+                  </button>
+                ))}
+                {myPools.map(m => {
+                  const pool = m.pool
+                  const color = compColor(pool?.competition)
+                  return (
+                    <button key={pool?.id} onClick={() => loadPoolData(pool)} className="pool-chip" style={{
+                      padding: '5px 14px', borderRadius: 20, fontSize: 11, flexShrink: 0,
+                      background: `rgba(${pool?.competition === 'LIGA_MX' ? '232,25,44' : pool?.competition === 'FIFA_2026' ? '0,196,106' : '79,173,255'},.15)`,
+                      color, border: `0.5px solid ${color}`, fontWeight: 600,
+                    }}>
+                      {pool?.competition === 'LIGA_MX' ? '🦅' : '🌍'} {pool?.name}
+                    </button>
                   )
                 })}
               </div>
-            </div>
-          )}
 
-          {/* ── SEPARADOR MIS VECINOS ── */}
-          {filter === 'vecinos' && myRank && myRank > 3 && (
-            <div style={{
-              padding: '7px 14px', fontSize: 10, color: 'rgba(79,173,255,.4)',
-              background: 'rgba(79,173,255,.03)',
-              borderTop: '0.5px solid rgba(79,173,255,.1)',
-              borderBottom: '0.5px solid rgba(79,173,255,.1)',
-              textAlign: 'center',
-            }}>
-              · · · {myRank - 3} jugadores arriba · · ·
-            </div>
-          )}
-
-          {/* ── CABECERA LISTA ── */}
-          <div style={{
-            display: 'flex', padding: '5px 16px', margin: '4px 0 0',
-            fontSize: 9, color: 'rgba(255,255,255,.2)',
-            textTransform: 'uppercase', letterSpacing: 1,
-            borderBottom: '0.5px solid rgba(255,255,255,.05)',
-          }}>
-            <span style={{ width: 30 }}>#</span>
-            <span style={{ flex: 1 }}>Jugador</span>
-            <span style={{ width: 44, textAlign: 'right' }}>Pts</span>
-          </div>
-
-          {/* ── LISTA ── */}
-          <div style={{ animation: 'fadeUp 0.5s ease 0.1s both' }}>
-            {users.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,.25)' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>Nadie en el ranking aún</div>
-                <div style={{ fontSize: 13 }}>¡Sé el primero en predecir y ganar puntos!</div>
-              </div>
-            ) : (
-              list.map((u) => {
-                const isMe = u.id === currentUserId
-                const rankColor = u.rank === 1 ? '#F5B731'
-                  : u.rank === 2 ? '#9CA3AF'
-                  : u.rank === 3 ? '#CD7F32'
-                  : 'rgba(255,255,255,.28)'
-                return (
-                  <div key={u.id} style={{
-                    display: 'flex', alignItems: 'center', padding: '10px 16px',
-                    borderBottom: '0.5px solid rgba(255,255,255,.05)',
-                    background: isMe ? 'rgba(79,173,255,.04)' : 'transparent',
-                    borderLeft: isMe ? '2px solid #4FADFF' : '2px solid transparent',
-                    transition: 'background .15s',
-                  }}>
-                    {/* Número */}
-                    <div style={{
-                      fontFamily: "'Bebas Neue',sans-serif", fontSize: 16,
-                      width: 30, flexShrink: 0, color: rankColor,
-                    }}>
-                      {u.rank}
-                    </div>
-
-                    {/* Avatar: emoji > foto Google > inicial */}
-                    <div style={{
-                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                      marginRight: 10, background: 'rgba(255,255,255,.05)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      overflow: 'hidden', fontSize: 18,
-                    }}>
-                      {u.emoji
-                        ? u.emoji
-                        : u.avatar_url
-                          ? <img src={u.avatar_url} style={{ width: 32, height: 32, objectFit: 'cover' }} />
-                          : <span style={{ fontWeight: 700, fontSize: 12, color: '#F5B731' }}>{getInitial(u.name)}</span>
-                      }
-                    </div>
-
-                    {/* Nombre + badge "tú" */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: 13, fontWeight: 500, color: '#fff',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                        display: 'flex', alignItems: 'center', gap: 4,
-                      }}>
-                        {getDisplayName(u)}
-                        {isMe && (
-                          <span style={{
-                            fontSize: 9, padding: '1px 5px', borderRadius: 3,
-                            background: 'rgba(79,173,255,.15)', color: '#4FADFF',
-                            border: '0.5px solid rgba(79,173,255,.25)', flexShrink: 0,
-                          }}>tú</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 1 }}>
-                        {u.rank === 1 ? '🔥 Líder actual' : u.rank <= 3 ? '⭐ Top 3' : `Posición #${u.rank}`}
-                      </div>
-                    </div>
-
-                    {/* Puntos */}
-                    <div style={{
-                      fontFamily: "'Bebas Neue',sans-serif", fontSize: 22,
-                      color: rankColor, minWidth: 44, textAlign: 'right',
-                    }}>
-                      {u.total_points || 0}
-                    </div>
+              {/* Podio top 3 */}
+              {filter === 'top' && top3.length >= 3 && (
+                <div style={{ padding: '12px 16px 4px', animation: 'fadeUp 0.4s ease both' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
+                    {podioOrder.map((pi, vi) => {
+                      const u = top3[pi]
+                      if (!u) return null
+                      return (
+                        <div key={pi} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                          <div style={{ position: 'relative', marginBottom: 5 }}>
+                            {vi === 1 && <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 14 }}>👑</span>}
+                            <div style={{ width: podioSizes[vi], height: podioSizes[vi], borderRadius: '50%', border: `2px solid ${podioBorders[vi]}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.05)', overflow: 'hidden' }}>
+                              {u.emoji ? <span style={{ fontSize: podioSizes[vi] * 0.42 }}>{u.emoji}</span>
+                                : u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                : <span style={{ fontWeight: 700, fontSize: podioSizes[vi] * 0.35, color: podioColors[vi] }}>{getInitial(u.name)}</span>}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.85)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: 80, textOverflow: 'ellipsis', marginBottom: 1 }}>{getDisplayName(u)}</div>
+                          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 17, color: podioColors[vi], marginBottom: 4 }}>{u.total_points || 0}</div>
+                          <div style={{ width: '100%', height: podioHeights[vi], borderRadius: '5px 5px 0 0', background: vi === 1 ? 'rgba(245,183,49,.18)' : vi === 0 ? 'rgba(156,163,175,.12)' : 'rgba(205,127,50,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: podioColors[vi] }}>
+                            {pi + 1}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                )
-              })
-            )}
-          </div>
+                </div>
+              )}
 
-          {/* ── NOTA INFERIOR ── */}
-          <div style={{
-            margin: '14px 16px', padding: '10px 14px',
-            background: 'rgba(245,183,49,0.04)', border: '0.5px solid rgba(245,183,49,0.12)',
-            borderRadius: 10, fontSize: 11, color: 'rgba(255,255,255,.25)', textAlign: 'center',
-          }}>
-            Puntos acumulados entre todas las quinielas en las que hayas participado
-          </div>
+              {/* Separador mis vecinos */}
+              {filter === 'vecinos' && myRank && myRank > 3 && (
+                <div style={{ padding: '7px 14px', fontSize: 10, color: 'rgba(79,173,255,.4)', background: 'rgba(79,173,255,.03)', borderTop: '0.5px solid rgba(79,173,255,.1)', borderBottom: '0.5px solid rgba(79,173,255,.1)', textAlign: 'center' }}>
+                  · · · {myRank - 3} jugadores arriba · · ·
+                </div>
+              )}
+
+              {/* Cabecera lista */}
+              <div style={{ display: 'flex', padding: '5px 16px', margin: '4px 0 0', fontSize: 9, color: 'rgba(255,255,255,.2)', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '0.5px solid rgba(255,255,255,.05)' }}>
+                <span style={{ width: 30 }}>#</span>
+                <span style={{ flex: 1 }}>Jugador</span>
+                <span style={{ width: 44, textAlign: 'right' }}>Pts</span>
+              </div>
+
+              {/* Lista */}
+              <div style={{ animation: 'fadeUp 0.5s ease 0.1s both' }}>
+                {users.length === 0 ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,.25)' }}>
+                    <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
+                    <div style={{ fontWeight: 600, marginBottom: 6 }}>Nadie en el ranking aún</div>
+                    <div style={{ fontSize: 13 }}>¡Sé el primero en predecir y ganar puntos!</div>
+                  </div>
+                ) : (
+                  list.map(u => {
+                    const isMe = u.id === currentUserId
+                    const rankColor = u.rank === 1 ? '#F5B731' : u.rank === 2 ? '#9CA3AF' : u.rank === 3 ? '#CD7F32' : 'rgba(255,255,255,.28)'
+                    return (
+                      <div key={u.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: '0.5px solid rgba(255,255,255,.05)', background: isMe ? 'rgba(79,173,255,.04)' : 'transparent', borderLeft: isMe ? '2px solid #4FADFF' : '2px solid transparent' }}>
+                        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, width: 30, flexShrink: 0, color: rankColor }}>{u.rank}</div>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, marginRight: 10, background: 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontSize: 18 }}>
+                          {u.emoji ? u.emoji : u.avatar_url ? <img src={u.avatar_url} style={{ width: 32, height: 32, objectFit: 'cover' }} /> : <span style={{ fontWeight: 700, fontSize: 12, color: '#F5B731' }}>{getInitial(u.name)}</span>}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {getDisplayName(u)}
+                            {isMe && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(79,173,255,.15)', color: '#4FADFF', border: '0.5px solid rgba(79,173,255,.25)', flexShrink: 0 }}>tú</span>}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 1 }}>
+                            {u.rank === 1 ? '🔥 Líder actual' : u.rank <= 3 ? '⭐ Top 3' : `Posición #${u.rank}`}
+                          </div>
+                        </div>
+                        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: rankColor, minWidth: 44, textAlign: 'right' }}>{u.total_points || 0}</div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div style={{ margin: '14px 16px', padding: '10px 14px', background: 'rgba(245,183,49,0.04)', border: '0.5px solid rgba(245,183,49,0.12)', borderRadius: 10, fontSize: 11, color: 'rgba(255,255,255,.25)', textAlign: 'center' }}>
+                Puntos acumulados entre todas las quinielas en las que hayas participado
+              </div>
+            </>
+          )}
+
+          {/* ── VISTA QUINIELA ── */}
+          {activePool && (
+            <>
+              {loadingPool ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,.3)' }}>Cargando...</div>
+              ) : (
+                <div style={{ animation: 'fadeUp 0.3s ease both', padding: '12px 16px 0' }}>
+
+                  {/* Mi posición en esta quiniela */}
+                  {myPoolMember && (
+                    <div style={{ background: 'rgba(79,173,255,0.05)', border: '1px solid rgba(79,173,255,0.2)', borderRadius: 13, padding: '11px 13px', marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: '#4FADFF', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 7 }}>📍 Tu posición · {activePool.name}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div>
+                          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: '#4FADFF', lineHeight: 1 }}>{myPoolMember.poolRank}</div>
+                          <div style={{ fontSize: 9, color: 'rgba(79,173,255,.4)', textTransform: 'uppercase', letterSpacing: 1 }}>de {poolMembers.length}</div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{currentUser?.emoji || ''} {getDisplayName(currentUser || {})}</div>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>Puntos en esta quiniela</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#4FADFF', lineHeight: 1 }}>{myPoolMember.points || 0}</div>
+                          <div style={{ fontSize: 9, color: 'rgba(79,173,255,.4)' }}>puntos</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tabs Partidos / Ranking */}
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                    <button className="tab-view" onClick={() => setPoolView('ranking')} style={{ background: poolView === 'ranking' ? '#F5B731' : 'rgba(255,255,255,.06)', color: poolView === 'ranking' ? '#080C16' : 'rgba(255,255,255,.4)', fontWeight: poolView === 'ranking' ? 700 : 400 }}>
+                      🏆 Ranking
+                    </button>
+                    <button className="tab-view" onClick={() => setPoolView('partidos')} style={{ background: poolView === 'partidos' ? '#F5B731' : 'rgba(255,255,255,.06)', color: poolView === 'partidos' ? '#080C16' : 'rgba(255,255,255,.4)', fontWeight: poolView === 'partidos' ? 700 : 400 }}>
+                      ⚽ Partidos
+                    </button>
+                  </div>
+
+                  {/* RANKING DE LA QUINIELA */}
+                  {poolView === 'ranking' && (
+                    <>
+                      {/* Podio */}
+                      {top3Pool.length >= 3 && (
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
+                            {podioOrder.map((pi, vi) => {
+                              const m = top3Pool[pi]
+                              if (!m) return null
+                              const u = m.users
+                              return (
+                                <div key={pi} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                                  <div style={{ position: 'relative', marginBottom: 5 }}>
+                                    {vi === 1 && <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 14 }}>👑</span>}
+                                    <div style={{ width: podioSizes[vi], height: podioSizes[vi], borderRadius: '50%', border: `2px solid ${podioBorders[vi]}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.05)', overflow: 'hidden' }}>
+                                      {u?.emoji ? <span style={{ fontSize: podioSizes[vi] * 0.42 }}>{u.emoji}</span>
+                                        : u?.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        : <span style={{ fontWeight: 700, fontSize: podioSizes[vi] * 0.35, color: podioColors[vi] }}>{getInitial(u?.name)}</span>}
+                                    </div>
+                                  </div>
+                                  <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.85)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: 80, textOverflow: 'ellipsis', marginBottom: 1 }}>{getDisplayName(u || {})}</div>
+                                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 17, color: podioColors[vi], marginBottom: 4 }}>{m.points || 0}</div>
+                                  <div style={{ width: '100%', height: podioHeights[vi], borderRadius: '5px 5px 0 0', background: vi === 1 ? 'rgba(245,183,49,.18)' : vi === 0 ? 'rgba(156,163,175,.12)' : 'rgba(205,127,50,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: podioColors[vi] }}>
+                                    {pi + 1}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Cabecera */}
+                      <div style={{ display: 'flex', padding: '5px 4px', margin: '4px 0 0', fontSize: 9, color: 'rgba(255,255,255,.2)', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '0.5px solid rgba(255,255,255,.05)' }}>
+                        <span style={{ width: 30 }}>#</span>
+                        <span style={{ flex: 1 }}>Jugador</span>
+                        <span style={{ width: 44, textAlign: 'right' }}>Pts</span>
+                      </div>
+
+                      {/* Lista ranking quiniela */}
+                      {poolMembers.map(m => {
+                        const u = m.users
+                        const isMe = m.user_id === currentUserId
+                        const rankColor = m.poolRank === 1 ? '#F5B731' : m.poolRank === 2 ? '#9CA3AF' : m.poolRank === 3 ? '#CD7F32' : 'rgba(255,255,255,.28)'
+                        return (
+                          <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', padding: '10px 4px', borderBottom: '0.5px solid rgba(255,255,255,.05)', background: isMe ? 'rgba(79,173,255,.04)' : 'transparent', borderLeft: isMe ? '2px solid #4FADFF' : '2px solid transparent', paddingLeft: isMe ? 6 : 4 }}>
+                            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, width: 30, flexShrink: 0, color: rankColor }}>{m.poolRank}</div>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, marginRight: 10, background: 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontSize: 18 }}>
+                              {u?.emoji ? u.emoji : u?.avatar_url ? <img src={u.avatar_url} style={{ width: 32, height: 32, objectFit: 'cover' }} /> : <span style={{ fontWeight: 700, fontSize: 12, color: '#F5B731' }}>{getInitial(u?.name)}</span>}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {getDisplayName(u || {})}
+                                {isMe && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(79,173,255,.15)', color: '#4FADFF', border: '0.5px solid rgba(79,173,255,.25)', flexShrink: 0 }}>tú</span>}
+                              </div>
+                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 1 }}>
+                                {m.poolRank === 1 ? '🔥 Líder' : m.poolRank <= 3 ? '⭐ Top 3' : `Posición #${m.poolRank}`}
+                              </div>
+                            </div>
+                            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: rankColor, minWidth: 44, textAlign: 'right' }}>{m.points || 0}</div>
+                          </div>
+                        )
+                      })}
+
+                      <div style={{ margin: '12px 0', padding: '10px 14px', background: 'rgba(245,183,49,0.04)', border: '0.5px solid rgba(245,183,49,0.12)', borderRadius: 10, fontSize: 11, color: 'rgba(255,255,255,.25)', textAlign: 'center' }}>
+                        Pozo: ${((activePool.total_pot || 0) * 0.9).toLocaleString('es-MX')} neto · {poolMembers.length} participantes
+                      </div>
+                    </>
+                  )}
+
+                  {/* PARTIDOS DE LA QUINIELA */}
+                  {poolView === 'partidos' && (
+                    <div>
+                      {poolMatches.map(match => {
+                        const isLive = match.status === 'live'
+                        const isFinished = match.status === 'finished'
+                        const isOpen = expandedMatch === match.id
+                        const preds = getPredictionsForMatch(match.id)
+                        const borderColor = isLive ? '#ff4d4d' : isFinished ? '#00C46A' : 'rgba(255,255,255,.08)'
+                        const statusLabel = isLive ? '🔴 En vivo' : isFinished ? '✅ Final' : null
+
+                        return (
+                          <div key={match.id} style={{ background: '#111520', borderRadius: 10, marginBottom: 8, overflow: 'hidden', borderLeft: `3px solid ${borderColor}`, opacity: (!isLive && !isFinished) ? 0.6 : 1 }}>
+                            {/* Header partido */}
+                            <div style={{ padding: '7px 10px', display: 'flex', justifyContent: 'space-between', background: 'rgba(0,0,0,.3)' }}>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{formatDate(match.scheduled_at)}</span>
+                              {statusLabel && <span style={{ fontSize: 10, color: isLive ? '#ff4d4d' : '#00C46A', fontWeight: 700 }}>{statusLabel}</span>}
+                            </div>
+
+                            {/* Equipos + marcador */}
+                            <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{match.home_team}</span>
+                              {(isLive || isFinished) ? (
+                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: isLive ? '#ff4d4d' : '#00C46A', background: isLive ? 'rgba(255,77,77,.1)' : 'rgba(0,196,106,.1)', padding: '2px 12px', borderRadius: 8 }}>
+                                  {match.home_score} - {match.away_score}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)' }}>vs</div>
+                              )}
+                              <span style={{ fontSize: 12, fontWeight: 600, flex: 1, textAlign: 'right' }}>{match.away_team}</span>
+                            </div>
+
+                            {/* Predicciones expandidas */}
+                            {isOpen && (isLive || isFinished) && (
+                              <div style={{ padding: '0 8px 8px' }}>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.2)', letterSpacing: 1, padding: '4px 0 4px', textTransform: 'uppercase' }}>Predicciones del grupo</div>
+                                {poolMembers.map(m => {
+                                  const u = m.users
+                                  const pred = preds.find(p => p.user_id === m.user_id)
+                                  const isMe = m.user_id === currentUserId
+                                  const emoji = pred ? getMatchEmoji(match, pred) : null
+                                  const pts = pred?.points_earned || 0
+                                  return (
+                                    <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderTop: '0.5px solid rgba(255,255,255,.05)', opacity: pred ? 1 : 0.35 }}>
+                                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: isMe ? 'rgba(245,183,49,.15)' : 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>
+                                        {u?.emoji || '⚽'}
+                                      </div>
+                                      <span style={{ fontSize: 12, flex: 1, color: isMe ? '#F5B731' : 'rgba(255,255,255,.7)', fontWeight: isMe ? 600 : 400 }}>
+                                        {getDisplayName(u || {})}
+                                      </span>
+                                      {pred ? (
+                                        <>
+                                          <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, color: isMe ? '#F5B731' : 'rgba(255,255,255,.4)' }}>
+                                            {pred.predicted_home} - {pred.predicted_away}
+                                          </span>
+                                          <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: pts === 3 ? 'rgba(245,183,49,.12)' : pts === 1 ? 'rgba(0,196,106,.12)' : 'rgba(255,255,255,.05)', color: pts === 3 ? '#F5B731' : pts === 1 ? '#00C46A' : '#555' }}>
+                                            {emoji} {pts > 0 ? `+${pts}` : '0'}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontStyle: 'italic' }}>Sin pred</span>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+
+                            {/* Botón ver predicciones */}
+                            {(isLive || isFinished) ? (
+                              <button className="ver-btn" onClick={() => setExpandedMatch(isOpen ? null : match.id)}>
+                                {isOpen ? '▲ Ocultar predicciones' : '👁 Ver predicciones del grupo'}
+                              </button>
+                            ) : (
+                              <div style={{ padding: '6px 10px 8px', fontSize: 10, color: 'rgba(255,255,255,.2)', fontStyle: 'italic' }}>🔒 Predicciones se revelan al iniciar</div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                </div>
+              )}
+            </>
+          )}
 
         </div>
       </div>
-
-    <BottomNav />
-
+      <BottomNav />
     </>
   )
 }

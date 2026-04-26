@@ -115,6 +115,7 @@ export default function Dashboard() {
   const [modalPool, setModalPool] = useState<Pool | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [nextMatchByPool, setNextMatchByPool] = useState<Record<string, { match: any, pred: any }>>({})
 
   useEffect(() => { loadDashboard() }, [])
   useEffect(() => {
@@ -139,6 +140,38 @@ export default function Dashboard() {
         .eq('user_id', session.user.id)
       const members = (memberData as any) || []
       setMyPools(members)
+
+      // Próximo partido por quiniela con predicción del usuario
+        const nextMatchByPool: Record<string, { match: any, pred: any }> = {}
+        const now2 = new Date().toISOString()
+
+        for (const member of members.filter((m: any) => m.payment_status === 'approved')) {
+          const competition = member.pool?.competition
+          if (!competition) continue
+
+          const { data: nextMatch } = await supabase
+            .from('matches')
+            .select('id, home_team, away_team, home_flag, away_flag, scheduled_at, status, competition')
+            .eq('competition', competition)
+            .eq('status', 'scheduled')
+            .gt('scheduled_at', now2)
+            .order('scheduled_at', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (!nextMatch) continue
+
+          const { data: predData } = await supabase
+            .from('predictions')
+            .select('predicted_home, predicted_away')
+            .eq('user_id', session.user.id)
+            .eq('match_id', nextMatch.id)
+            .eq('pool_id', member.pool_id)
+            .single()
+
+          nextMatchByPool[member.pool_id] = { match: nextMatch, pred: predData || null }
+        }
+        setNextMatchByPool(nextMatchByPool)
 
       // Disponibles — públicas abiertas en las que NO estoy
       const { data: publicPools } = await supabase
@@ -414,6 +447,47 @@ export default function Dashboard() {
                           )}
                         </div>
                       </div>
+                      {(() => {
+                        const next = nextMatchByPool[member.pool_id]
+                        if (!next) return null
+                        const { match, pred } = next
+                        const fecha = new Date(match.scheduled_at).toLocaleDateString('es-MX', {
+                          weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                          timeZone: 'America/Mexico_City'
+                        })
+                        return (
+                          <div style={{ marginTop: 8, background: '#0d1220', borderRadius: 10, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ padding: '6px 10px', fontSize: 9, color: '#555', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                              Próximo partido
+                            </div>
+                            <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1 }}>
+                                {match.home_flag && <img src={match.home_flag} style={{ width: 22, height: 22, objectFit: 'contain' }} />}
+                                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{match.home_team}</span>
+                              </div>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>vs</span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flex: 1 }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{match.away_team}</span>
+                                {match.away_flag && <img src={match.away_flag} style={{ width: 22, height: 22, objectFit: 'contain' }} />}
+                              </div>
+                            </div>
+                            <div style={{ padding: '0 10px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: 10, color: '#555' }}>{fecha}</span>
+                              {pred ? (
+                                <span style={{ background: 'rgba(245,183,49,0.12)', border: '0.5px solid rgba(245,183,49,0.3)', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: '#F5B731', fontWeight: 600 }}>
+                                  {pred.predicted_home} - {pred.predicted_away} ✓
+                                </span>
+                              ) : (
+                                <Link href={`/predecir`} style={{ textDecoration: 'none' }}>
+                                  <span style={{ background: 'rgba(245,183,49,0.9)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: '#080C16', fontWeight: 700, cursor: 'pointer' }}>
+                                    ⚠️ Predecir
+                                  </span>
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 )

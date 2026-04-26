@@ -617,8 +617,8 @@ export default function QuinielaPredictions() {
               </div>
 
               <div style={{ padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                 
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  {match.home_flag && <img src={match.home_flag} style={{ width: 32, height: 32, objectFit: 'contain' }} />}
                   <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>{match.home_team}</div>
                 </div>
 
@@ -638,17 +638,17 @@ export default function QuinielaPredictions() {
                   />
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  {match.away_flag && <img src={match.away_flag} style={{ width: 32, height: 32, objectFit: 'contain' }} />}
                   <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>{match.away_team}</div>
                 </div>
               </div>
 
               {locked && pred && (
-                <div style={{ padding: '8px 14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 11, color: '#6B7280' }}>Tu predicción:</div>
-                    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: '#F5B731', background: 'rgba(245,183,49,0.1)', padding: '3px 14px', borderRadius: 8 }}>
+                <div style={{ padding: '8px 14px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ fontSize: 11, color: '#6B7280' }}>Tu pred:</div>
+                    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#F5B731', background: 'rgba(245,183,49,0.1)', padding: '2px 12px', borderRadius: 8 }}>
                       {pred.predicted_home} - {pred.predicted_away}
                     </div>
                   </div>

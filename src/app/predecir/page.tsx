@@ -342,7 +342,8 @@ export default function Predecir() {
 
                         {/* Contenido */}
                         <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
+                            {match.home_flag && <img src={match.home_flag} style={{ width: 32, height: 32, objectFit: 'contain' }} />}
                             <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.8)', textAlign: 'center', lineHeight: 1.2 }}>{match.home_team}</span>
                           </div>
 
@@ -362,7 +363,7 @@ export default function Predecir() {
                                   const emoji = exacto ? '🎯' : acierto ? '✅' : '❌'
                                   const pts = exacto ? 3 : acierto ? 1 : 0
                                   return (
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                                       <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>Tu pred: <span style={{ color: '#F5B731' }}>{pred.predicted_home} - {pred.predicted_away}</span></div>
                                       <div style={{ fontSize: 12, fontWeight: 700, color: exacto ? '#F5B731' : acierto ? '#00C46A' : '#ff4d4d' }}>
                                         {emoji} {pts > 0 ? `+${pts} pts` : 'Sin puntos'}
@@ -409,7 +410,8 @@ export default function Predecir() {
                             )}
                           </div>
 
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
+                            {match.away_flag && <img src={match.away_flag} style={{ width: 32, height: 32, objectFit: 'contain' }} />}
                             <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.8)', textAlign: 'center', lineHeight: 1.2 }}>{match.away_team}</span>
                           </div>
                         </div>

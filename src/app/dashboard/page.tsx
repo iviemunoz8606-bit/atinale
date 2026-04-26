@@ -504,11 +504,11 @@ export default function Dashboard() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <img src={match.home_flag} style={{ width: 28, height: 19, objectFit: 'cover', borderRadius: 2 }} />
+                        <img src={match.home_flag} style={{ width: match.competition === 'LIGA_MX' ? 24 : 28, height: match.competition === 'LIGA_MX' ? 24 : 19, objectFit: 'contain', borderRadius: match.competition === 'LIGA_MX' ? 0 : 2 }} />
                         <span style={{ fontSize: 12, fontWeight: 500, flex: 1 }}>{match.home_team}</span>
                         <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 6 }}>VS</span>
                         <span style={{ fontSize: 12, fontWeight: 500, flex: 1, textAlign: 'right' }}>{match.away_team}</span>
-                        <img src={match.away_flag} style={{ width: 28, height: 19, objectFit: 'cover', borderRadius: 2 }} />
+                        <img src={match.away_flag} style={{ width: match.competition === 'LIGA_MX' ? 24 : 28, height: match.competition === 'LIGA_MX' ? 24 : 19, objectFit: 'contain', borderRadius: match.competition === 'LIGA_MX' ? 0 : 2 }} />
                         <Link href={`/predecir?pool=${match.pool_id}&match=${match.id}`} style={{ textDecoration: 'none', marginLeft: 8 }}>
                           <div style={{ background: 'linear-gradient(135deg,#F5B731,#C9930A)', borderRadius: 16, padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#080C16', whiteSpace: 'nowrap' }}>Predecir</div>
                         </Link>

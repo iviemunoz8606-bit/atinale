@@ -163,10 +163,10 @@ export default function AdminPage() {
 
     const realResult = homeScore > awayScore ? 'home' : awayScore > homeScore ? 'away' : 'draw'
 
-    // Obtener puntos anteriores de este partido para cada usuario (para restar)
-    for (const pred of preds) {
-      const ptsAnteriores = pred.points_earned || 0
+    // Agrupar predicciones por usuario+pool para actualizar en lote
+    const updates = {} // key: `${user_id}_${pool_id}`
 
+    for (const pred of preds) {
       const predResult = pred.predicted_home > pred.predicted_away ? 'home'
         : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
 
@@ -174,21 +174,32 @@ export default function AdminPage() {
       if (pred.predicted_home === homeScore && pred.predicted_away === awayScore) ptsNuevos = 3
       else if (predResult === realResult) ptsNuevos = 1
 
-      // Actualizar points_earned en la prediccion
+      // Actualizar points_earned en la predicción
       await supabase
         .from('predictions')
         .update({ points_earned: ptsNuevos })
         .eq('id', pred.id)
 
-      // Diferencia: restar los anteriores y sumar los nuevos
-      const diff = ptsNuevos - ptsAnteriores
-      if (diff !== 0) {
-        await supabase.rpc('add_points_to_member', {
-          p_user_id: pred.user_id,
-          p_pool_id: pred.pool_id,
-          p_points: diff
-        })
-      }
+      const key = `${pred.user_id}_${pred.pool_id}`
+      updates[key] = { user_id: pred.user_id, pool_id: pred.pool_id }
+    }
+
+    // Para cada usuario afectado, recalcular SU TOTAL desde cero sumando TODAS sus predicciones
+    for (const { user_id, pool_id } of Object.values(updates)) {
+      const { data: todasLasPreds } = await supabase
+        .from('predictions')
+        .select('points_earned')
+        .eq('user_id', user_id)
+        .eq('pool_id', pool_id)
+
+      const totalPts = (todasLasPreds || []).reduce((sum, p) => sum + (p.points_earned || 0), 0)
+
+      // SET directo — no increment, no diff, siempre correcto
+      await supabase
+        .from('pool_members')
+        .update({ points: totalPts })
+        .eq('user_id', user_id)
+        .eq('pool_id', pool_id)
     }
   }
 

@@ -435,7 +435,7 @@ export default function Dashboard() {
                         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                           {member.payment_status === 'approved' ? (
                             <div style={{ display: 'flex', flexDirection: 'row', gap: 6 }}>
-                              <Link href={`/predecir?pool=${member.pool_id}`} style={{ textDecoration: 'none' }}>
+                              <Link href={`/quiniela/${member.pool_id}`} style={{ textDecoration: 'none' }}>
                                 <div style={{ background: 'linear-gradient(135deg,#F5B731,#C9930A)', borderRadius: 20, padding: '7px 16px', fontSize: 18, textAlign: 'center', cursor: 'pointer' }}>🎯</div>
                               </Link>
                               <Link href={`/ranking?pool=${member.pool_id}`} style={{ textDecoration: 'none' }}>

@@ -531,7 +531,10 @@ export default function Ranking() {
 
                             {/* Equipos + marcador */}
                             <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{match.home_team}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                                {match.home_flag && <img src={match.home_flag} style={{ width: 24, height: 24, objectFit: 'contain' }} />}
+                                <span style={{ fontSize: 12, fontWeight: 600 }}>{match.home_team}</span>
+                              </div>
                               {(isLive || isFinished) ? (
                                 <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: isLive ? '#ff4d4d' : '#00C46A', background: isLive ? 'rgba(255,77,77,.1)' : 'rgba(0,196,106,.1)', padding: '2px 12px', borderRadius: 8 }}>
                                   {match.home_score} - {match.away_score}
@@ -539,7 +542,10 @@ export default function Ranking() {
                               ) : (
                                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)' }}>vs</div>
                               )}
-                              <span style={{ fontSize: 12, fontWeight: 600, flex: 1, textAlign: 'right' }}>{match.away_team}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, flex: 1 }}>
+                                <span style={{ fontSize: 12, fontWeight: 600 }}>{match.away_team}</span>
+                                {match.away_flag && <img src={match.away_flag} style={{ width: 24, height: 24, objectFit: 'contain' }} />}
+                              </div>
                             </div>
 
                             {/* Predicciones expandidas */}

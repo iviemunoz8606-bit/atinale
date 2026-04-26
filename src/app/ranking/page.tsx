@@ -551,7 +551,14 @@ export default function Ranking() {
                                   const pred = preds.find(p => p.user_id === m.user_id)
                                   const isMe = m.user_id === currentUserId
                                   const emoji = pred ? getMatchEmoji(match, pred) : null
-                                  const pts = pred?.points_earned || 0
+                                  const pts = (() => {
+                                    if (!pred || match.home_score === null) return 0
+                                    const realResult = match.home_score > match.away_score ? 'home' : match.away_score > match.home_score ? 'away' : 'draw'
+                                    const predResult = pred.predicted_home > pred.predicted_away ? 'home' : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
+                                    if (pred.predicted_home === match.home_score && pred.predicted_away === match.away_score) return 3
+                                    if (predResult === realResult) return 1
+                                    return 0
+                                  })()
                                   return (
                                     <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderTop: '0.5px solid rgba(255,255,255,.05)', opacity: pred ? 1 : 0.35 }}>
                                       <div style={{ width: 24, height: 24, borderRadius: '50%', background: isMe ? 'rgba(245,183,49,.15)' : 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>

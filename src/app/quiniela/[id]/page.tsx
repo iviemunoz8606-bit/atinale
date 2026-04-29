@@ -281,11 +281,12 @@ export default function QuinielaPredictions() {
     }
 
     // Cargar partidos solo si el pago está aprobado
-      const comp = pool?.competition || poolData?.competition
-      const isLiguilla = (pool?.name || poolData?.name || '').toLowerCase().includes('liguilla') || 
-                        (pool?.name || poolData?.name || '').toLowerCase().includes('cuartos') ||
-                        (pool?.name || poolData?.name || '').toLowerCase().includes('semi') ||
-                        (pool?.name || poolData?.name || '').toLowerCase().includes('final')
+      const comp = poolData?.competition
+      const poolName = (poolData?.name || '').toLowerCase()
+      const isLiguilla = poolName.includes('liguilla') || 
+                        poolName.includes('cuartos') ||
+                        poolName.includes('semi') ||
+                        poolName.includes('final')
 
       let matchQuery = supabase
         .from('matches')
@@ -297,11 +298,11 @@ export default function QuinielaPredictions() {
         if (isLiguilla) {
           matchQuery = matchQuery.eq('round', 'Liguilla')
         } else {
-          matchQuery = matchQuery.neq('round', 'Liguilla')
+          matchQuery = matchQuery.eq('round', 'Jornada 17')
         }
       }
 
-    const { data: matchData } = await matchQuery
+      const { data: matchData } = await matchQuery
 
     const { data: predData } = await supabase
       .from('predictions')

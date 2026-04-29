@@ -245,7 +245,7 @@ export default function QuinielaPredictions() {
   const [drafts, setDrafts] = useState<Record<string, { home: string; away: string }>>({})
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeGroup, setActiveGroup] = useState<string>('Jornada')
+  const [activeGroup, setActiveGroup] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null) // null = cargando
@@ -295,6 +295,14 @@ export default function QuinielaPredictions() {
     }
 
     const { data: matchData } = await matchQuery
+
+      setMatches(matchData || [])
+      if (matchData && matchData.length > 0) {
+        const firstGroup = matchData[0].group_name || 'Jornada'
+        setActiveGroup(firstGroup)
+      }
+
+    const { data: predData } = await supabase
 
     const { data: predData } = await supabase
       .from('predictions')

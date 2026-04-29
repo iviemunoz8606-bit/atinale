@@ -303,8 +303,6 @@ export default function QuinielaPredictions() {
       }
 
     const { data: predData } = await supabase
-
-    const { data: predData } = await supabase
       .from('predictions')
       .select('*')
       .eq('pool_id', poolId)

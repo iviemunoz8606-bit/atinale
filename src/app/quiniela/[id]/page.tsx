@@ -281,13 +281,27 @@ export default function QuinielaPredictions() {
     }
 
     // Cargar partidos solo si el pago está aprobado
-    const { data: matchData } = await supabase
-      .from('matches')
-      .select('*')
-      .eq('competition', pool?.competition || poolData?.competition)
-      .order('scheduled_at', { ascending: true })
+      const comp = pool?.competition || poolData?.competition
+      const isLiguilla = (pool?.name || poolData?.name || '').toLowerCase().includes('liguilla') || 
+                        (pool?.name || poolData?.name || '').toLowerCase().includes('cuartos') ||
+                        (pool?.name || poolData?.name || '').toLowerCase().includes('semi') ||
+                        (pool?.name || poolData?.name || '').toLowerCase().includes('final')
 
-    setMatches(matchData || [])
+      let matchQuery = supabase
+        .from('matches')
+        .select('*')
+        .eq('competition', comp)
+        .order('scheduled_at', { ascending: true })
+
+      if (comp === 'LIGA_MX') {
+        if (isLiguilla) {
+          matchQuery = matchQuery.eq('round', 'Liguilla')
+        } else {
+          matchQuery = matchQuery.neq('round', 'Liguilla')
+        }
+      }
+
+    const { data: matchData } = await matchQuery
 
     const { data: predData } = await supabase
       .from('predictions')

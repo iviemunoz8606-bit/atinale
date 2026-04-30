@@ -41,7 +41,7 @@ export default function LiguillaCuartos() {
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: 3, textTransform: 'uppercase' }}>Liga MX · Clausura 2026</div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, background: 'rgba(255,77,109,0.12)', border: '1px solid rgba(255,77,109,0.3)', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, color: '#FF4D6D', animation: 'pulse 2s ease-in-out infinite' }}>
-            🔥 Cierra el viernes 2 de mayo
+            🔥 Cierra el sabado 2 de mayo
           </div>
         </div>
 

@@ -149,7 +149,8 @@ export default function Dashboard() {
           const competition = member.pool?.competition
           if (!competition) continue
 
-          const { data: nextMatch } = await supabase
+          const roundFilter = member.pool?.round_filter
+          let nextMatchQuery = supabase
             .from('matches')
             .select('id, home_team, away_team, home_flag, away_flag, scheduled_at, status, competition')
             .eq('competition', competition)
@@ -157,7 +158,8 @@ export default function Dashboard() {
             .gt('scheduled_at', now2)
             .order('scheduled_at', { ascending: true })
             .limit(1)
-            .single()
+          if (roundFilter) nextMatchQuery = nextMatchQuery.eq('round', roundFilter)
+          const { data: nextMatch } = await nextMatchQuery.single()
 
           if (!nextMatch) continue
 
@@ -198,13 +200,16 @@ export default function Dashboard() {
           const competition = member.pool?.competition
           if (!competition) continue
 
-          const { data: matchesData } = await supabase
+          const roundFilter2 = member.pool?.round_filter
+          let upcomingQuery = supabase
             .from('matches')
             .select('id, home_team, away_team, home_flag, away_flag, scheduled_at, status, home_score, away_score, competition')
             .eq('competition', competition)
             .gt('scheduled_at', now)
             .order('scheduled_at', { ascending: true })
             .limit(10)
+          if (roundFilter2) upcomingQuery = upcomingQuery.eq('round', roundFilter2)
+          const { data: matchesData } = await upcomingQuery
 
           for (const m of (matchesData || [])) {
             const key = `${member.pool_id}-${m.id}`

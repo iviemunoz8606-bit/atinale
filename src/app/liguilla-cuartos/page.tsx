@@ -9,7 +9,7 @@ export default function LiguillaCuartos() {
 
   const cruces = [
     { local: 'Pumas', visita: 'América', localSlug: 'pumas', visitaSlug: 'america', tag: 'Clásico Capitalino 🔥' },
-    { local: 'Chivas', visita: 'Tigres', localSlug: 'chivas', visitaSlug: 'tigres', tag: 'Clásico Regio 🔥' },
+    { local: 'Chivas', visita: 'Tigres', localSlug: 'chivas', visitaSlug: 'tigres', tag: 'Duelo de Gigantes 🔥'},
     { local: 'Atlas', visita: 'Cruz Azul', localSlug: 'atlas', visitaSlug: 'cruz-azul', tag: 'Sáb 2 mayo' },
     { local: 'Pachuca', visita: 'Toluca', localSlug: 'pachuca', visitaSlug: 'toluca', tag: 'Dom 3 mayo' },
   ]

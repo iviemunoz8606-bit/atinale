@@ -344,6 +344,9 @@ export default function Dashboard() {
               <Link href="/perfil" style={{ textDecoration: 'none' }} onClick={() => setShowUserMenu(false)}>
                 <div className="menu-item" style={{ padding: '10px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#F0F2F8', transition: 'background 0.15s' }}>👤 Mi perfil</div>
               </Link>
+              <Link href="/como-funciona" style={{ textDecoration: 'none' }} onClick={() => setShowUserMenu(false)}>
+                <div className="menu-item" style={{ padding: '10px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#F0F2F8', transition: 'background 0.15s' }}>❓ ¿Cómo funciona?</div>
+              </Link>
               <Link href="/crear-sala" style={{ textDecoration: 'none' }} onClick={() => setShowUserMenu(false)}>
                 <div className="menu-item" style={{ padding: '10px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#F0F2F8', transition: 'background 0.15s' }}>🏠 Crear sala privada</div>
               </Link>

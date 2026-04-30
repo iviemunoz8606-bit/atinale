@@ -77,11 +77,12 @@ export default function Predecir() {
 
       const { data: memberData } = await supabase
         .from('pool_members')
-        .select('id, pool_id, points, rank, payment_status, pool:pools(id, name, competition, status)')
+        .select('id, pool_id, points, rank, payment_status, pool:pools(id, name, competition, status, round_filter)')
         .eq('user_id', session.user.id)
         .eq('payment_status', 'approved')
-      const members = (memberData as any) || []
-      setMyPools(members)
+        const members = (memberData as any) || []
+      
+        setMyPools(members)
       if (members.length === 0) { setLoading(false); return }
 
       const { data: predsData } = await supabase
@@ -97,12 +98,29 @@ export default function Predecir() {
       setDrafts(initialDrafts)
 
       const competitions = [...new Set(members.map((m: any) => m.pool?.competition).filter(Boolean))]
-      const { data: matchesData } = await supabase
-        .from('matches')
-        .select('id, home_team, away_team, home_flag, away_flag, scheduled_at, status, home_score, away_score, competition, round, group_name, venue, city')
-        .in('competition', competitions)
-        .order('scheduled_at', { ascending: true })
-      setMatches(matchesData || [])
+      // Construir filtros por competition + round_filter de cada pool
+      const allMatches: Match[] = []
+      for (const member of members) {
+        const comp = member.pool?.competition
+        const roundFilter = member.pool?.round_filter
+        if (!comp) continue
+
+        let q = supabase
+          .from('matches')
+          .select('id, home_team, away_team, home_flag, away_flag, scheduled_at, status, home_score, away_score, competition, round, group_name, venue, city')
+          .eq('competition', comp)
+          .order('scheduled_at', { ascending: true })
+
+        if (roundFilter) {
+          q = q.eq('round', roundFilter)
+        }
+
+        const { data: mData } = await q
+        for (const m of mData || []) {
+          if (!allMatches.find(x => x.id === m.id)) allMatches.push(m)
+        }
+      }
+      setMatches(allMatches)
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
@@ -137,7 +155,12 @@ export default function Predecir() {
   function getFilteredMatches(): { match: Match; pool: PoolMember }[] {
     const result: { match: Match; pool: PoolMember }[] = []
     for (const match of matches) {
-      const pools = myPools.filter(m => m.pool?.competition === match.competition)
+      const pools = myPools.filter(m => {
+        if (m.pool?.competition !== match.competition) return false
+        const roundFilter = (m.pool as any)?.round_filter
+        if (roundFilter && match.round !== roundFilter) return false
+        return true
+      })
       for (const pool of pools) {
         const matchesFilter = activeFilter === 'todos' || activeFilter === 'pendientes' || activeFilter === pool.pool_id
         if (!matchesFilter) continue

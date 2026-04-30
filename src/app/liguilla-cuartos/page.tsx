@@ -86,6 +86,20 @@ export default function LiguillaCuartos() {
               🏆 Unirme a la quiniela →
             </div>
           </Link>
+          <Link href="/como-funciona" style={{ textDecoration: 'none' }}>
+            <div style={{
+                display: 'block', width: '100%',
+                padding: '14px 24px', borderRadius: 16,
+                border: '1px solid rgba(245,183,49,0.3)',
+                background: 'rgba(245,183,49,0.06)',
+                color: '#F5B731', fontWeight: 700, fontSize: 15,
+                textAlign: 'center', cursor: 'pointer',
+                letterSpacing: 0.5, marginTop: 10,
+                animation: 'pulse 2s ease-in-out infinite'
+            }}>
+                ❓ ¿Cómo se juega? Ver guía completa →
+            </div>
+            </Link>
           <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.25)', lineHeight: 1.7 }}>
             Pago seguro con Mercado Pago · Solo $100 MXN<br />
             Máximo 50 participantes · ¡Lugares limitados!

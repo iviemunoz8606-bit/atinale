@@ -99,28 +99,15 @@ export default function Predecir() {
 
       const competitions = [...new Set(members.map((m: any) => m.pool?.competition).filter(Boolean))]
       // Construir filtros por competition + round_filter de cada pool
-      const allMatches: Match[] = []
-      for (const member of members) {
-        const comp = member.pool?.competition
-        const roundFilter = member.pool?.round_filter
-        if (!comp) continue
-
-        let q = supabase
-          .from('matches')
-          .select('id, home_team, away_team, home_flag, away_flag, scheduled_at, status, home_score, away_score, competition, round, group_name, venue, city')
-          .eq('competition', comp)
-          .order('scheduled_at', { ascending: true })
-
-        if (roundFilter) {
-          q = q.eq('round', roundFilter)
-        }
-
-        const { data: mData } = await q
-        for (const m of mData || []) {
-          if (!allMatches.find(x => x.id === m.id)) allMatches.push(m)
-        }
-      }
-      setMatches(allMatches)
+      // Cargar TODOS los matches necesarios de una sola query
+      // y dejar que getFilteredMatches() aplique los filtros por pool
+      const competitions = [...new Set(members.map((m: any) => m.pool?.competition).filter(Boolean))]
+      const { data: mData } = await supabase
+        .from('matches')
+        .select('id, home_team, away_team, home_flag, away_flag, scheduled_at, status, home_score, away_score, competition, round, group_name, venue, city')
+        .in('competition', competitions)
+        .order('scheduled_at', { ascending: true })
+      setMatches(mData || [])
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 

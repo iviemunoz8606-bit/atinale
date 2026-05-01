@@ -97,7 +97,6 @@ export default function Predecir() {
       }
       setDrafts(initialDrafts)
 
-      const competitions = [...new Set(members.map((m: any) => m.pool?.competition).filter(Boolean))]
       // Construir filtros por competition + round_filter de cada pool
       // Cargar TODOS los matches necesarios de una sola query
       // y dejar que getFilteredMatches() aplique los filtros por pool

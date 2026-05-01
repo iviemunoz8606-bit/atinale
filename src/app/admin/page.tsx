@@ -301,7 +301,7 @@ export default function AdminPage() {
           <div style={{ fontSize: 9, color: '#444', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Por quiniela</div>
           {poolStats.map(pool => (
             <div key={pool.id} style={{ background: '#0d1220', borderRadius: 10, padding: '10px 12px', marginBottom: 6, borderLeft: `3px solid ${compColor(pool.competition)}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{pool.name}</div>
                   <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{pool.participantesActivos} participantes · {compLabel(pool.competition)}</div>
@@ -310,6 +310,18 @@ export default function AdminPage() {
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#F5B731' }}>{fmt(pool.recaudado)}</div>
                   <div style={{ fontSize: 10, color: '#00C46A' }}>{fmt(pool.recaudado * 0.9)} premio</div>
                 </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Link href={`/quiniela/${pool.id}`} style={{ textDecoration: 'none', flex: 1 }}>
+                  <div style={{ padding: '6px', borderRadius: 8, background: 'rgba(245,183,49,0.1)', border: '0.5px solid rgba(245,183,49,0.2)', color: '#F5B731', fontSize: 11, fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 1, textAlign: 'center', cursor: 'pointer' }}>
+                    🎯 VER QUINIELA
+                  </div>
+                </Link>
+                <Link href={`/ranking?pool=${pool.id}`} style={{ textDecoration: 'none', flex: 1 }}>
+                  <div style={{ padding: '6px', borderRadius: 8, background: 'rgba(79,173,255,0.1)', border: '0.5px solid rgba(79,173,255,0.2)', color: '#4FADFF', fontSize: 11, fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 1, textAlign: 'center', cursor: 'pointer' }}>
+                    🏆 VER RANKING
+                  </div>
+                </Link>
               </div>
             </div>
           ))}

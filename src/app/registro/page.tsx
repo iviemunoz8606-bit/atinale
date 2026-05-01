@@ -70,6 +70,10 @@ export default function Registro() {
     if (!alias.trim()) { setError('Elige un apodo para el ranking'); return }
     if (alias.trim().length > 20) { setError('El apodo no puede tener más de 20 caracteres'); return }
     if (!telefono.trim() || telefono.length < 10) { setError('Por favor escribe tu teléfono (10 dígitos)'); return }
+    if (referido && referido.startsWith('SALA-')) { 
+      setError('Ese es un código de sala, no de referido. Deja ese campo vacío si nadie te invitó directamente.'); 
+      return 
+}
 
     setLoading(true)
     setError('')
@@ -500,7 +504,7 @@ export default function Registro() {
                 type="text"
                 value={referido}
                 onChange={e => setReferido(e.target.value.toUpperCase())}
-                placeholder="Si alguien te invitó"
+                placeholder="Código de un amigo (no de sala)"
               />
 
               {error && <div className="reg-error">{error}</div>}

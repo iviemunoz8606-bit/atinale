@@ -161,16 +161,14 @@ export default function Quinielas() {
 
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '16px 16px 100px' }}>
 
-        {/* BANNER CÓDIGO DE SALA */}
-        <div style={{ background: 'linear-gradient(135deg,rgba(79,173,255,0.12),rgba(79,173,255,0.06))', border: '1px solid rgba(79,173,255,0.3)', borderRadius: 16, padding: '16px', marginBottom: 20, animation: 'fadeUp 0.3s ease both' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 20 }}>🔑</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>¿Te invitaron a una sala?</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Ingresa el código que te compartieron</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+        {/* ACCIONES RÁPIDAS */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20, animation: 'fadeUp 0.3s ease both' }}>
+          
+          {/* Código de sala */}
+          <div style={{ background: 'rgba(79,173,255,0.08)', border: '1px solid rgba(79,173,255,0.25)', borderRadius: 14, padding: '14px 12px' }}>
+            <div style={{ fontSize: 20, marginBottom: 6 }}>🔑</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 2 }}>¿Tienes código?</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 10, lineHeight: 1.4 }}>Úsalo para entrar a una sala privada</div>
             <input
               className="codigo-input"
               type="text"
@@ -178,32 +176,31 @@ export default function Quinielas() {
               onChange={e => { setCodigo(e.target.value.toUpperCase()); setCodigoError('') }}
               placeholder="SALA-XXXX"
               maxLength={9}
-              style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(79,173,255,0.25)', borderRadius: 10, padding: '11px 14px', color: '#4FADFF', fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 3 }}
+              style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(79,173,255,0.25)', borderRadius: 8, padding: '8px 10px', color: '#4FADFF', fontFamily: "'Bebas Neue',sans-serif", fontSize: 15, letterSpacing: 2, marginBottom: 8 }}
             />
             <button
               onClick={handleCodigo}
               disabled={codigoLoading}
-              style={{ padding: '11px 18px', borderRadius: 10, background: 'linear-gradient(135deg,#4FADFF,#2E86DE)', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap', opacity: codigoLoading ? 0.7 : 1 }}
+              style={{ width: '100%', padding: '8px', borderRadius: 8, background: 'linear-gradient(135deg,#4FADFF,#2E86DE)', color: '#080C16', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", opacity: codigoLoading ? 0.7 : 1 }}
             >
               {codigoLoading ? '...' : 'Entrar →'}
             </button>
+            {codigoError && <div style={{ fontSize: 10, color: '#FF4D6D', marginTop: 6 }}>{codigoError}</div>}
           </div>
-          {codigoError && (
-            <div style={{ fontSize: 12, color: '#FF4D6D', marginTop: 8 }}>{codigoError}</div>
-          )}
-        </div>
 
-        {/* CREAR SALA */}
-        <div
-          onClick={() => router.push('/crear-sala')}
-          style={{ background: 'linear-gradient(135deg,rgba(245,183,49,0.12),rgba(245,183,49,0.06))', border: '1px solid rgba(245,183,49,0.3)', borderRadius: 16, padding: '16px', marginBottom: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, animation: 'fadeUp 0.3s ease 0.05s both' }}
-        >
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(245,183,49,0.15)', border: '1px solid rgba(245,183,49,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🏠</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Crea tu sala privada</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Invita a tu grupo y gana comisión por cada persona</div>
+          {/* Crear sala */}
+          <div
+            onClick={() => router.push('/crear-sala')}
+            style={{ background: 'rgba(245,183,49,0.08)', border: '1px solid rgba(245,183,49,0.25)', borderRadius: 14, padding: '14px 12px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+          >
+            <div style={{ fontSize: 20, marginBottom: 6 }}>🏠</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Crea tu sala</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 10, lineHeight: 1.4, flex: 1 }}>Invita a tu grupo y gana comisión</div>
+            <div style={{ width: '100%', padding: '8px', borderRadius: 8, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontWeight: 700, fontSize: 12, textAlign: 'center', fontFamily: "'Outfit',sans-serif" }}>
+              Crear →
+            </div>
           </div>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: '#F5B731' }}>›</div>
+
         </div>
 
         {/* MIS QUINIELAS */}

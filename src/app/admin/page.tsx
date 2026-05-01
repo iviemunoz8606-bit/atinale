@@ -22,6 +22,13 @@ function compLabel(comp) {
   return comp
 }
 
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('es-MX', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City'
+  })
+}
+
 export default function AdminPage() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,7 +37,7 @@ export default function AdminPage() {
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'jugadores' | 'resultados' | 'analisis'>('jugadores')
+  const [activeTab, setActiveTab] = useState<'jugadores' | 'resultados' | 'analisis' | 'rankings'>('jugadores')
   const [members, setMembers] = useState([])
   const [pools, setPools] = useState([])
   const [matches, setMatches] = useState([])
@@ -40,6 +47,15 @@ export default function AdminPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [filterPool, setFilterPool] = useState<string>('todos')
   const [filterComp, setFilterComp] = useState<string>('todos')
+
+  // Rankings tab state
+  const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null)
+  const [rankingMembers, setRankingMembers] = useState([])
+  const [rankingMatches, setRankingMatches] = useState([])
+  const [rankingPredictions, setRankingPredictions] = useState([])
+  const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
+  const [loadingRanking, setLoadingRanking] = useState(false)
+  const [rankingView, setRankingView] = useState<'ranking' | 'partidos'>('ranking')
 
   useEffect(() => { init() }, [])
 
@@ -55,7 +71,7 @@ export default function AdminPage() {
   async function loadData() {
     const { data: poolsData } = await supabase
       .from('pools')
-      .select('id, name, competition, entry_fee, total_pot, current_participants, max_participants')
+      .select('id, name, competition, entry_fee, total_pot, current_participants, max_participants, round_filter')
       .order('created_at', { ascending: false })
     setPools(poolsData || [])
 
@@ -90,7 +106,6 @@ export default function AdminPage() {
     await loadData()
   }
 
-  // Inicia un partido — lo pone en live
   async function handleStartMatch(match) {
     setSavingId(match.id)
     const { error } = await supabase
@@ -103,127 +118,150 @@ export default function AdminPage() {
     await loadData()
   }
 
-  // Actualiza marcador en live — recalcula puntos sin acumular
   async function handleUpdateLive(match) {
     const s = scores[match.id]
     if (!s || s.home === '' || s.away === '') { showToast('⚠️ Ingresa ambos marcadores'); return }
     setSavingId(match.id)
-
     const homeScore = parseInt(s.home)
     const awayScore = parseInt(s.away)
-
-    // 1. Actualizar marcador en BD
     const { error } = await supabase
       .from('matches')
       .update({ home_score: homeScore, away_score: awayScore })
       .eq('id', match.id)
     if (error) { showToast('❌ Error actualizando'); setSavingId(null); return }
-
-    // 2. Recalcular puntos para este partido (sin acumular)
     await recalcularPuntos(match.id, homeScore, awayScore, false)
-
     setSavingId(null)
     showToast(`🔴 LIVE ${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`)
     await loadData()
   }
 
-  // Finaliza partido — calcula puntos definitivos
   async function handleFinishMatch(match) {
     const s = scores[match.id]
     if (!s || s.home === '' || s.away === '') { showToast('⚠️ Ingresa el marcador final'); return }
     setSavingId(match.id)
-
     const homeScore = parseInt(s.home)
     const awayScore = parseInt(s.away)
-
-    // 1. Marcar como finished con marcador final
     const { error } = await supabase
       .from('matches')
       .update({ home_score: homeScore, away_score: awayScore, status: 'finished' })
       .eq('id', match.id)
     if (error) { showToast('❌ Error finalizando'); setSavingId(null); return }
-
-    // 2. Recalcular puntos definitivos
     await recalcularPuntos(match.id, homeScore, awayScore, true)
-
     setScores(prev => { const n = { ...prev }; delete n[match.id]; return n })
     setSavingId(null)
     showToast(`✅ FINAL ${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`)
     await loadData()
   }
 
-  // Recalcula puntos para un partido desde cero (sin acumular)
   async function recalcularPuntos(matchId, homeScore, awayScore, esFinal) {
     const { data: preds } = await supabase
       .from('predictions')
       .select('*')
       .eq('match_id', matchId)
-
     if (!preds || preds.length === 0) return
-
     const realResult = homeScore > awayScore ? 'home' : awayScore > homeScore ? 'away' : 'draw'
-
-    // Agrupar predicciones por usuario+pool para actualizar en lote
-    const updates = {} // key: `${user_id}_${pool_id}`
-
+    const updates = {}
     for (const pred of preds) {
       const predResult = pred.predicted_home > pred.predicted_away ? 'home'
         : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
-
       let ptsNuevos = 0
       if (pred.predicted_home === homeScore && pred.predicted_away === awayScore) ptsNuevos = 3
       else if (predResult === realResult) ptsNuevos = 1
-
-      // Actualizar points_earned en la predicción
-      await supabase
-        .from('predictions')
-        .update({ points_earned: ptsNuevos })
-        .eq('id', pred.id)
-
+      await supabase.from('predictions').update({ points_earned: ptsNuevos }).eq('id', pred.id)
       const key = `${pred.user_id}_${pred.pool_id}`
       updates[key] = { user_id: pred.user_id, pool_id: pred.pool_id }
     }
-
-    // Para cada usuario afectado, recalcular SU TOTAL desde cero sumando TODAS sus predicciones
     for (const { user_id, pool_id } of Object.values(updates)) {
       const { data: todasLasPreds } = await supabase
-        .from('predictions')
-        .select('points_earned')
-        .eq('user_id', user_id)
-        .eq('pool_id', pool_id)
-
+        .from('predictions').select('points_earned')
+        .eq('user_id', user_id).eq('pool_id', pool_id)
       const totalPts = (todasLasPreds || []).reduce((sum, p) => sum + (p.points_earned || 0), 0)
-
-      // SET directo — no increment, no diff, siempre correcto
-      await supabase
-        .from('pool_members')
-        .update({ points: totalPts })
-        .eq('user_id', user_id)
-        .eq('pool_id', pool_id)
+      await supabase.from('pool_members').update({ points: totalPts })
+        .eq('user_id', user_id).eq('pool_id', pool_id)
     }
   }
 
-  // Guardar horario editado
   async function handleSaveSchedule(match) {
     const newSchedule = schedules[match.id]
     if (!newSchedule) { showToast('⚠️ Ingresa una fecha y hora'); return }
     setSavingId(match.id + '_schedule')
-
-    // Convertir hora México Centro a UTC
     const localDate = new Date(newSchedule)
     if (isNaN(localDate.getTime())) { showToast('⚠️ Formato de fecha inválido'); setSavingId(null); return }
-
-    // El input datetime-local da hora local del navegador, la guardamos como UTC
-    const { error } = await supabase
-      .from('matches')
-      .update({ scheduled_at: localDate.toISOString() })
-      .eq('id', match.id)
-
+    const { error } = await supabase.from('matches').update({ scheduled_at: localDate.toISOString() }).eq('id', match.id)
     if (error) { showToast('❌ Error guardando horario'); setSavingId(null); return }
     setSchedules(prev => { const n = { ...prev }; delete n[match.id]; return n })
     setSavingId(null)
     showToast(`🕐 Horario actualizado`)
     await loadData()
+  }
+
+  // ── RANKINGS TAB ──────────────────────────────────────────────────────────
+  async function loadRankingPool(pool) {
+    setSelectedPoolId(pool.id)
+    setLoadingRanking(true)
+    setExpandedMatch(null)
+    setRankingView('ranking')
+
+    // Miembros con puntos
+    const { data: membersData } = await supabase
+      .from('pool_members')
+      .select('user_id, points')
+      .eq('pool_id', pool.id)
+      .eq('payment_status', 'approved')
+      .order('points', { ascending: false })
+
+    const userIds = (membersData || []).map(m => m.user_id)
+    const { data: usersData } = await supabase
+      .from('users').select('id, name, alias, emoji, avatar_url').in('id', userIds)
+
+    const ranked = (membersData || []).map((m, i) => ({
+      ...m,
+      rank: i + 1,
+      user: usersData?.find(u => u.id === m.user_id) || null
+    }))
+    setRankingMembers(ranked)
+
+    // Partidos de la quiniela
+    let matchQuery = supabase.from('matches').select('*').eq('competition', pool.competition).order('scheduled_at', { ascending: true })
+    if (pool.round_filter) matchQuery = matchQuery.eq('round', pool.round_filter)
+    const { data: matchesData } = await matchQuery
+    setRankingMatches(matchesData || [])
+
+    // Predicciones de partidos live/finished
+    const liveOrFinished = (matchesData || [])
+      .filter(m => m.status === 'live' || m.status === 'finished')
+      .map(m => m.id)
+
+    if (liveOrFinished.length > 0) {
+      const { data: preds } = await supabase
+        .from('predictions')
+        .select('match_id, user_id, predicted_home, predicted_away, points_earned')
+        .eq('pool_id', pool.id)
+        .in('match_id', liveOrFinished)
+      setRankingPredictions(preds || [])
+    } else {
+      setRankingPredictions([])
+    }
+
+    setLoadingRanking(false)
+  }
+
+  function getMatchEmoji(match, pred) {
+    if (match.home_score === null || !pred) return null
+    const realResult = match.home_score > match.away_score ? 'home' : match.away_score > match.home_score ? 'away' : 'draw'
+    const predResult = pred.predicted_home > pred.predicted_away ? 'home' : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
+    if (pred.predicted_home === match.home_score && pred.predicted_away === match.away_score) return '🎯'
+    if (predResult === realResult) return '✅'
+    return '❌'
+  }
+
+  function getMatchPts(match, pred) {
+    if (!pred || match.home_score === null) return 0
+    const realResult = match.home_score > match.away_score ? 'home' : match.away_score > match.home_score ? 'away' : 'draw'
+    const predResult = pred.predicted_home > pred.predicted_away ? 'home' : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
+    if (pred.predicted_home === match.home_score && pred.predicted_away === match.away_score) return 3
+    if (predResult === realResult) return 1
+    return 0
   }
 
   if (loading) return <Loading />
@@ -251,6 +289,13 @@ export default function AdminPage() {
   const competitions = [...new Set(matches.map(m => m.competition))]
   const bestPredictor = [...approvedMembers].sort((a, b) => (b.points || 0) - (a.points || 0))[0]
 
+  const selectedPool = pools.find(p => p.id === selectedPoolId)
+  const podioColors = ['#9CA3AF', '#F5B731', '#CD7F32']
+  const podioBorders = ['rgba(107,114,128,0.4)', 'rgba(245,183,49,0.8)', 'rgba(205,127,50,0.5)']
+  const podioHeights = [38, 54, 26]
+  const podioSizes = [52, 64, 48]
+  const podioOrder = [1, 0, 2]
+
   return (
     <div style={{ background: '#080C16', minHeight: '100vh', fontFamily: "'Outfit', sans-serif", color: '#F0F2F8' }}>
       <style>{`
@@ -263,6 +308,8 @@ export default function AdminPage() {
         .approve-btn:hover { opacity: 0.8; }
         .reject-btn:hover { opacity: 0.8; }
         input[type='datetime-local']::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+        .ver-btn { width:100%; padding:7px; border:none; border-top:0.5px solid rgba(255,255,255,.07); background:rgba(255,255,255,.03); color:rgba(255,255,255,.35); font-size:11px; cursor:pointer; font-family:'Outfit',sans-serif; transition:all .2s; }
+        .ver-btn:hover { background:rgba(255,255,255,.06); color:rgba(255,255,255,.7); }
       `}</style>
 
       {toast && (
@@ -283,6 +330,7 @@ export default function AdminPage() {
 
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '16px 16px 80px' }}>
 
+        {/* RESUMEN GLOBAL */}
         <div style={{ background: '#111520', borderRadius: 16, padding: 16, marginBottom: 14, border: '0.5px solid rgba(245,183,49,0.15)', animation: 'fadeUp 0.3s ease both' }}>
           <div style={{ fontSize: 10, color: '#F5B731', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 14 }}>Resumen global</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
@@ -301,7 +349,7 @@ export default function AdminPage() {
           <div style={{ fontSize: 9, color: '#444', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Por quiniela</div>
           {poolStats.map(pool => (
             <div key={pool.id} style={{ background: '#0d1220', borderRadius: 10, padding: '10px 12px', marginBottom: 6, borderLeft: `3px solid ${compColor(pool.competition)}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{pool.name}</div>
                   <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{pool.participantesActivos} participantes · {compLabel(pool.competition)}</div>
@@ -310,18 +358,6 @@ export default function AdminPage() {
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#F5B731' }}>{fmt(pool.recaudado)}</div>
                   <div style={{ fontSize: 10, color: '#00C46A' }}>{fmt(pool.recaudado * 0.9)} premio</div>
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <Link href={`/quiniela/${pool.id}`} style={{ textDecoration: 'none', flex: 1 }}>
-                  <div style={{ padding: '6px', borderRadius: 8, background: 'rgba(245,183,49,0.1)', border: '0.5px solid rgba(245,183,49,0.2)', color: '#F5B731', fontSize: 11, fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 1, textAlign: 'center', cursor: 'pointer' }}>
-                    🎯 VER QUINIELA
-                  </div>
-                </Link>
-                <Link href={`/ranking?pool=${pool.id}`} style={{ textDecoration: 'none', flex: 1 }}>
-                  <div style={{ padding: '6px', borderRadius: 8, background: 'rgba(79,173,255,0.1)', border: '0.5px solid rgba(79,173,255,0.2)', color: '#4FADFF', fontSize: 11, fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 1, textAlign: 'center', cursor: 'pointer' }}>
-                    🏆 VER RANKING
-                  </div>
-                </Link>
               </div>
             </div>
           ))}
@@ -336,15 +372,17 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
+        {/* TABS */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
           {[
             { key: 'jugadores', label: '👥 Jugadores', badge: pendingMembers.length },
             { key: 'resultados', label: '⚽ Resultados', badge: liveMatches.length + pendingMatches.length },
+            { key: 'rankings', label: '🏆 Rankings', badge: 0 },
             { key: 'analisis', label: '📊 Análisis', badge: 0 },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key as any)} style={{
               padding: '10px 4px', borderRadius: 10, border: 'none', cursor: 'pointer',
-              fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, letterSpacing: 1,
+              fontFamily: 'Bebas Neue, sans-serif', fontSize: 12, letterSpacing: 1,
               background: activeTab === tab.key ? '#F5B731' : '#111520',
               color: activeTab === tab.key ? '#080C16' : '#555',
               transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
@@ -359,6 +397,7 @@ export default function AdminPage() {
           ))}
         </div>
 
+        {/* ── TAB JUGADORES ── */}
         {activeTab === 'jugadores' && (
           <div style={{ animation: 'fadeUp 0.3s ease both' }}>
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 12, paddingBottom: 2 }}>
@@ -398,6 +437,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── TAB RESULTADOS ── */}
         {activeTab === 'resultados' && (
           <div style={{ animation: 'fadeUp 0.3s ease both' }}>
             <div style={{ fontSize: 9, color: '#555', textAlign: 'right', marginBottom: 8 }}>🕐 Hora Centro México (CDMX · GDL · MTY)</div>
@@ -415,54 +455,21 @@ export default function AdminPage() {
             {liveMatches.length > 0 && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8, animation: 'pulse 1.5s infinite' }}>🔴 EN VIVO ({liveMatches.length})</div>
-                {liveMatches.map(m => (
-                  <MatchCard key={m.id} match={m} mode="live"
-                    scores={scores} setScores={setScores}
-                    schedules={schedules} setSchedules={setSchedules}
-                    savingId={savingId}
-                    onUpdateLive={handleUpdateLive}
-                    onFinish={handleFinishMatch}
-                    onStart={handleStartMatch}
-                    onSaveSchedule={handleSaveSchedule}
-                  />
-                ))}
+                {liveMatches.map(m => <MatchCard key={m.id} match={m} mode="live" scores={scores} setScores={setScores} schedules={schedules} setSchedules={setSchedules} savingId={savingId} onUpdateLive={handleUpdateLive} onFinish={handleFinishMatch} onStart={handleStartMatch} onSaveSchedule={handleSaveSchedule} />)}
               </div>
             )}
-
             {pendingMatches.length > 0 && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: '#f97316', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>⚠️ NECESITAN INICIARSE ({pendingMatches.length})</div>
-                {pendingMatches.map(m => (
-                  <MatchCard key={m.id} match={m} mode="pending"
-                    scores={scores} setScores={setScores}
-                    schedules={schedules} setSchedules={setSchedules}
-                    savingId={savingId}
-                    onUpdateLive={handleUpdateLive}
-                    onFinish={handleFinishMatch}
-                    onStart={handleStartMatch}
-                    onSaveSchedule={handleSaveSchedule}
-                  />
-                ))}
+                {pendingMatches.map(m => <MatchCard key={m.id} match={m} mode="pending" scores={scores} setScores={setScores} schedules={schedules} setSchedules={setSchedules} savingId={savingId} onUpdateLive={handleUpdateLive} onFinish={handleFinishMatch} onStart={handleStartMatch} onSaveSchedule={handleSaveSchedule} />)}
               </div>
             )}
-
             {upcomingMatches.length > 0 && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: '#555', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>📅 PRÓXIMOS ({upcomingMatches.length})</div>
-                {upcomingMatches.slice(0, 10).map(m => (
-                  <MatchCard key={m.id} match={m} mode="upcoming"
-                    scores={scores} setScores={setScores}
-                    schedules={schedules} setSchedules={setSchedules}
-                    savingId={savingId}
-                    onUpdateLive={handleUpdateLive}
-                    onFinish={handleFinishMatch}
-                    onStart={handleStartMatch}
-                    onSaveSchedule={handleSaveSchedule}
-                  />
-                ))}
+                {upcomingMatches.slice(0, 10).map(m => <MatchCard key={m.id} match={m} mode="upcoming" scores={scores} setScores={setScores} schedules={schedules} setSchedules={setSchedules} savingId={savingId} onUpdateLive={handleUpdateLive} onFinish={handleFinishMatch} onStart={handleStartMatch} onSaveSchedule={handleSaveSchedule} />)}
               </div>
             )}
-
             {finishedMatches.length > 0 && (
               <div>
                 <div style={{ fontSize: 10, color: '#00C46A', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, marginBottom: 8 }}>✅ FINALIZADOS ({finishedMatches.length})</div>
@@ -478,6 +485,234 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── TAB RANKINGS ── */}
+        {activeTab === 'rankings' && (
+          <div style={{ animation: 'fadeUp 0.3s ease both' }}>
+
+            {/* Chips selector de quiniela */}
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 14, paddingBottom: 2 }}>
+              {pools.map(pool => (
+                <button key={pool.id} className="chip" onClick={() => loadRankingPool(pool)} style={{
+                  padding: '6px 16px', borderRadius: 20, whiteSpace: 'nowrap', fontSize: 11,
+                  fontWeight: selectedPoolId === pool.id ? 700 : 400,
+                  background: selectedPoolId === pool.id ? compColor(pool.competition) : 'rgba(255,255,255,.06)',
+                  color: selectedPoolId === pool.id ? '#fff' : 'rgba(255,255,255,.4)',
+                  border: selectedPoolId === pool.id ? `1px solid ${compColor(pool.competition)}` : '1px solid transparent',
+                }}>
+                  {pool.competition === 'LIGA_MX' ? '🦅' : '🌍'} {pool.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Estado vacío */}
+            {!selectedPoolId && (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#555' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
+                <div style={{ fontWeight: 600, marginBottom: 6, color: '#888' }}>Selecciona una quiniela</div>
+                <div style={{ fontSize: 12 }}>Elige arriba para ver el ranking y predicciones</div>
+              </div>
+            )}
+
+            {/* Cargando */}
+            {selectedPoolId && loadingRanking && (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#555' }}>Cargando...</div>
+            )}
+
+            {/* Contenido ranking */}
+            {selectedPoolId && !loadingRanking && (
+              <>
+                {/* Info de la quiniela seleccionada */}
+                <div style={{ background: '#111520', borderRadius: 12, padding: '12px 14px', marginBottom: 14, borderLeft: `3px solid ${compColor(selectedPool?.competition)}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{selectedPool?.name}</div>
+                      <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{rankingMembers.length} participantes · {compLabel(selectedPool?.competition)}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: '#F5B731' }}>{fmt(selectedPool?.total_pot || 0)}</div>
+                      <div style={{ fontSize: 10, color: '#00C46A' }}>{fmt((selectedPool?.total_pot || 0) * 0.9)} premio</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tabs Ranking / Partidos */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                  {[
+                    { key: 'ranking', label: '🏆 Ranking' },
+                    { key: 'partidos', label: '⚽ Predicciones' },
+                  ].map(t => (
+                    <button key={t.key} onClick={() => setRankingView(t.key as any)} style={{
+                      flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                      fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, letterSpacing: 1,
+                      background: rankingView === t.key ? '#F5B731' : 'rgba(255,255,255,.06)',
+                      color: rankingView === t.key ? '#080C16' : 'rgba(255,255,255,.4)',
+                    }}>{t.label}</button>
+                  ))}
+                </div>
+
+                {/* VISTA RANKING */}
+                {rankingView === 'ranking' && (
+                  <>
+                    {/* Podio top 3 */}
+                    {rankingMembers.length >= 3 && (
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
+                          {podioOrder.map((pi, vi) => {
+                            const m = rankingMembers[pi]
+                            if (!m) return null
+                            const u = m.user
+                            return (
+                              <div key={pi} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                                <div style={{ position: 'relative', marginBottom: 5 }}>
+                                  {vi === 1 && <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 14 }}>👑</span>}
+                                  <div style={{ width: podioSizes[vi], height: podioSizes[vi], borderRadius: '50%', border: `2px solid ${podioBorders[vi]}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.05)', overflow: 'hidden', fontSize: podioSizes[vi] * 0.42 }}>
+                                    {u?.emoji || (u?.name?.charAt(0) || '?')}
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.85)', textAlign: 'center', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 1 }}>
+                                  {u?.alias || u?.name?.split(' ')[0] || 'Jugador'}
+                                </div>
+                                <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 17, color: podioColors[vi], marginBottom: 4 }}>{m.points || 0}</div>
+                                <div style={{ width: '100%', height: podioHeights[vi], borderRadius: '5px 5px 0 0', background: vi === 1 ? 'rgba(245,183,49,.18)' : vi === 0 ? 'rgba(156,163,175,.12)' : 'rgba(205,127,50,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, color: podioColors[vi] }}>
+                                  {pi + 1}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cabecera tabla */}
+                    <div style={{ display: 'flex', padding: '5px 4px', fontSize: 9, color: 'rgba(255,255,255,.2)', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '0.5px solid rgba(255,255,255,.05)', marginBottom: 4 }}>
+                      <span style={{ width: 30 }}>#</span>
+                      <span style={{ flex: 1 }}>Jugador</span>
+                      <span style={{ width: 44, textAlign: 'right' }}>Pts</span>
+                    </div>
+
+                    {rankingMembers.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '32px 0', color: '#555', fontSize: 13 }}>Sin participantes aún</div>
+                    ) : (
+                      rankingMembers.map(m => {
+                        const u = m.user
+                        const rankColor = m.rank === 1 ? '#F5B731' : m.rank === 2 ? '#9CA3AF' : m.rank === 3 ? '#CD7F32' : 'rgba(255,255,255,.28)'
+                        return (
+                          <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', padding: '10px 4px', borderBottom: '0.5px solid rgba(255,255,255,.05)' }}>
+                            <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 16, width: 30, color: rankColor }}>{m.rank}</div>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', marginRight: 10, background: 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                              {u?.emoji || u?.name?.charAt(0) || '?'}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{u?.alias || u?.name?.split(' ')[0] || 'Jugador'}</div>
+                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 1 }}>
+                                {m.rank === 1 ? '🔥 Líder' : m.rank <= 3 ? '⭐ Top 3' : `Posición #${m.rank}`}
+                              </div>
+                            </div>
+                            <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: rankColor }}>{m.points || 0}</div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </>
+                )}
+
+                {/* VISTA PREDICCIONES POR PARTIDO */}
+                {rankingView === 'partidos' && (
+                  <div>
+                    {rankingMatches.length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '32px 0', color: '#555', fontSize: 13 }}>Sin partidos en esta quiniela</div>
+                    )}
+                    {rankingMatches.map(match => {
+                      const isLive = match.status === 'live'
+                      const isFinished = match.status === 'finished'
+                      const isOpen = expandedMatch === match.id
+                      const predsMatch = rankingPredictions.filter(p => p.match_id === match.id)
+                      const borderColor = isLive ? '#ff4d4d' : isFinished ? '#00C46A' : 'rgba(255,255,255,.08)'
+
+                      return (
+                        <div key={match.id} style={{ background: '#111520', borderRadius: 10, marginBottom: 8, overflow: 'hidden', borderLeft: `3px solid ${borderColor}`, opacity: (!isLive && !isFinished) ? 0.5 : 1 }}>
+                          {/* Header partido */}
+                          <div style={{ padding: '7px 10px', display: 'flex', justifyContent: 'space-between', background: 'rgba(0,0,0,.3)' }}>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{formatDate(match.scheduled_at)}</span>
+                            {isLive && <span style={{ fontSize: 10, color: '#ff4d4d', fontWeight: 700 }}>🔴 En vivo</span>}
+                            {isFinished && <span style={{ fontSize: 10, color: '#00C46A', fontWeight: 700 }}>✅ Final</span>}
+                          </div>
+
+                          {/* Equipos + marcador */}
+                          <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                              {match.home_flag && <img src={match.home_flag} style={{ width: 22, height: 22, objectFit: 'contain' }} />}
+                              <span style={{ fontSize: 12, fontWeight: 600 }}>{match.home_team}</span>
+                            </div>
+                            {(isLive || isFinished) ? (
+                              <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: isLive ? '#ff4d4d' : '#00C46A', background: isLive ? 'rgba(255,77,77,.1)' : 'rgba(0,196,106,.1)', padding: '2px 12px', borderRadius: 8, flexShrink: 0 }}>
+                                {match.home_score} - {match.away_score}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', flexShrink: 0 }}>vs</div>
+                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, flex: 1 }}>
+                              <span style={{ fontSize: 12, fontWeight: 600 }}>{match.away_team}</span>
+                              {match.away_flag && <img src={match.away_flag} style={{ width: 22, height: 22, objectFit: 'contain' }} />}
+                            </div>
+                          </div>
+
+                          {/* Predicciones expandidas */}
+                          {isOpen && (isLive || isFinished) && (
+                            <div style={{ padding: '0 10px 10px' }}>
+                              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.2)', letterSpacing: 1, padding: '4px 0', textTransform: 'uppercase', marginBottom: 4 }}>Predicciones del grupo</div>
+                              {rankingMembers.map(m => {
+                                const u = m.user
+                                const pred = predsMatch.find(p => p.user_id === m.user_id)
+                                const emoji = getMatchEmoji(match, pred)
+                                const pts = getMatchPts(match, pred)
+                                return (
+                                  <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderTop: '0.5px solid rgba(255,255,255,.05)', opacity: pred ? 1 : 0.3 }}>
+                                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
+                                      {u?.emoji || u?.name?.charAt(0) || '?'}
+                                    </div>
+                                    <span style={{ fontSize: 12, flex: 1, color: 'rgba(255,255,255,.8)' }}>
+                                      {u?.alias || u?.name?.split(' ')[0] || 'Jugador'}
+                                    </span>
+                                    {pred ? (
+                                      <>
+                                        <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 15, color: '#F5B731' }}>
+                                          {pred.predicted_home} - {pred.predicted_away}
+                                        </span>
+                                        <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 6, fontWeight: 700, background: pts === 3 ? 'rgba(245,183,49,.15)' : pts === 1 ? 'rgba(0,196,106,.15)' : 'rgba(255,255,255,.05)', color: pts === 3 ? '#F5B731' : pts === 1 ? '#00C46A' : '#555', minWidth: 44, textAlign: 'center' }}>
+                                          {emoji} {pts > 0 ? `+${pts}` : '0'}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontStyle: 'italic' }}>Sin pred</span>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+
+                          {/* Botón ver/ocultar predicciones */}
+                          {(isLive || isFinished) ? (
+                            <button className="ver-btn" onClick={() => setExpandedMatch(isOpen ? null : match.id)}>
+                              {isOpen ? '▲ Ocultar predicciones' : `👁 Ver ${predsMatch.length} predicciones`}
+                            </button>
+                          ) : (
+                            <div style={{ padding: '6px 10px 8px', fontSize: 10, color: 'rgba(255,255,255,.2)', fontStyle: 'italic' }}>
+                              🔒 Predicciones se revelan al iniciar el partido
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB ANÁLISIS ── */}
         {activeTab === 'analisis' && (
           <div style={{ animation: 'fadeUp 0.3s ease both' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
@@ -526,6 +761,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
       </div>
     </div>
   )
@@ -564,20 +800,16 @@ function MatchCard({ match, mode, scores, setScores, schedules, setSchedules, sa
   const isSaving = savingId === match.id || savingId === match.id + '_schedule'
   const s = scores[match.id] || { home: match.home_score ?? '', away: match.away_score ?? '' }
 
-  // Convertir scheduled_at a formato datetime-local (hora México)
   const toLocalInput = (utcStr) => {
     const d = new Date(utcStr)
-    // Restar 6 horas para México Centro (UTC-6)
     const mx = new Date(d.getTime() - 6 * 60 * 60 * 1000)
     return mx.toISOString().slice(0, 16)
   }
 
   const scheduleVal = schedules[match.id] ?? toLocalInput(match.scheduled_at)
-
   const fecha = new Date(match.scheduled_at).toLocaleDateString('es-MX', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City'
   })
-
   const borderColor = mode === 'live' ? '#ff4d4d' : mode === 'pending' ? '#f97316' : 'rgba(255,255,255,0.1)'
 
   return (
@@ -589,82 +821,34 @@ function MatchCard({ match, mode, scores, setScores, schedules, setSchedules, sa
           : <span>{fecha} · <span style={{ color: '#4FADFF' }}>CDMX</span></span>
         }
       </div>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', flex: 1 }}>{match.home_team}</span>
-        {mode === 'live' && (
-          <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: '#ff4d4d', minWidth: 60, textAlign: 'center' }}>
-            {match.home_score ?? 0} - {match.away_score ?? 0}
-          </span>
-        )}
+        {mode === 'live' && <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: '#ff4d4d', minWidth: 60, textAlign: 'center' }}>{match.home_score ?? 0} - {match.away_score ?? 0}</span>}
         {mode !== 'live' && <span style={{ fontSize: 11, color: '#444' }}>vs</span>}
         <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', flex: 1, textAlign: 'right' }}>{match.away_team}</span>
       </div>
-
-      {/* Editar horario — solo en upcoming */}
       {mode === 'upcoming' && (
         <div style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 9, color: '#555', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Editar horario (Hora Centro México)</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="datetime-local"
-              value={scheduleVal}
-              onChange={e => setSchedules(prev => ({ ...prev, [match.id]: e.target.value }))}
-              style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(74,174,255,0.3)', color: '#4FADFF', fontSize: 12, outline: 'none', fontFamily: 'Outfit, sans-serif' }}
-            />
-            <button
-              onClick={() => onSaveSchedule(match)}
-              disabled={isSaving}
-              style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(74,174,255,0.15)', color: '#4FADFF', fontFamily: 'Bebas Neue, sans-serif', fontSize: 12, letterSpacing: 1 }}
-            >
+            <input type="datetime-local" value={scheduleVal} onChange={e => setSchedules(prev => ({ ...prev, [match.id]: e.target.value }))} style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(74,174,255,0.3)', color: '#4FADFF', fontSize: 12, outline: 'none', fontFamily: 'Outfit, sans-serif' }} />
+            <button onClick={() => onSaveSchedule(match)} disabled={isSaving} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(74,174,255,0.15)', color: '#4FADFF', fontFamily: 'Bebas Neue, sans-serif', fontSize: 12, letterSpacing: 1 }}>
               {savingId === match.id + '_schedule' ? '...' : 'GUARDAR'}
             </button>
           </div>
         </div>
       )}
-
-      {/* Inputs de marcador — en pending y live */}
       {(mode === 'pending' || mode === 'live') && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: mode === 'live' ? 8 : 0 }}>
-          <input type="number" min="0" max="20" placeholder="0" value={s.home}
-            onChange={e => setScores(prev => ({ ...prev, [match.id]: { ...prev[match.id], home: e.target.value } }))}
-            style={{ width: 50, padding: '8px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', color: '#F5B731', textAlign: 'center', fontSize: 18, fontFamily: 'Bebas Neue, sans-serif', outline: 'none' }}
-          />
+          <input type="number" min="0" max="20" placeholder="0" value={s.home} onChange={e => setScores(prev => ({ ...prev, [match.id]: { ...prev[match.id], home: e.target.value } }))} style={{ width: 50, padding: '8px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', color: '#F5B731', textAlign: 'center', fontSize: 18, fontFamily: 'Bebas Neue, sans-serif', outline: 'none' }} />
           <span style={{ color: '#444', fontSize: 14 }}>-</span>
-          <input type="number" min="0" max="20" placeholder="0" value={s.away}
-            onChange={e => setScores(prev => ({ ...prev, [match.id]: { ...prev[match.id], away: e.target.value } }))}
-            style={{ width: 50, padding: '8px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', color: '#F5B731', textAlign: 'center', fontSize: 18, fontFamily: 'Bebas Neue, sans-serif', outline: 'none' }}
-          />
-          {mode === 'pending' && (
-            <button onClick={() => onStart(match)} disabled={isSaving}
-              style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#ff4d4d,#cc0000)', color: '#fff', fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, letterSpacing: 1 }}>
-              {isSaving ? 'INICIANDO...' : '🔴 INICIAR'}
-            </button>
-          )}
-          {mode === 'live' && (
-            <button onClick={() => onUpdateLive(match)} disabled={isSaving || s.home === '' || s.away === ''}
-              style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', background: isSaving ? '#1a1f2e' : 'rgba(255,77,77,0.2)', color: isSaving ? '#444' : '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, letterSpacing: 1, border: '1px solid rgba(255,77,77,0.4)' }}>
-              {isSaving ? '...' : '↑ ACTUALIZAR'}
-            </button>
-          )}
+          <input type="number" min="0" max="20" placeholder="0" value={s.away} onChange={e => setScores(prev => ({ ...prev, [match.id]: { ...prev[match.id], away: e.target.value } }))} style={{ width: 50, padding: '8px', borderRadius: 10, background: '#1a1f2e', border: '1px solid rgba(245,183,49,0.3)', color: '#F5B731', textAlign: 'center', fontSize: 18, fontFamily: 'Bebas Neue, sans-serif', outline: 'none' }} />
+          {mode === 'pending' && <button onClick={() => onStart(match)} disabled={isSaving} style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#ff4d4d,#cc0000)', color: '#fff', fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, letterSpacing: 1 }}>{isSaving ? 'INICIANDO...' : '🔴 INICIAR'}</button>}
+          {mode === 'live' && <button onClick={() => onUpdateLive(match)} disabled={isSaving || s.home === '' || s.away === ''} style={{ flex: 1, padding: '9px', borderRadius: 10, border: '1px solid rgba(255,77,77,0.4)', cursor: 'pointer', background: isSaving ? '#1a1f2e' : 'rgba(255,77,77,0.2)', color: isSaving ? '#444' : '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, letterSpacing: 1 }}>{isSaving ? '...' : '↑ ACTUALIZAR'}</button>}
         </div>
       )}
-
-      {/* Botón finalizar — solo en live */}
-      {mode === 'live' && (
-        <button onClick={() => onFinish(match)} disabled={isSaving || s.home === '' || s.away === ''}
-          style={{ width: '100%', padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', background: isSaving || s.home === '' || s.away === '' ? '#1a1f2e' : 'linear-gradient(135deg,#F5B731,#C9930A)', color: isSaving || s.home === '' || s.away === '' ? '#444' : '#080C16', fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, letterSpacing: 1 }}>
-          {isSaving ? 'GUARDANDO...' : '✅ FINALIZAR PARTIDO'}
-        </button>
-      )}
-
-      {/* Botón iniciar sin marcador — en upcoming que ya pasó la hora */}
-      {mode === 'upcoming' && (
-        <button onClick={() => onStart(match)} disabled={isSaving}
-          style={{ width: '100%', padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(255,77,77,0.1)', color: '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', fontSize: 12, letterSpacing: 1, border: '1px solid rgba(255,77,77,0.2)', marginTop: 8 }}>
-          {isSaving ? 'INICIANDO...' : '🔴 INICIAR PARTIDO'}
-        </button>
-      )}
+      {mode === 'live' && <button onClick={() => onFinish(match)} disabled={isSaving || s.home === '' || s.away === ''} style={{ width: '100%', padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', background: isSaving || s.home === '' || s.away === '' ? '#1a1f2e' : 'linear-gradient(135deg,#F5B731,#C9930A)', color: isSaving || s.home === '' || s.away === '' ? '#444' : '#080C16', fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, letterSpacing: 1 }}>{isSaving ? 'GUARDANDO...' : '✅ FINALIZAR PARTIDO'}</button>}
+      {mode === 'upcoming' && <button onClick={() => onStart(match)} disabled={isSaving} style={{ width: '100%', padding: '9px', borderRadius: 10, border: '1px solid rgba(255,77,77,0.2)', cursor: 'pointer', background: 'rgba(255,77,77,0.1)', color: '#ff4d4d', fontFamily: 'Bebas Neue, sans-serif', fontSize: 12, letterSpacing: 1, marginTop: 8 }}>{isSaving ? 'INICIANDO...' : '🔴 INICIAR PARTIDO'}</button>}
     </div>
   )
 }

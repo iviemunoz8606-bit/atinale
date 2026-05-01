@@ -7,7 +7,6 @@ const mp = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
 })
 
-// Usamos service role para escribir sin restricciones de RLS
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -17,7 +16,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    // Mercado Pago solo nos interesa cuando el pago es aprobado
     if (body.type !== 'payment') {
       return NextResponse.json({ ok: true })
     }
@@ -29,7 +27,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // external_reference = "userId|poolId"
     const [userId, poolId] = (payment.external_reference || '').split('|')
     if (!userId || !poolId) {
       return NextResponse.json({ error: 'Referencia inválida' }, { status: 400 })
@@ -37,54 +34,84 @@ export async function POST(req: NextRequest) {
 
     const amount = payment.transaction_amount || 0
 
-    // 1. Registrar pago en tabla payments
-    await supabase.from('payments').insert({
+    // 1. Registrar pago — ignorar si ya existe (pago duplicado)
+    const { error: paymentError } = await supabase.from('payments').insert({
       user_id: userId,
       pool_id: poolId,
       amount,
       status: 'approved',
-      receipt_url: `mp_payment_${payment.id}`,
+      receipt_url: 'mp_payment_' + payment.id,
     })
+    if (paymentError) {
+      console.error('Error insertando payment:', paymentError)
+    }
 
-    // Verificar si algún partido del pool ya inició
+    // 2. Verificar si el pool ya inició
     const { data: poolData } = await supabase
       .from('pools')
-      .select('competition')
+      .select('competition, total_pot, round_filter')
       .eq('id', poolId)
       .single()
 
     if (poolData?.competition) {
-      const { data: startedMatches } = await supabase
+      let matchQuery = supabase
         .from('matches')
         .select('id')
         .eq('competition', poolData.competition)
         .in('status', ['live', 'finished'])
         .limit(1)
 
+      if (poolData.round_filter) {
+        matchQuery = matchQuery.eq('round', poolData.round_filter)
+      }
+
+      const { data: startedMatches } = await matchQuery
+
       if (startedMatches && startedMatches.length > 0) {
-        // Pool ya inició — registrar pago pero NO activar membresía
-        console.log('Pago rechazado: pool ya inició', poolId)
+        console.log('Pago rechazado: pool ya inicio', poolId)
         return NextResponse.json({ ok: true, skipped: 'pool_started' })
       }
     }
 
-    // 2. Crear o actualizar membresía como aprobada
-    await supabase.from('pool_members').upsert(
-      {
-        user_id: userId,
-        pool_id: poolId,
-        payment_status: 'approved',
-        points: 0,
-      },
-      { onConflict: 'user_id,pool_id' }
-    )
+    // 3. Verificar si ya existe el member antes de insertar
+    const { data: existingMember } = await supabase
+      .from('pool_members')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('pool_id', poolId)
+      .single()
 
-    // 3. Incrementar participantes y pozo
-      await supabase.rpc('increment_participants', { p_pool_id: poolId })
+    if (existingMember) {
+      // Ya existe — solo actualizar status
+      const { error: updateError } = await supabase
+        .from('pool_members')
+        .update({ payment_status: 'approved' })
+        .eq('user_id', userId)
+        .eq('pool_id', poolId)
+      if (updateError) {
+        console.error('Error actualizando member:', updateError)
+      }
+    } else {
+      // No existe — insertar nuevo
+      const { error: insertError } = await supabase
+        .from('pool_members')
+        .insert({
+          user_id: userId,
+          pool_id: poolId,
+          payment_status: 'approved',
+          points: 0,
+          rank: 0,
+        })
+      if (insertError) {
+        console.error('Error insertando member:', insertError)
+      }
+    }
 
-      // 4. Sumar al pozo
-      const { data: pool } = await supabase.from('pools').select('total_pot').eq('id', poolId).single()
-      await supabase.from('pools').update({ total_pot: (pool?.total_pot || 0) + amount }).eq('id', poolId)
+    // 4. Actualizar participantes y pozo
+    await supabase.rpc('increment_participants', { p_pool_id: poolId })
+
+    const newPot = (poolData?.total_pot || 0) + amount
+    await supabase.from('pools').update({ total_pot: newPot }).eq('id', poolId)
 
     return NextResponse.json({ ok: true })
   } catch (error: any) {

@@ -578,3 +578,198 @@ NOTAS TÉCNICAS
 - Supabase Pro upgrade — urgente antes del 1 de mayo
 - WhatsApp canal de difusión para comunidad
 - Revisar UX del botón 🏆 desde dashboard (parámetro `pool=id` funciona)
+
+
+# ATÍNALE — BITÁCORA DEL PROYECTO
+Actualizado: 1 de mayo de 2026
+
+## DATOS DEL PROYECTO
+| Campo | Valor |
+|-------|-------|
+| URL Producción | https://atinale-ecru.vercel.app |
+| GitHub | iviemunoz8606-bit/atinale |
+| Supabase ID | pqrcwbevquhpsymmpryi |
+| Stack | Next.js 16 + Supabase + Vercel + Mercado Pago |
+| Lanzamiento soft | 27 mayo 2026 |
+| Kickoff Mundial | 11 junio 2026 — México vs Sudáfrica |
+
+---
+
+## ESTADO ACTUAL DEL SISTEMA
+| Módulo | Estado |
+|--------|--------|
+| Landing page | ✅ Funcionando |
+| Google OAuth | ✅ Funcionando |
+| Registro de usuarios | ✅ Funcionando |
+| Dashboard | ✅ Funcionando |
+| Página /quinielas | ✅ Con código de sala y botón crear sala |
+| Página /predecir | ✅ Con round_filter corregido |
+| Página /ranking | ✅ Con round_filter en loadPoolData |
+| Página /quiniela/[id] | ✅ Con paywall y round_filter |
+| Flujo de pago MP | ✅ Producción activa |
+| Webhook MP | ✅ Modo productivo activado |
+| Panel admin /admin | ✅ Funcionando |
+| Crear sala privada | ✅ Con selector de ronda |
+| Unirse con código | ✅ /unirse/[codigo] |
+| Botón WhatsApp | ✅ WAButton.tsx flotante |
+| Cálculo de puntos | ⏳ Manual desde admin — falta automatizar |
+| Modo Próximamente | ❌ Pendiente antes del 27 mayo |
+| Historial quinielas | ❌ Pendiente |
+
+---
+
+## HISTORIAL DE SESIONES
+
+### Sesiones 1-4 — Infraestructura base
+- Landing page con animaciones, diana, CountUp
+- Schema Supabase: 7 tablas con RLS
+- 104 partidos FIFA 2026 cargados
+- Google OAuth completo
+- Dashboard con stats y bottom nav
+- /quiniela/[id] con 48 partidos grupos A-L
+- Inputs predicción con bloqueo automático
+- Primera quiniela: Quiniela Grupos FIFA 2026
+
+### Sesión 5 — Página de predicciones
+- /quiniela/[id] completa con banderas y grupos
+- Guardado en lote con botón flotante dorado
+- Tabs de grupo se vuelven verdes al completar
+- Constraint UNIQUE en predictions
+- Deploy exitoso
+
+### Sesión 6 — Pagos y admin
+- Bucket "comprobantes" en Supabase Storage
+- JoinPoolModal con subida de comprobante
+- Panel admin /admin con validación de pagos
+- is_admin activado para ivie.munoz8606@alumnos.udg.mx
+- Fix total_pot en dashboard
+
+### Sesión 7 — Mercado Pago
+- SDK mercadopago instalado
+- API /api/mp/crear-preferencia
+- API /api/mp/webhook
+- Páginas /pago/exitoso, /pago/fallido, /pago/pendiente
+- Pago de prueba completado
+- Deploy exitoso
+
+### Sesiones 8-10 — Liga MX y mejoras
+- Jornada 17 y Liguilla Cuartos cargados en DB
+- round_filter implementado en pools
+- /liguilla-cuartos página dedicada
+- Salas Privadas: /crear-sala y /unirse/[codigo]
+- /ranking con podio, vecinos y vista por quiniela
+- /perfil con alias, emoji y teléfono
+- Sistema de referidos con código único
+
+### Sesión 11 — 1 mayo 2026
+**Fixes:**
+- Webhook MP: verificar member antes de insertar (insert vs upsert)
+- Webhook MP: modo productivo activado en panel MP
+- round_filter en ranking/loadPoolData
+- round_filter en predecir/loadData  
+- framer-motion removido completamente (page.tsx + package.json)
+- camelCase corregido en fetch crear-preferencia
+- Validación: código SALA- no puede usarse como código de referido
+
+**Features:**
+- WAButton.tsx — botón WhatsApp flotante minimalista sin fondo
+- Metadata og-image para preview en WhatsApp
+- Selector de ronda (Jornada 17 / Liguilla) al crear sala privada
+- Banner código de sala en /quinielas
+- Botón crear sala en /quinielas
+- Grid 2 columnas para acciones rápidas en /quinielas
+
+---
+
+## NOTAS TÉCNICAS CLAVE
+
+### Patrones importantes
+- `round_filter` en pools filtra partidos por ronda dentro de una competition
+- Leer `poolData` directamente (no `pool` state que puede ser null)
+- `pool_members` NO tiene columna `created_at` — nunca usar `.order('created_at')`
+- Usar `update().eq('id')` no `upsert()` para saves de perfil
+- `activeGroup` default `''` con detección dinámica del primer grupo
+
+### Reglas de código
+- Primeras dos líneas: `// @ts-nocheck` luego `'use client'`
+- Nunca framer-motion — usar CSS keyframes
+- Siempre `createBrowserClient` de `@supabase/ssr`
+- `proxy.ts` reemplaza `middleware.ts`
+- Dev: `npm run dev -- --webpack`
+- Build: `next build --webpack`
+
+### Webhook MP
+- URL producción: https://atinale-ecru.vercel.app/api/mp/webhook
+- Evento activo: Pagos
+- Modo: Productivo ✅
+- Fix aplicado: verifica existencia de member antes de insertar
+
+### Variables de entorno requeridas
+- `MERCADOPAGO_ACCESS_TOKEN`
+- `NEXT_PUBLIC_MP_PUBLIC_KEY`
+- `NEXT_PUBLIC_APP_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### Tablas DB clave
+- `pools` — incluye `round_filter`, `type`, `creator_id`, `access_code`
+- `pool_members` — sin `created_at`
+- `matches` — `competition`, `round`, `group_name`, `status`, `home_score`, `away_score`
+- `predictions` — `predicted_home`, `predicted_away`, `points_earned`
+- `payments` — diagnóstico con LEFT JOIN a pool_members
+
+---
+
+## PENDIENTES
+
+### Urgente (antes del 11 junio)
+1. **Cálculo automático de puntos** — trigger cuando se actualizan goles
+   - Exacto: 3pts | Resultado: 1pt | Fallo: 0pts
+   - Actualizar `points_earned` en predictions
+   - Actualizar `points` en pool_members
+   - Actualizar `total_points` en users
+2. **Modo Próximamente** — captura de emails antes del 27 mayo
+3. **Admin acceso sin pagar** — bypass paywall para is_admin
+
+### Media prioridad
+4. Página métodos de pago (OXXO, SPEI, tarjeta sin cuenta MP)
+5. Quinielas terminadas → historial en /perfil
+6. Semis+Final Liguilla pool (abrir 12 mayo)
+7. Salas que administro en /perfil
+
+### Post-lanzamiento
+8. Automatización resultados con n8n
+9. Imagen compartible con link directo al pool
+10. Automatización comisión creador via MP
+11. Registro IMPI marca ATÍNALE (~$2,500 MXN, clase 41)
+
+---
+
+## CALENDARIO
+| Fecha | Hito |
+|-------|------|
+| 12 mayo | Abrir Semis+Final Liguilla |
+| 27 mayo | Soft launch — Modo Próximamente + emails |
+| 1 junio | Beta con 20-30 usuarios |
+| 10 junio 11:59pm | Cierre de registro Mundial |
+| 11 junio 5pm | México vs Sudáfrica — kickoff |
+| 28 junio | Fin Fase de Grupos — primer ganador |
+| 19 julio | Gran Final Mundial |
+
+---
+
+## COMANDOS DIARIOS
+```bash
+# Arrancar
+npm run dev -- --webpack
+
+# Subir cambios
+git add .
+git commit -m "descripcion"
+git push
+
+# Al llegar a nueva compu
+git pull
+npm install
+```

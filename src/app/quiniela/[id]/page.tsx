@@ -249,7 +249,7 @@ export default function QuinielaPredictions() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null) // null = cargando
-  const [paying, setPaying] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => { loadData() }, [poolId])
 
@@ -257,6 +257,13 @@ export default function QuinielaPredictions() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/'); return }
     setUserId(session.user.id)
+
+    const { data: adminData } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', session.user.id)
+      .single()
+    setIsAdmin(adminData?.is_admin === true)
 
     // Cargar pool
     const { data: poolData } = await supabase
@@ -433,7 +440,7 @@ export default function QuinielaPredictions() {
   if (loading) return <Loading />
 
   // ── GUARD: SIN PAGO APROBADO ──────────────────────────────────────────────
-  if (paymentStatus !== 'approved') {
+  if (paymentStatus !== 'approved' && !isAdmin) {
     return (
       <>
         {toast && (

@@ -332,11 +332,12 @@ export default function QuinielaPredictions() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pool_id: poolId,
-          user_id: userId,
-          pool_name: pool.name,
-          entry_fee: pool.entry_fee,
-          user_email: session?.user?.email || ''
+          poolId: poolId,
+          userId: userId,
+          poolName: pool.name,
+          entryFee: pool.entry_fee,
+          userEmail: session?.user?.email || '',
+          userName: session?.user?.user_metadata?.full_name || '',
         })
       })
 

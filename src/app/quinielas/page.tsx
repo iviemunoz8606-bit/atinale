@@ -193,6 +193,19 @@ export default function Quinielas() {
           )}
         </div>
 
+        {/* CREAR SALA */}
+        <div
+          onClick={() => router.push('/crear-sala')}
+          style={{ background: 'linear-gradient(135deg,rgba(245,183,49,0.12),rgba(245,183,49,0.06))', border: '1px solid rgba(245,183,49,0.3)', borderRadius: 16, padding: '16px', marginBottom: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, animation: 'fadeUp 0.3s ease 0.05s both' }}
+        >
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(245,183,49,0.15)', border: '1px solid rgba(245,183,49,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🏠</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Crea tu sala privada</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Invita a tu grupo y gana comisión por cada persona</div>
+          </div>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: '#F5B731' }}>›</div>
+        </div>
+
         {/* MIS QUINIELAS */}
         {myPools.length > 0 && (
           <div style={{ marginBottom: 24, animation: 'fadeUp 0.3s ease 0.05s both' }}>

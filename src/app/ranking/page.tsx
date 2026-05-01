@@ -99,7 +99,7 @@ export default function Ranking() {
     // Quinielas del usuario
     const { data: memberData } = await supabase
       .from('pool_members')
-      .select('pool_id, points, rank, pool:pools(id, name, competition, entry_fee, total_pot, current_participants)')
+      .select('pool_id, points, rank, pool:pools(id, name, competition, entry_fee, total_pot, current_participants, round_filter)')
       .eq('user_id', user.id)
       .eq('payment_status', 'approved')
 
@@ -137,11 +137,17 @@ export default function Ranking() {
     setPoolMembers(ranked)
 
     // Partidos de esa quiniela
-    const { data: matchesData } = await supabase
+    let matchQuery = supabase
       .from('matches')
       .select('*')
       .eq('competition', pool.competition)
       .order('scheduled_at', { ascending: true })
+
+    if (pool.round_filter) {
+      matchQuery = matchQuery.eq('round', pool.round_filter)
+    }
+
+    const { data: matchesData } = await matchQuery
 
     setPoolMatches(matchesData || [])
 

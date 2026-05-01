@@ -1,18 +1,21 @@
 // @ts-nocheck
 'use client'
-import { motion, animate } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 
-function CountUp({ target, duration = 2.5, active = true }: { target: number; duration?: number; active?: boolean }) {
+function CountUp({ target, duration = 2500, active = true }: { target: number; duration?: number; active?: boolean }) {
   const [display, setDisplay] = useState(0)
   useEffect(() => {
     if (!active) return
-    const controls = animate(0, target, {
-      duration, ease: 'easeOut',
-      onUpdate: (v) => setDisplay(Math.round(v)),
-    })
-    return controls.stop
+    const start = Date.now()
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - start
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(Math.round(eased * target))
+      if (progress >= 1) clearInterval(timer)
+    }, 16)
+    return () => clearInterval(timer)
   }, [target, duration, active])
   return <>{(active ? display : target).toLocaleString('es-MX')}</>
 }
@@ -555,8 +558,7 @@ export default function Home() {
         <section style={{ padding:'96px 5% 60px', maxWidth:1200, margin:'0 auto' }}>
           <div style={{ display:'flex', flexDirection:'row', gap:52, alignItems:'flex-start' }}>
 
-            <motion.div initial={{ opacity:0, x:-24 }} animate={{ opacity:1, x:0 }} transition={{ duration:.65 }}
-              style={{ flex:'0 0 auto', width:'46%' }}>
+            <div style={{ flex:'0 0 auto', width:'46%', animation:'fadeUp .65s ease both' }}>
               <div style={{ animation:'fadeUp .55s ease .05s both', marginBottom:22 }}>
                 <div style={{ position:'relative', display:'inline-block', paddingRight: dianaSize * 0.28 }}>
                   <div style={{
@@ -612,10 +614,9 @@ export default function Home() {
                 Entra con <span onClick={handleLogin} style={{ color:'rgba(255,255,255,0.48)', cursor:'pointer', fontWeight:700 }}>Google</span>
                 {' '}· Solo 15 segundos · Pago con Mercado Pago
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div initial={{ opacity:0, x:24 }} animate={{ opacity:1, x:0 }} transition={{ duration:.65, delay:.15 }}
-              style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
+            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12, animation:'fadeUp .65s ease .15s both' }}>
               <div style={{ background:CARD, border:'1px solid rgba(245,183,49,0.22)', borderRadius:18, padding:'18px 20px' }}>
                 <div style={{ fontSize:9, color:'rgba(245,183,49,0.7)', letterSpacing:'2.5px', fontWeight:700, textAlign:'center', marginBottom:8 }}>
                   🏆 FIFA WORLD CUP 2026 · QUINIELA ACTIVA
@@ -701,7 +702,7 @@ export default function Home() {
                   <span style={{ color:'rgba(255,255,255,0.2)', fontSize:18, flexShrink:0 }}>›</span>
                 </div>
               </a>
-            </motion.div>
+            </div>
           </div>
         </section>
       </div>

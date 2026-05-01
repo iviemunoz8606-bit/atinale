@@ -52,6 +52,9 @@ export default function Quinielas() {
   const [availablePools, setAvailablePools] = useState<Pool[]>([])
   const [loading, setLoading] = useState(true)
   const [modalPool, setModalPool] = useState<Pool | null>(null)
+  const [codigo, setCodigo] = useState('')
+  const [codigoLoading, setCodigoLoading] = useState(false)
+  const [codigoError, setCodigoError] = useState('')
 
   useEffect(() => { loadData() }, [])
 
@@ -63,7 +66,6 @@ export default function Quinielas() {
       if (!userData) { router.push('/registro'); return }
       setUser(userData)
 
-      // Mis quinielas
       const { data: memberData } = await supabase
         .from('pool_members')
         .select('id, pool_id, points, rank, payment_status, pool:pools(*)')
@@ -71,7 +73,6 @@ export default function Quinielas() {
       const members = (memberData as any) || []
       setMyPools(members)
 
-      // Disponibles — públicas abiertas en las que NO estoy
       const { data: publicPools } = await supabase
         .from('pools').select('*').eq('status', 'open').eq('type', 'public')
         .order('starts_at', { ascending: true })
@@ -98,6 +99,23 @@ export default function Quinielas() {
     setModalPool({ ...pool, _pendingOnly: true } as any)
   }
 
+  async function handleCodigo() {
+    const code = codigo.trim().toUpperCase()
+    if (!code) { setCodigoError('Escribe un código de sala'); return }
+    if (!code.startsWith('SALA-')) { setCodigoError('El código debe empezar con SALA-'); return }
+    setCodigoLoading(true)
+    setCodigoError('')
+    const { data: pool } = await supabase
+      .from('pools')
+      .select('*')
+      .eq('access_code', code)
+      .eq('status', 'open')
+      .single()
+    setCodigoLoading(false)
+    if (!pool) { setCodigoError('Código no encontrado o sala cerrada'); return }
+    router.push('/unirse/' + code)
+  }
+
   if (loading) return <Loading />
   if (!user) return null
 
@@ -108,8 +126,10 @@ export default function Quinielas() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         @keyframes shimmer { 0%{left:-100%} 100%{left:200%} }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
         .pool-card { transition: transform 0.2s; }
         .pool-card:hover { transform: translateY(-2px); }
+        .codigo-input:focus { border-color: rgba(79,173,255,0.5) !important; outline: none; }
       `}</style>
 
       {/* MODALES */}
@@ -141,9 +161,41 @@ export default function Quinielas() {
 
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '16px 16px 100px' }}>
 
+        {/* BANNER CÓDIGO DE SALA */}
+        <div style={{ background: 'linear-gradient(135deg,rgba(79,173,255,0.12),rgba(79,173,255,0.06))', border: '1px solid rgba(79,173,255,0.3)', borderRadius: 16, padding: '16px', marginBottom: 20, animation: 'fadeUp 0.3s ease both' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 20 }}>🔑</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>¿Te invitaron a una sala?</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Ingresa el código que te compartieron</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              className="codigo-input"
+              type="text"
+              value={codigo}
+              onChange={e => { setCodigo(e.target.value.toUpperCase()); setCodigoError('') }}
+              placeholder="SALA-XXXX"
+              maxLength={9}
+              style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(79,173,255,0.25)', borderRadius: 10, padding: '11px 14px', color: '#4FADFF', fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, letterSpacing: 3 }}
+            />
+            <button
+              onClick={handleCodigo}
+              disabled={codigoLoading}
+              style={{ padding: '11px 18px', borderRadius: 10, background: 'linear-gradient(135deg,#4FADFF,#2E86DE)', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap', opacity: codigoLoading ? 0.7 : 1 }}
+            >
+              {codigoLoading ? '...' : 'Entrar →'}
+            </button>
+          </div>
+          {codigoError && (
+            <div style={{ fontSize: 12, color: '#FF4D6D', marginTop: 8 }}>{codigoError}</div>
+          )}
+        </div>
+
         {/* MIS QUINIELAS */}
         {myPools.length > 0 && (
-          <div style={{ marginBottom: 24, animation: 'fadeUp 0.3s ease both' }}>
+          <div style={{ marginBottom: 24, animation: 'fadeUp 0.3s ease 0.05s both' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
               Mis quinielas
               <div style={{ flex: 1, height: '.5px', background: 'rgba(255,255,255,.07)' }} />
@@ -154,7 +206,6 @@ export default function Quinielas() {
               const fillPct = Math.min(100, ((member.pool?.current_participants || 0) / (member.pool?.max_participants || 1)) * 100)
               return (
                 <div key={member.id} className="pool-card" style={{ background: '#111520', borderRadius: 16, border: `0.5px solid ${theme.accentBorder}`, borderLeft: `3px solid ${theme.leftBorder}`, marginBottom: 14, overflow: 'hidden', animation: `fadeUp 0.3s ease ${i * 0.05}s both` }}>
-                  {/* Header */}
                   <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '0.5px solid rgba(255,255,255,.06)', background: `linear-gradient(135deg,${theme.accentBg},transparent)` }}>
                     <div style={{ width: 44, height: 44, borderRadius: 12, background: theme.accentBg, border: `0.5px solid ${theme.accentBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{theme.icon}</div>
                     <div style={{ flex: 1 }}>
@@ -165,7 +216,6 @@ export default function Quinielas() {
                       {member.payment_status === 'approved' ? '✅ Activa' : '⏳ Pendiente'}
                     </div>
                   </div>
-                  {/* Body */}
                   <div style={{ padding: '14px 16px' }}>
                     <div style={{ textAlign: 'center', marginBottom: 12 }}>
                       <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>💰 Pozo actual</div>

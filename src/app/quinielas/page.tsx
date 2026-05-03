@@ -314,7 +314,12 @@ export default function Quinielas() {
                       <span>Entrada: {formatMXN(pool.entry_fee)}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>⏰ Cierra en <span style={{ color: '#FF4D6D', fontWeight: 700 }}>{timeUntil(pool.registration_closes_at)}</span></div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
+                        {timeUntil(pool.registration_closes_at) === 'Cerrada'
+                          ? <span style={{ color: '#FF4D6D', fontWeight: 700 }}>⏰ Cerrada</span>
+                          : <>⏰ Cierra en <span style={{ color: '#FF4D6D', fontWeight: 700 }}>{timeUntil(pool.registration_closes_at)}</span></>
+                        }
+                      </div>
                       <button onClick={() => handleJoinClick(pool)} style={{ padding: '9px 24px', borderRadius: 20, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                         UNIRSE →
                       </button>

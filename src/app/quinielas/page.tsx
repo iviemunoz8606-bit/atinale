@@ -294,8 +294,11 @@ export default function Quinielas() {
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{pool.name}</div>
                       <div style={{ fontSize: 10, color: theme.accent, fontWeight: 700, letterSpacing: 1.5, marginTop: 2 }}>{theme.label.toUpperCase()}</div>
                     </div>
-                    <div style={{ padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(255,77,77,0.15)' : theme.accentBg, color: timeUntil(pool.registration_closes_at) === 'Cerrada' ? '#FF4D6D' : theme.accent, border: `0.5px solid ${timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(255,77,77,0.3)' : theme.accentBorder}` }}>
-                      {timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'Cerrada' : 'Abierta'}
+                   <div style={{ padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, 
+                      background: timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(245,183,49,0.15)' : theme.accentBg, 
+                      color: timeUntil(pool.registration_closes_at) === 'Cerrada' ? '#F5B731' : theme.accent, 
+                      border: `0.5px solid ${timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(245,183,49,0.3)' : theme.accentBorder}` }}>
+                      {timeUntil(pool.registration_closes_at) === 'Cerrada' ? '⚽ En juego' : 'Abierta'}
                     </div>
                   </div>
                   <div style={{ padding: '14px 16px' }}>
@@ -318,16 +321,19 @@ export default function Quinielas() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
                         {timeUntil(pool.registration_closes_at) === 'Cerrada'
-                          ? <span style={{ color: '#FF4D6D', fontWeight: 700 }}>⏰ Cerrada</span>
+                          ? <span style={{ color: '#F5B731', fontWeight: 700 }}>⚽ Registro cerrado · En juego</span>
                           : <>⏰ Cierra en <span style={{ color: '#FF4D6D', fontWeight: 700 }}>{timeUntil(pool.registration_closes_at)}</span></>
                         }
                       </div>
-                      <button 
-                        onClick={() => timeUntil(pool.registration_closes_at) !== 'Cerrada' && handleJoinClick(pool)} 
-                        disabled={timeUntil(pool.registration_closes_at) === 'Cerrada'}
-                        style={{ padding: '9px 24px', borderRadius: 20, background: timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#F5B731,#C9930A)', color: timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(255,255,255,0.3)' : '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                        {timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'Cerrada' : 'UNIRSE →'}
-                      </button>
+                      {timeUntil(pool.registration_closes_at) === 'Cerrada' ? (
+                        <button onClick={() => router.push(`/ranking?pool=${pool.id}`)} style={{ padding: '9px 24px', borderRadius: 20, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                          VER RANKING →
+                        </button>
+                      ) : (
+                        <button onClick={() => handleJoinClick(pool)} style={{ padding: '9px 24px', borderRadius: 20, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                          UNIRSE →
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

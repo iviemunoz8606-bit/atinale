@@ -773,3 +773,156 @@ git push
 git pull
 npm install
 ```
+
+
+# ATÍNALE — BITÁCORA DEL PROYECTO
+Registro acumulado de sesiones — Actualizado el 3 de mayo de 2026
+
+## DATOS DEL PROYECTO
+
+| Proyecto | Atínale — Quinielas Deportivas |
+|---|---|
+| URL Producción | https://atinale-ecru.vercel.app |
+| GitHub | github.com/iviemunoz8606-bit/atinale |
+| Supabase ID | pqrcwbevquhpsymmpryi |
+| Stack | Next.js 16 + Supabase + Vercel + Mercado Pago |
+| Lanzamiento | 11 de junio de 2026 — México vs Sudáfrica |
+
+---
+
+## HISTORIAL DE SESIONES
+
+### Sesiones 1-4 — Infraestructura base
+- ✅ Landing page con animaciones, diana, CountUp, tarjeta México vs Sudáfrica
+- ✅ Schema completo de Supabase: 7 tablas con RLS y funciones
+- ✅ 104 partidos FIFA 2026 cargados con banderas y venues
+- ✅ Google OAuth: landing → /registro → /dashboard
+- ✅ Dashboard con stats, quinielas, leaderboard y bottom nav
+- ✅ Página /quiniela/[id] con 48 partidos agrupados por grupo
+- ✅ Inputs de predicción con bloqueo automático al iniciar partido
+- ✅ Botón flotante "Guardar predicciones" en lote
+
+### Sesión 5 — Documentada en archivo separado
+
+### Sesión 6 — Flujo de pagos y admin
+- ✅ Bucket "comprobantes" en Supabase Storage
+- ✅ Funciones SQL: increment_participants y add_points_to_member
+- ✅ Panel admin /admin: comprobantes + resultados + stats
+- ✅ Deploy exitoso en producción
+
+### Sesión 7 — Mercado Pago
+- ✅ Checkout Pro funcionando en producción
+- ✅ Webhook activando membresías automáticamente
+- ✅ Páginas /pago/exitoso, /pago/fallido, /pago/pendiente
+
+### Sesión — 1 de mayo de 2026
+- ✅ Trigger automático de puntos instalado en Supabase
+- ✅ Recálculo forzado de puntos históricos Liga MX
+- ✅ Admin bypass paywall en /quiniela/[id] y /predecir
+- ✅ Pestaña Rankings en /admin con podio y predicciones por partido
+- ✅ Activación manual de pagos pendientes vía SQL
+
+### Sesión — 3 de mayo de 2026
+- ✅ Diagnóstico: calcular_puntos_partido es trigger, no función callable
+- ✅ SQL manual de recálculo creado (3 pasos: predictions → pool_members → users)
+- ✅ Fix recalcularPuntos() en admin: ahora actualiza users.total_points al finalizar Y al actualizar en vivo
+- ✅ Fix inputs de marcador en admin: ya no dan NaN cuando campo está vacío
+- ✅ Realtime agregado a /ranking/page.tsx — se actualiza solo sin F5
+- ✅ Fix "Cierra en Cerrada" — ahora muestra solo "⏰ Cerrada"
+- ✅ Tres estados de quiniela en /quinielas: Abierta / ⚽ En juego / ✅ Finalizada
+- ✅ Botón VER RANKING en quinielas cerradas/en juego
+- ✅ Jornada 17 marcada como status=finished en Supabase
+- ✅ current_participants corregido en Liguilla Cuartos (4 aprobados)
+
+---
+
+## ESTADO ACTUAL DEL SISTEMA
+
+| Módulo | Estado |
+|---|---|
+| Landing page | ✅ Producción |
+| Google OAuth | ✅ Producción |
+| Dashboard | ✅ Producción |
+| Mercado Pago producción | ✅ Activo |
+| Cálculo automático de puntos | ✅ Trigger instalado |
+| Recálculo manual vía SQL | ✅ Disponible |
+| Panel admin completo | ✅ Con pestaña Rankings |
+| Admin bypass paywall | ✅ Funcionando |
+| Ranking en tiempo real | ✅ Supabase Realtime activo |
+| Estados de quiniela | ✅ Abierta / En juego / Finalizada |
+| Modo Próximamente | ⏳ Pendiente — antes del 27 mayo |
+| Historial quinielas finalizadas | ⏳ Pendiente |
+| API deportes automática | ⏳ Pendiente |
+| Semis+Final Liguilla pool | ⏳ Abrir ~12 mayo |
+
+---
+
+## QUINIELAS ACTIVAS
+
+| Nombre | Status | Participantes | Pozo |
+|---|---|---|---|
+| Liguilla Cuartos de Final 2026 | open · En juego | 4 | $400 |
+| Puñetas del ajuste | open | 13 | $2,600 |
+| Quiniela FIFA 2026 · $100 | open | 3 | $300 |
+| Quiniela FIFA 2026 · $300 | open | 0 | $0 |
+| Quiniela FIFA 2026 · $500 | open | 0 | $0 |
+| Quiniela Jornada 17 · Liga MX | finished | 10 | $1,000 |
+
+---
+
+## PRÓXIMAS TAREAS
+
+| # | Tarea | Prioridad | Fecha |
+|---|---|---|---|
+| 1 | Historial público de quinielas finalizadas | Alta | Próxima sesión |
+| 2 | Comprobante de pago al ganador desde admin | Alta | Próxima sesión |
+| 3 | Página /historial con ganador + comprobante | Alta | Próxima sesión |
+| 4 | API de deportes para resultados automáticos | Media | Mayo |
+| 5 | Semis+Final Liguilla pool | Alta | ~12 mayo |
+| 6 | Modo Próximamente + captura emails | Alta | Antes 27 mayo |
+
+---
+
+## NOTAS TÉCNICAS CLAVE
+
+- Arranque local: `npm run dev -- --webpack` (nunca Turbopack)
+- Siempre usar `// @ts-nocheck` en archivos nuevos
+- Usar `createBrowserClient` de `@supabase/ssr`
+- El trigger `calcular_puntos_partido` es un TRIGGER — no se puede llamar directamente
+- Cuando actives un pago manualmente con SQL, correr también `SELECT increment_participants('pool_id')`
+- `current_participants` puede desincronizarse si se activan pagos con SQL directo
+- México Centro = UTC-6 permanente (sin horario de verano)
+- `pool_members` no tiene columna `created_at` — nunca usar `.order('created_at')` en esa tabla
+
+## SQL DE RECÁLCULO MANUAL (usar después de cada partido)
+
+```sql
+UPDATE predictions
+SET points_earned = CASE
+  WHEN predicted_home = m.home_score 
+    AND predicted_away = m.away_score THEN 3
+  WHEN (predicted_home > predicted_away AND m.home_score > m.away_score) OR
+       (predicted_home < predicted_away AND m.home_score < m.away_score) OR
+       (predicted_home = predicted_away AND m.home_score = m.away_score) THEN 1
+  ELSE 0
+END
+FROM matches m
+WHERE predictions.match_id = m.id
+AND m.status = 'finished'
+AND m.competition = 'LIGA_MX';
+
+UPDATE pool_members pm
+SET points = (
+  SELECT COALESCE(SUM(p.points_earned), 0)
+  FROM predictions p
+  WHERE p.user_id = pm.user_id
+    AND p.pool_id = pm.pool_id
+);
+
+UPDATE users u
+SET total_points = (
+  SELECT COALESCE(SUM(pm.points), 0)
+  FROM pool_members pm
+  WHERE pm.user_id = u.id
+);
+```

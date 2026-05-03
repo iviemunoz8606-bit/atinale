@@ -178,6 +178,14 @@ export default function AdminPage() {
       const totalPts = (todasLasPreds || []).reduce((sum, p) => sum + (p.points_earned || 0), 0)
       await supabase.from('pool_members').update({ points: totalPts })
         .eq('user_id', user_id).eq('pool_id', pool_id)
+
+      // Actualizar total_points en users
+      const { data: todosLosPools } = await supabase
+        .from('pool_members').select('points')
+        .eq('user_id', user_id)
+      const grandTotal = (todosLosPools || []).reduce((sum, p) => sum + (p.points || 0), 0)
+      await supabase.from('users').update({ total_points: grandTotal })
+        .eq('id', user_id)
     }
   }
 

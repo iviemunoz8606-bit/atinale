@@ -74,7 +74,7 @@ export default function Quinielas() {
       setMyPools(members)
 
       const { data: publicPools } = await supabase
-        .from('pools').select('*').eq('status', 'open').eq('type', 'public')
+        .from('pools').select('*').in('status', ['open', 'finished']).eq('type', 'public')
         .order('starts_at', { ascending: true })
       const myPoolIds = new Set(members.map((m: any) => m.pool_id))
       setAvailablePools((publicPools || []).filter(p => !myPoolIds.has(p.id)))
@@ -294,11 +294,11 @@ export default function Quinielas() {
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{pool.name}</div>
                       <div style={{ fontSize: 10, color: theme.accent, fontWeight: 700, letterSpacing: 1.5, marginTop: 2 }}>{theme.label.toUpperCase()}</div>
                     </div>
-                   <div style={{ padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, 
-                      background: timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(245,183,49,0.15)' : theme.accentBg, 
-                      color: timeUntil(pool.registration_closes_at) === 'Cerrada' ? '#F5B731' : theme.accent, 
-                      border: `0.5px solid ${timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(245,183,49,0.3)' : theme.accentBorder}` }}>
-                      {timeUntil(pool.registration_closes_at) === 'Cerrada' ? '⚽ En juego' : 'Abierta'}
+                   <div style={{ padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                      background: pool.status === 'finished' ? 'rgba(107,114,128,0.15)' : timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(245,183,49,0.15)' : theme.accentBg,
+                      color: pool.status === 'finished' ? '#6B7280' : timeUntil(pool.registration_closes_at) === 'Cerrada' ? '#F5B731' : theme.accent,
+                      border: `0.5px solid ${pool.status === 'finished' ? 'rgba(107,114,128,0.3)' : timeUntil(pool.registration_closes_at) === 'Cerrada' ? 'rgba(245,183,49,0.3)' : theme.accentBorder}` }}>
+                      {pool.status === 'finished' ? '✅ Finalizada' : timeUntil(pool.registration_closes_at) === 'Cerrada' ? '⚽ En juego' : 'Abierta'}
                     </div>
                   </div>
                   <div style={{ padding: '14px 16px' }}>
@@ -320,13 +320,15 @@ export default function Quinielas() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
-                        {timeUntil(pool.registration_closes_at) === 'Cerrada'
+                        {pool.status === 'finished'
+                          ? <span style={{ color: '#6B7280', fontWeight: 700 }}>✅ Quiniela finalizada</span>
+                          : timeUntil(pool.registration_closes_at) === 'Cerrada'
                           ? <span style={{ color: '#F5B731', fontWeight: 700 }}>⚽ Registro cerrado · En juego</span>
                           : <>⏰ Cierra en <span style={{ color: '#FF4D6D', fontWeight: 700 }}>{timeUntil(pool.registration_closes_at)}</span></>
                         }
                       </div>
-                      {timeUntil(pool.registration_closes_at) === 'Cerrada' ? (
-                        <button onClick={() => router.push(`/ranking?pool=${pool.id}`)} style={{ padding: '9px 24px', borderRadius: 20, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                      {pool.status === 'finished' || timeUntil(pool.registration_closes_at) === 'Cerrada' ? (
+                        <button onClick={() => router.push(`/ranking?pool=${pool.id}`)} style={{ padding: '9px 24px', borderRadius: 20, background: pool.status === 'finished' ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#F5B731,#C9930A)', color: pool.status === 'finished' ? 'rgba(255,255,255,0.4)' : '#080C16', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                           VER RANKING →
                         </button>
                       ) : (

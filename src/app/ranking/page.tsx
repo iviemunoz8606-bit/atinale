@@ -1,17 +1,12 @@
 // @ts-nocheck
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Loading from '@/app/loading'
 import BottomNav from '@/components/BottomNav'
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 function LiveDot() {
   return (
@@ -28,7 +23,7 @@ function getInitial(name) {
 }
 
 function getDisplayName(u) {
-  return u.alias || u.name?.split(' ')[0] || 'Jugador'
+  return u?.alias || u?.name?.split(' ')[0] || 'Jugador'
 }
 
 function formatDate(d) {
@@ -41,31 +36,38 @@ function formatDate(d) {
 export default function Ranking() {
   const router = useRouter()
   const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const channelRef = useRef(null)
 
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
-
-  // Global
   const [users, setUsers] = useState([])
   const [filter, setFilter] = useState('top')
-
-  // Quinielas del usuario
   const [myPools, setMyPools] = useState([])
-  const [activePool, setActivePool] = useState(null) // null = global
-
-  // Vista de quiniela
+  const [activePool, setActivePool] = useState(null)
   const [poolView, setPoolView] = useState<'partidos' | 'ranking'>('ranking')
   const [poolMembers, setPoolMembers] = useState([])
   const [poolMatches, setPoolMatches] = useState([])
   const [allPredictions, setAllPredictions] = useState([])
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
   const [loadingPool, setLoadingPool] = useState(false)
+  const [realtimeFlash, setRealtimeFlash] = useState(false)
+
+  const activePoolRef = useRef(null)
+  const currentUserIdRef = useRef(null)
 
   useEffect(() => { init() }, [])
+
+  useEffect(() => {
+    activePoolRef.current = activePool
+  }, [activePool])
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId
+  }, [currentUserId])
 
   useEffect(() => {
     if (myPools.length === 0) return
@@ -77,12 +79,38 @@ export default function Ranking() {
     }
   }, [myPools])
 
+  // Limpiar canal al salir
+  useEffect(() => {
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+      }
+    }
+  }, [])
+
   async function init() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/'); return }
     setCurrentUserId(user.id)
+    currentUserIdRef.current = user.id
 
-    // Ranking global
+    await loadGlobalRanking(user.id)
+
+    const { data: memberData } = await supabase
+      .from('pool_members')
+      .select('pool_id, points, rank, pool:pools(id, name, competition, entry_fee, total_pot, current_participants, round_filter)')
+      .eq('user_id', user.id)
+      .eq('payment_status', 'approved')
+
+    setMyPools(memberData || [])
+    setLoading(false)
+
+    // Iniciar Realtime
+    setupRealtime()
+  }
+
+  async function loadGlobalRanking(userId?) {
+    const uid = userId || currentUserIdRef.current
     const { data: usersData } = await supabase
       .from('users')
       .select('id, name, alias, emoji, avatar_url, total_points')
@@ -92,36 +120,23 @@ export default function Ranking() {
     if (usersData) {
       const ranked = usersData.map((u, i) => ({ ...u, rank: i + 1 }))
       setUsers(ranked)
-      const me = ranked.find(u => u.id === user.id)
+      const me = ranked.find(u => u.id === uid)
       if (me) setCurrentUser(me)
     }
-
-    // Quinielas del usuario
-    const { data: memberData } = await supabase
-      .from('pool_members')
-      .select('pool_id, points, rank, pool:pools(id, name, competition, entry_fee, total_pot, current_participants, round_filter)')
-      .eq('user_id', user.id)
-      .eq('payment_status', 'approved')
-
-    setMyPools(memberData || [])
-    setLoading(false)
   }
 
   async function loadPoolData(pool) {
-  console.log('pool.id:', pool?.id, 'pool completo:', JSON.stringify(pool))
-  setLoadingPool(true)
+    setLoadingPool(true)
     setActivePool(pool)
+    activePoolRef.current = pool
     setExpandedMatch(null)
 
-    // Miembros con puntos de esa quiniela
     const { data: members } = await supabase
-    .from('pool_members')
-    .select('user_id, points')
-    .eq('pool_id', pool.id)
-    .eq('payment_status', 'approved')
-    .order('points', { ascending: false })
-
-    console.log('members result:', members, 'pool_id usado:', pool.id)
+      .from('pool_members')
+      .select('user_id, points')
+      .eq('pool_id', pool.id)
+      .eq('payment_status', 'approved')
+      .order('points', { ascending: false })
 
     const userIds = (members || []).map(m => m.user_id)
     const { data: usersData } = await supabase
@@ -136,7 +151,6 @@ export default function Ranking() {
     }))
     setPoolMembers(ranked)
 
-    // Partidos de esa quiniela
     let matchQuery = supabase
       .from('matches')
       .select('*')
@@ -148,11 +162,11 @@ export default function Ranking() {
     }
 
     const { data: matchesData } = await matchQuery
-
     setPoolMatches(matchesData || [])
 
-    // Predicciones de TODOS los miembros para partidos live/finished
-    const liveOrFinished = (matchesData || []).filter(m => m.status === 'live' || m.status === 'finished').map(m => m.id)
+    const liveOrFinished = (matchesData || [])
+      .filter(m => m.status === 'live' || m.status === 'finished')
+      .map(m => m.id)
 
     if (liveOrFinished.length > 0) {
       const { data: preds } = await supabase
@@ -160,7 +174,6 @@ export default function Ranking() {
         .select('match_id, user_id, predicted_home, predicted_away, points_earned')
         .eq('pool_id', pool.id)
         .in('match_id', liveOrFinished)
-
       setAllPredictions(preds || [])
     } else {
       setAllPredictions([])
@@ -169,15 +182,55 @@ export default function Ranking() {
     setLoadingPool(false)
   }
 
+  function setupRealtime() {
+    // Cancelar canal anterior si existe
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current)
+    }
+
+    const channel = supabase
+      .channel('ranking-realtime')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'pool_members',
+      }, async () => {
+        // Flash visual para indicar actualización
+        setRealtimeFlash(true)
+        setTimeout(() => setRealtimeFlash(false), 800)
+
+        // Recargar ranking global siempre
+        await loadGlobalRanking()
+
+        // Si hay una quiniela activa, recargarla también
+        if (activePoolRef.current) {
+          await loadPoolData(activePoolRef.current)
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'matches',
+      }, async () => {
+        // Si hay quiniela activa, recargar partidos para ver marcadores en vivo
+        if (activePoolRef.current) {
+          await loadPoolData(activePoolRef.current)
+        }
+      })
+      .subscribe()
+
+    channelRef.current = channel
+  }
+
   function backToGlobal() {
     setActivePool(null)
+    activePoolRef.current = null
     setPoolMembers([])
     setPoolMatches([])
     setAllPredictions([])
     setExpandedMatch(null)
   }
 
-  // Filtrar lista global
   function getList() {
     if (filter === 'top') return users.slice(0, 10)
     if (filter === 'vecinos') {
@@ -202,8 +255,6 @@ export default function Ranking() {
   const myRank = currentUser?.rank ?? null
   const myPts  = currentUser?.total_points ?? 0
   const top3   = users.slice(0, 3)
-
-  // Pool view helpers
   const top3Pool = poolMembers.slice(0, 3)
   const myPoolMember = poolMembers.find(m => m.user_id === currentUserId)
 
@@ -222,8 +273,7 @@ export default function Ranking() {
     if (match.home_score === null || pred === undefined) return null
     const realResult = match.home_score > match.away_score ? 'home' : match.away_score > match.home_score ? 'away' : 'draw'
     const predResult = pred.predicted_home > pred.predicted_away ? 'home' : pred.predicted_away > pred.predicted_home ? 'away' : 'draw'
-    const exacto = pred.predicted_home === match.home_score && pred.predicted_away === match.away_score
-    if (exacto) return '🎯'
+    if (pred.predicted_home === match.home_score && pred.predicted_away === match.away_score) return '🎯'
     if (predResult === realResult) return '✅'
     return '❌'
   }
@@ -234,6 +284,7 @@ export default function Ranking() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap');
         @keyframes blink   { 0%,100%{opacity:1} 50%{opacity:.2} }
         @keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes flashGreen { 0%{background:rgba(0,196,106,0.15)} 100%{background:transparent} }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { display: none; }
         html { scrollbar-width: none; }
@@ -242,6 +293,7 @@ export default function Ranking() {
         .ver-btn { width:100%; padding:7px; border:none; border-top:0.5px solid rgba(255,255,255,.07); background:rgba(255,255,255,.03); color:rgba(255,255,255,.35); font-size:11px; cursor:pointer; font-family:'Outfit',sans-serif; transition:all .2s; }
         .ver-btn:hover { background:rgba(255,255,255,.06); color:rgba(255,255,255,.7); }
         .tab-view { padding:7px 0; border-radius:20px; font-size:12px; cursor:pointer; border:none; font-family:'Outfit',sans-serif; transition:all .2s; flex:1; }
+        .realtime-flash { animation: flashGreen 0.8s ease both; }
       `}</style>
 
       <div style={{ background: '#080C16', minHeight: '100vh', color: '#fff', fontFamily: "'Outfit', sans-serif", paddingBottom: 90 }}>
@@ -265,7 +317,9 @@ export default function Ranking() {
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
             <LiveDot />
-            <span style={{ fontSize: 10, color: '#E24B4A', fontWeight: 600, letterSpacing: 1 }}>EN VIVO</span>
+            <span style={{ fontSize: 10, color: realtimeFlash ? '#00C46A' : '#E24B4A', fontWeight: 600, letterSpacing: 1, transition: 'color 0.3s' }}>
+              {realtimeFlash ? 'ACTUALIZADO' : 'EN VIVO'}
+            </span>
           </div>
         </div>
 
@@ -274,9 +328,8 @@ export default function Ranking() {
           {/* ── VISTA GLOBAL ── */}
           {!activePool && (
             <>
-              {/* Mi posición global */}
               {currentUser && (
-                <div style={{ margin: '12px 16px 0', background: 'rgba(79,173,255,0.05)', border: '1px solid rgba(79,173,255,0.2)', borderRadius: 13, padding: '11px 13px', animation: 'fadeUp 0.3s ease both' }}>
+                <div className={realtimeFlash ? 'realtime-flash' : ''} style={{ margin: '12px 16px 0', background: 'rgba(79,173,255,0.05)', border: '1px solid rgba(79,173,255,0.2)', borderRadius: 13, padding: '11px 13px', animation: 'fadeUp 0.3s ease both' }}>
                   <div style={{ fontSize: 9, color: '#4FADFF', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 7 }}>📍 Tu posición</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div>
@@ -295,7 +348,6 @@ export default function Ranking() {
                 </div>
               )}
 
-              {/* Filtros global + chips de quinielas */}
               <div style={{ display: 'flex', gap: 6, padding: '10px 16px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                 {(['top', 'vecinos', 'todos'] as const).map(f => (
                   <button key={f} onClick={() => setFilter(f)} className="pool-chip" style={{
@@ -323,7 +375,6 @@ export default function Ranking() {
                 })}
               </div>
 
-              {/* Podio top 3 */}
               {filter === 'top' && top3.length >= 3 && (
                 <div style={{ padding: '12px 16px 4px', animation: 'fadeUp 0.4s ease both' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
@@ -352,21 +403,18 @@ export default function Ranking() {
                 </div>
               )}
 
-              {/* Separador mis vecinos */}
               {filter === 'vecinos' && myRank && myRank > 3 && (
                 <div style={{ padding: '7px 14px', fontSize: 10, color: 'rgba(79,173,255,.4)', background: 'rgba(79,173,255,.03)', borderTop: '0.5px solid rgba(79,173,255,.1)', borderBottom: '0.5px solid rgba(79,173,255,.1)', textAlign: 'center' }}>
                   · · · {myRank - 3} jugadores arriba · · ·
                 </div>
               )}
 
-              {/* Cabecera lista */}
               <div style={{ display: 'flex', padding: '5px 16px', margin: '4px 0 0', fontSize: 9, color: 'rgba(255,255,255,.2)', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '0.5px solid rgba(255,255,255,.05)' }}>
                 <span style={{ width: 30 }}>#</span>
                 <span style={{ flex: 1 }}>Jugador</span>
                 <span style={{ width: 44, textAlign: 'right' }}>Pts</span>
               </div>
 
-              {/* Lista */}
               <div style={{ animation: 'fadeUp 0.5s ease 0.1s both' }}>
                 {users.length === 0 ? (
                   <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,.25)' }}>
@@ -414,9 +462,8 @@ export default function Ranking() {
               ) : (
                 <div style={{ animation: 'fadeUp 0.3s ease both', padding: '12px 16px 0' }}>
 
-                  {/* Mi posición en esta quiniela */}
                   {myPoolMember && (
-                    <div style={{ background: 'rgba(79,173,255,0.05)', border: '1px solid rgba(79,173,255,0.2)', borderRadius: 13, padding: '11px 13px', marginBottom: 12 }}>
+                    <div className={realtimeFlash ? 'realtime-flash' : ''} style={{ background: 'rgba(79,173,255,0.05)', border: '1px solid rgba(79,173,255,0.2)', borderRadius: 13, padding: '11px 13px', marginBottom: 12 }}>
                       <div style={{ fontSize: 9, color: '#4FADFF', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 7 }}>📍 Tu posición · {activePool.name}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div>
@@ -435,20 +482,13 @@ export default function Ranking() {
                     </div>
                   )}
 
-                  {/* Tabs Partidos / Ranking */}
                   <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                    <button className="tab-view" onClick={() => setPoolView('ranking')} style={{ background: poolView === 'ranking' ? '#F5B731' : 'rgba(255,255,255,.06)', color: poolView === 'ranking' ? '#080C16' : 'rgba(255,255,255,.4)', fontWeight: poolView === 'ranking' ? 700 : 400 }}>
-                      🏆 Ranking
-                    </button>
-                    <button className="tab-view" onClick={() => setPoolView('partidos')} style={{ background: poolView === 'partidos' ? '#F5B731' : 'rgba(255,255,255,.06)', color: poolView === 'partidos' ? '#080C16' : 'rgba(255,255,255,.4)', fontWeight: poolView === 'partidos' ? 700 : 400 }}>
-                      ⚽ Partidos
-                    </button>
+                    <button className="tab-view" onClick={() => setPoolView('ranking')} style={{ background: poolView === 'ranking' ? '#F5B731' : 'rgba(255,255,255,.06)', color: poolView === 'ranking' ? '#080C16' : 'rgba(255,255,255,.4)', fontWeight: poolView === 'ranking' ? 700 : 400 }}>🏆 Ranking</button>
+                    <button className="tab-view" onClick={() => setPoolView('partidos')} style={{ background: poolView === 'partidos' ? '#F5B731' : 'rgba(255,255,255,.06)', color: poolView === 'partidos' ? '#080C16' : 'rgba(255,255,255,.4)', fontWeight: poolView === 'partidos' ? 700 : 400 }}>⚽ Partidos</button>
                   </div>
 
-                  {/* RANKING DE LA QUINIELA */}
                   {poolView === 'ranking' && (
                     <>
-                      {/* Podio */}
                       {top3Pool.length >= 3 && (
                         <div style={{ marginBottom: 14 }}>
                           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
@@ -478,14 +518,12 @@ export default function Ranking() {
                         </div>
                       )}
 
-                      {/* Cabecera */}
                       <div style={{ display: 'flex', padding: '5px 4px', margin: '4px 0 0', fontSize: 9, color: 'rgba(255,255,255,.2)', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '0.5px solid rgba(255,255,255,.05)' }}>
                         <span style={{ width: 30 }}>#</span>
                         <span style={{ flex: 1 }}>Jugador</span>
                         <span style={{ width: 44, textAlign: 'right' }}>Pts</span>
                       </div>
 
-                      {/* Lista ranking quiniela */}
                       {poolMembers.map(m => {
                         const u = m.users
                         const isMe = m.user_id === currentUserId
@@ -511,12 +549,11 @@ export default function Ranking() {
                       })}
 
                       <div style={{ margin: '12px 0', padding: '10px 14px', background: 'rgba(245,183,49,0.04)', border: '0.5px solid rgba(245,183,49,0.12)', borderRadius: 10, fontSize: 11, color: 'rgba(255,255,255,.25)', textAlign: 'center' }}>
-                        Pozo: ${((activePool.total_pot || 0) * 0.9).toLocaleString('es-MX')} neto · {poolMembers.length} participantes
+                        Pozo: ${((activePool.total_pot || 0) * 0.9).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} neto · {poolMembers.length} participantes
                       </div>
                     </>
                   )}
 
-                  {/* PARTIDOS DE LA QUINIELA */}
                   {poolView === 'partidos' && (
                     <div>
                       {poolMatches.map(match => {
@@ -529,13 +566,11 @@ export default function Ranking() {
 
                         return (
                           <div key={match.id} style={{ background: '#111520', borderRadius: 10, marginBottom: 8, overflow: 'hidden', borderLeft: `3px solid ${borderColor}`, opacity: (!isLive && !isFinished) ? 0.6 : 1 }}>
-                            {/* Header partido */}
                             <div style={{ padding: '7px 10px', display: 'flex', justifyContent: 'space-between', background: 'rgba(0,0,0,.3)' }}>
                               <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{formatDate(match.scheduled_at)}</span>
                               {statusLabel && <span style={{ fontSize: 10, color: isLive ? '#ff4d4d' : '#00C46A', fontWeight: 700 }}>{statusLabel}</span>}
                             </div>
 
-                            {/* Equipos + marcador */}
                             <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                                 {match.home_flag && <img src={match.home_flag} style={{ width: 24, height: 24, objectFit: 'contain' }} />}
@@ -554,7 +589,6 @@ export default function Ranking() {
                               </div>
                             </div>
 
-                            {/* Predicciones expandidas */}
                             {isOpen && (isLive || isFinished) && (
                               <div style={{ padding: '0 8px 8px' }}>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,.2)', letterSpacing: 1, padding: '4px 0 4px', textTransform: 'uppercase' }}>Predicciones del grupo</div>
@@ -597,7 +631,6 @@ export default function Ranking() {
                               </div>
                             )}
 
-                            {/* Botón ver predicciones */}
                             {(isLive || isFinished) ? (
                               <button className="ver-btn" onClick={() => setExpandedMatch(isOpen ? null : match.id)}>
                                 {isOpen ? '▲ Ocultar predicciones' : '👁 Ver predicciones del grupo'}
@@ -610,12 +643,10 @@ export default function Ranking() {
                       })}
                     </div>
                   )}
-
                 </div>
               )}
             </>
           )}
-
         </div>
       </div>
       <BottomNav />

@@ -122,8 +122,8 @@ export default function AdminPage() {
     const s = scores[match.id]
     if (!s || s.home === '' || s.away === '') { showToast('⚠️ Ingresa ambos marcadores'); return }
     setSavingId(match.id)
-    const homeScore = parseInt(s.home)
-    const awayScore = parseInt(s.away)
+    const homeScore = s.home !== '' ? parseInt(s.home) : match.home_score ?? 0
+    const awayScore = s.away !== '' ? parseInt(s.away) : match.away_score ?? 0
     const { error } = await supabase
       .from('matches')
       .update({ home_score: homeScore, away_score: awayScore })
@@ -139,8 +139,8 @@ export default function AdminPage() {
     const s = scores[match.id]
     if (!s || s.home === '' || s.away === '') { showToast('⚠️ Ingresa el marcador final'); return }
     setSavingId(match.id)
-    const homeScore = parseInt(s.home)
-    const awayScore = parseInt(s.away)
+    const homeScore = s.home !== '' ? parseInt(s.home) : match.home_score ?? 0
+    const awayScore = s.away !== '' ? parseInt(s.away) : match.away_score ?? 0
     const { error } = await supabase
       .from('matches')
       .update({ home_score: homeScore, away_score: awayScore, status: 'finished' })

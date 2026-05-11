@@ -151,8 +151,9 @@ export default function UnirsePage() {
         
           href={`https://wa.me/523315445450?text=Hola, subí mi comprobante para la quiniela "${pool.name}" y estoy esperando aprobación`}
           target="_blank"
+          rel="noreferrer"
           style={styles.btnWhatsapp}
-        >
+        <a>
           📲 Escribir al WhatsApp
         </a>
       </div>
@@ -273,7 +274,7 @@ export default function UnirsePage() {
             href={`https://wa.me/523315445450?text=Hola, quiero unirme a la quiniela "${pool.name}". Te mando mi comprobante de $${pool.entry_fee} MXN`}
             target="_blank"
             style={styles.btnWhatsapp}
-          >
+          <a>
             📲 Mandar al WhatsApp
           </a>
         </div>

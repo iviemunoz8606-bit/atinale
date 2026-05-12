@@ -94,9 +94,23 @@ export default function AdminPage() {
   async function handleApprove(member) {
     const { error } = await supabase
       .from('pool_members').update({ payment_status: 'approved' }).eq('id', member.id)
-    if (error) { showToast('❌ Error al aprobar'); return }
+    if (error) { showToast('Error al aprobar'); return }
+
     await supabase.rpc('increment_participants', { p_pool_id: member.pool_id })
-    showToast(`✅ ${member.userData?.name} aprobado`)
+
+    await supabase
+      .from('payments')
+      .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+      .eq('pool_id', member.pool_id)
+      .eq('user_id', member.user_id)
+      .eq('status', 'pending')
+
+    await supabase
+      .from('users')
+      .update({ notification: `Tu pago fue aprobado. Ya puedes predecir en ${member.poolData?.name}` })
+      .eq('id', member.user_id)
+
+    showToast(`${member.userData?.name} aprobado`)
     await loadData()
   }
 

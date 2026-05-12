@@ -10,7 +10,7 @@ export async function GET() {
 
   const { data: membersRaw } = await supabase
     .from('pool_members')
-    .select('id, pool_id, user_id, payment_status, points, rank')
+    .select('id, pool_id, user_id, payment_status, payment_proof_url, points, rank')
 
   const userIds = [...new Set((membersRaw || []).map(m => m.user_id))]
   const poolIds = [...new Set((membersRaw || []).map(m => m.pool_id))]

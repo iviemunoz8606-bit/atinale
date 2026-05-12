@@ -799,6 +799,12 @@ function MemberCard({ member, onApprove, onReject, showActions }) {
           <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{member.userData?.email}</div>
           {member.userData?.phone && <div style={{ fontSize: 11, color: '#888', marginTop: 1 }}>📱 {member.userData.phone}</div>}
           <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>📋 {member.poolData?.name}</div>
+          {member.payment_proof_url && (
+            <a href={member.payment_proof_url} target="_blank" rel="noreferrer"
+              style={{ display: 'inline-block', marginTop: 6, fontSize: 11, color: '#4FADFF', textDecoration: 'none', background: 'rgba(79,173,255,0.1)', padding: '4px 10px', borderRadius: 6 }}>
+              {'Ver comprobante'}
+            </a>
+          )}
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, color: '#F5B731' }}>{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(member.poolData?.entry_fee || 0)}</div>

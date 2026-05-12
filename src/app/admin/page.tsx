@@ -92,24 +92,17 @@ export default function AdminPage() {
   }
 
   async function handleApprove(member) {
-    const { error } = await supabase
-      .from('pool_members').update({ payment_status: 'approved' }).eq('id', member.id)
-    if (error) { showToast('Error al aprobar'); return }
-
-    await supabase.rpc('increment_participants', { p_pool_id: member.pool_id })
-
-    await supabase
-      .from('payments')
-      .update({ status: 'approved', reviewed_at: new Date().toISOString() })
-      .eq('pool_id', member.pool_id)
-      .eq('user_id', member.user_id)
-      .eq('status', 'pending')
-
-    await supabase
-      .from('users')
-      .update({ notification: `Tu pago fue aprobado. Ya puedes predecir en ${member.poolData?.name}` })
-      .eq('id', member.user_id)
-
+    const res = await fetch('/api/admin/aprobar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memberId: member.id,
+        poolId: member.pool_id,
+        userId: member.user_id,
+        poolName: member.poolData?.name
+      })
+    })
+    if (!res.ok) { showToast('Error al aprobar'); return }
     showToast(`${member.userData?.name} aprobado`)
     await loadData()
   }

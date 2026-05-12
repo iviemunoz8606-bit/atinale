@@ -109,6 +109,14 @@ export default function PagarPage() {
             {'Escribir al WhatsApp'}
           </a>
         </div>
+        <p style={{ color: '#666', fontSize: 13, marginBottom: 20 }}>{'Estamos revisando tu pago. Te avisamos cuando se apruebe.'}</p>
+        <a href={WA_LINK} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: '#25D366', color: '#fff', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+          {'Escribir al WhatsApp'}
+        </a>
+        <br /><br />
+        <a href="/dashboard" style={{ display: 'inline-block', background: '#1a1a1a', color: '#FFD700', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, textDecoration: 'none', border: '1px solid #333' }}>
+          {'Ir al dashboard'}
+        </a>
       </div>
     )
   }

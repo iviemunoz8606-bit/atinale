@@ -133,10 +133,7 @@ export default function Quinielas() {
       `}</style>
 
       {/* MODALES */}
-      {modalPool && !(modalPool as any)._pendingOnly && (
-        <JoinPoolModal pool={modalPool} userId={user.id} userEmail={user.email} userName={user.name}
-          onClose={() => setModalPool(null)} onSuccess={handleModalSuccess} />
-      )}
+      
       {modalPool && (modalPool as any)._pendingOnly && (
         <div onClick={() => setModalPool(null)} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#111520', borderRadius: '24px 24px 0 0', padding: '32px 24px 48px', border: '1px solid rgba(245,183,49,0.2)', borderBottom: 'none', textAlign: 'center' }}>

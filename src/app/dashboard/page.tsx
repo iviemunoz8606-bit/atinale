@@ -360,6 +360,23 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* NOTIFICACIÓN */}
+      {user?.notification && (
+        <div style={{ background: 'rgba(0,196,106,0.12)', border: '1px solid rgba(0,196,106,0.3)', borderRadius: 12, margin: '12px 16px 0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>{'✅'}</span>
+            <span style={{ fontSize: 13, color: '#00C46A', fontWeight: 600 }}>{user.notification}</span>
+          </div>
+          <button
+            onClick={async () => {
+              await supabase.from('users').update({ notification: null }).eq('id', user.id)
+              setUser(prev => ({ ...prev, notification: null }))
+            }}
+            style={{ background: 'none', border: 'none', color: '#00C46A', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}
+          >{'×'}</button>
+        </div>
+      )}
+
       {/* CONTENIDO */}
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '16px 16px 100px' }}>
 

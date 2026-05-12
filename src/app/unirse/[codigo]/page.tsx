@@ -92,36 +92,10 @@ export default function UnirseCodigoPage() {
       router.push(`/registro?redirect=/unirse/${codigo}`)
       return
     }
-
-    setPaying(true)
-    try {
-      const res = await fetch('/api/mp/crear-preferencia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            poolId: pool.id,
-            userId: user.id,
-            poolName: pool.name,
-            entryFee: pool.entry_fee,
-            userEmail: user.email,
-            userName: user.user_metadata?.full_name || user.email,
-            }),
-      })
-
-      const data = await res.json()
-
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        setError('No se pudo iniciar el pago. Intenta de nuevo.')
-        setPaying(false)
-      }
-    } catch (e) {
-      setError('Error al conectar con el servidor de pagos.')
-      setPaying(false)
-    }
+    router.push(`/pagar/${pool.id}`)
   }
 
+  
   const porcentajeLleno = pool
     ? Math.round((pool.current_participants / pool.max_participants) * 100)
     : 0

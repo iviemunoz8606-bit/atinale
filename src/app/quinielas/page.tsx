@@ -94,7 +94,7 @@ export default function Quinielas() {
 
   function handleJoinClick(pool: Pool) {
     const membership = myPools.find(m => m.pool_id === pool.id)
-    if (!membership) { setModalPool(pool); return }
+    if (!membership) { router.push(`/pagar/${pool.id}`); return }
     if (membership.payment_status === 'approved') { router.push(`/quiniela/${pool.id}`); return }
     setModalPool({ ...pool, _pendingOnly: true } as any)
   }

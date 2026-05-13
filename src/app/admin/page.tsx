@@ -56,6 +56,8 @@ export default function AdminPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
   const [loadingRanking, setLoadingRanking] = useState(false)
   const [rankingView, setRankingView] = useState<'ranking' | 'partidos'>('ranking')
+  const [showArchived, setShowArchived] = useState(false)
+  const [gestionUsers, setGestionUsers] = useState([])
 
   useEffect(() => { init() }, [])
 
@@ -207,6 +209,49 @@ export default function AdminPage() {
     setSchedules(prev => { const n = { ...prev }; delete n[match.id]; return n })
     setSavingId(null)
     showToast(`🕐 Horario actualizado`)
+    await loadData()
+  }
+
+  async function loadGestion() {
+    const { data: allMembers } = await supabase
+      .from('pool_members')
+      .select('id, pool_id, user_id, payment_status, pool:pools(id, name, competition, status)')
+    const rejected = (allMembers || []).filter(m => m.payment_status === 'rejected')
+    const usersIds = [...new Set(rejected.map(m => m.user_id))]
+    let usersMap = {}
+    if (usersIds.length > 0) {
+      const { data: usersData } = await supabase.from('users').select('id, name, email').in('id', usersIds)
+      for (const u of (usersData || [])) usersMap[u.id] = u
+    }
+    setGestionUsers(rejected.map(m => ({ ...m, userData: usersMap[m.user_id] || null })))
+  }
+
+  async function handleArchivePool(poolId) {
+    await supabase.from('pools').update({ status: 'archived' }).eq('id', poolId)
+    showToast('📦 Sala archivada')
+    await loadData()
+  }
+
+  async function handleFinishPool(poolId, poolName) {
+    await supabase.from('pools').update({ status: 'finished' }).eq('id', poolId)
+    showToast(`✅ ${poolName} cerrada`)
+    await loadData()
+  }
+
+  async function handleDeletePool(poolId, poolName) {
+    await supabase.from('payments').delete().eq('pool_id', poolId)
+    await supabase.from('predictions').delete().eq('pool_id', poolId)
+    await supabase.from('pool_members').delete().eq('pool_id', poolId)
+    await supabase.from('pools').delete().eq('id', poolId)
+    showToast(`🗑 ${poolName} eliminada`)
+    await loadData()
+  }
+
+  async function handleResetPago(member) {
+    await supabase.from('payments').delete().eq('pool_id', member.pool_id).eq('user_id', member.user_id)
+    await supabase.from('pool_members').delete().eq('pool_id', member.pool_id).eq('user_id', member.user_id)
+    showToast(`🔄 Pago de ${member.userData?.name} reseteado`)
+    await loadGestion()
     await loadData()
   }
 
@@ -388,12 +433,13 @@ export default function AdminPage() {
         </div>
 
         {/* TABS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
           {[
             { key: 'jugadores', label: '👥 Jugadores', badge: pendingMembers.length },
             { key: 'resultados', label: '⚽ Resultados', badge: liveMatches.length + pendingMatches.length },
             { key: 'rankings', label: '🏆 Rankings', badge: 0 },
             { key: 'analisis', label: '📊 Análisis', badge: 0 },
+            { key: 'gestion', label: '⚙️ Gestión', badge: 0 },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key as any)} style={{
               padding: '10px 4px', borderRadius: 10, border: 'none', cursor: 'pointer',
@@ -776,6 +822,137 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* ── TAB GESTIÓN ── */}
+          {activeTab === 'gestion' && (() => {
+            if (gestionUsers.length === 0 && activeTab === 'gestion') loadGestion()
+            const activePools = pools.filter(p => p.status === 'open')
+            const finishedPools = pools.filter(p => p.status === 'finished')
+            const archivedPools = pools.filter(p => p.status === 'archived')
+            return (
+              <div style={{ animation: 'fadeUp 0.3s ease both' }}>
+
+                {/* SALAS ACTIVAS */}
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  Salas activas
+                  <div style={{ flex: 1, height: '.5px', background: 'rgba(255,255,255,.07)' }} />
+                </div>
+
+                {activePools.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#555', fontSize: 13 }}>Sin salas activas</div>
+                )}
+
+                {activePools.map(pool => {
+                  const poolMembersActive = approvedMembers.filter(m => m.pool_id === pool.id)
+                  const count = poolMembersActive.length
+                  const canDelete = count <= 1
+                  return (
+                    <div key={pool.id} style={{ background: '#111520', borderRadius: 12, border: `0.5px solid ${count > 0 ? 'rgba(0,196,106,.2)' : 'rgba(255,255,255,.07)'}`, borderLeft: `3px solid ${count > 0 ? '#00C46A' : '#6B7280'}`, padding: '12px 14px', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{pool.name}</div>
+                          <div style={{ fontSize: 10, color: compColor(pool.competition), marginTop: 2 }}>{compLabel(pool.competition)} · {count} participantes activos</div>
+                        </div>
+                        <div style={{ padding: '3px 10px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: count > 0 ? 'rgba(0,196,106,.12)' : 'rgba(107,114,128,.1)', color: count > 0 ? '#00C46A' : '#6B7280', border: `0.5px solid ${count > 0 ? 'rgba(0,196,106,.3)' : 'rgba(107,114,128,.2)'}` }}>
+                          {count > 0 ? 'Activa' : 'Vacía'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => { if (confirm(`¿Cerrar "${pool.name}"? Cambiará a finalizada.`)) handleFinishPool(pool.id, pool.name) }} style={{ flex: 1, padding: '7px', borderRadius: 8, border: '0.5px solid rgba(245,183,49,.3)', background: 'rgba(245,183,49,.08)', color: '#F5B731', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}>
+                          ✅ Cerrar quiniela
+                        </button>
+                        {canDelete && (
+                          <button onClick={() => { if (confirm(`¿Eliminar "${pool.name}"? Esta acción no se puede deshacer.`)) handleDeletePool(pool.id, pool.name) }} style={{ flex: 1, padding: '7px', borderRadius: 8, border: '0.5px solid rgba(232,25,44,.3)', background: 'rgba(232,25,44,.08)', color: '#E8192C', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}>
+                            🗑 Eliminar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* SALAS FINALIZADAS */}
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10, marginTop: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  Finalizadas
+                  <div style={{ flex: 1, height: '.5px', background: 'rgba(255,255,255,.07)' }} />
+                </div>
+
+                {finishedPools.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '16px', color: '#555', fontSize: 13 }}>Sin salas finalizadas</div>
+                )}
+
+                {finishedPools.map(pool => (
+                  <div key={pool.id} style={{ background: '#111520', borderRadius: 12, border: '0.5px solid rgba(255,255,255,.07)', borderLeft: '3px solid #F5B731', padding: '12px 14px', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{pool.name}</div>
+                        <div style={{ fontSize: 10, color: compColor(pool.competition), marginTop: 2 }}>{compLabel(pool.competition)}</div>
+                      </div>
+                      <div style={{ padding: '3px 10px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: 'rgba(245,183,49,.12)', color: '#F5B731', border: '0.5px solid rgba(245,183,49,.3)' }}>Finalizada</div>
+                    </div>
+                    <button onClick={() => { if (confirm(`¿Archivar "${pool.name}"? Dejará de aparecer en vistas normales.`)) handleArchivePool(pool.id) }} style={{ width: '100%', padding: '7px', borderRadius: 8, border: '0.5px solid rgba(79,173,255,.3)', background: 'rgba(79,173,255,.08)', color: '#4FADFF', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}>
+                      📦 Archivar
+                    </button>
+                  </div>
+                ))}
+
+                {/* ARCHIVADAS */}
+                {archivedPools.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10, marginTop: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      Archivadas
+                      <div style={{ flex: 1, height: '.5px', background: 'rgba(255,255,255,.07)' }} />
+                      <button onClick={() => setShowArchived(p => !p)} style={{ fontSize: 10, color: '#F5B731', border: '0.5px solid rgba(245,183,49,.3)', padding: '2px 8px', borderRadius: 6, background: 'none', cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}>
+                        {showArchived ? `Ocultar ▲` : `Ver ${archivedPools.length} ▾`}
+                      </button>
+                    </div>
+                    {showArchived && archivedPools.map(pool => (
+                      <div key={pool.id} style={{ background: '#0d1220', borderRadius: 10, padding: '10px 14px', marginBottom: 6, opacity: .5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>{pool.name}</div>
+                          <div style={{ fontSize: 10, color: '#555' }}>{compLabel(pool.competition)} · Archivada</div>
+                        </div>
+                        <div style={{ fontSize: 10, color: '#555' }}>📦</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* PAGOS RECHAZADOS */}
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10, marginTop: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  Pagos rechazados
+                  <div style={{ flex: 1, height: '.5px', background: 'rgba(255,255,255,.07)' }} />
+                </div>
+
+                {gestionUsers.length === 0 ? (
+                  <div style={{ background: '#111520', borderRadius: 10, padding: '14px', textAlign: 'center', color: '#555', fontSize: 12, border: '0.5px solid rgba(255,255,255,.05)' }}>
+                    ✅ Sin pagos rechazados pendientes
+                  </div>
+                ) : (
+                  gestionUsers.map(m => (
+                    <div key={m.id} style={{ background: '#111520', borderRadius: 12, border: '0.5px solid rgba(255,77,109,.15)', borderLeft: '3px solid #FF4D6D', padding: '12px 14px', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,77,109,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                            {m.userData?.name?.charAt(0) || '?'}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600 }}>{m.userData?.name || 'Usuario'}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>{m.pool?.name}</div>
+                          </div>
+                        </div>
+                        <div style={{ padding: '3px 10px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: 'rgba(255,77,109,.1)', color: '#FF4D6D', border: '0.5px solid rgba(255,77,109,.3)' }}>Rechazado</div>
+                      </div>
+                      <button onClick={() => { if (confirm(`¿Resetear pago de ${m.userData?.name}? Podrá volver a intentarlo.`)) handleResetPago(m) }} style={{ width: '100%', padding: '7px', borderRadius: 8, border: '0.5px solid rgba(79,173,255,.3)', background: 'rgba(79,173,255,.08)', color: '#4FADFF', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}>
+                        🔄 Resetear — puede volver a intentar
+                      </button>
+                    </div>
+                  ))
+                )}
+
+              </div>
+            )
+          })()}
 
       </div>
     </div>

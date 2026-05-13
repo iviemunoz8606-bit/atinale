@@ -193,13 +193,37 @@ export default function Predecir() {
   if (loading) return <Loading />
   if (!user) return null
 
-  const totalMatches = activeFilter === 'todos' || activeFilter === 'pendientes'
-    ? getFilteredMatches().length
-    : matches.filter(m => myPools.find(p => p.pool_id === activeFilter)?.pool?.competition === m.competition).length
+ const allFilteredMatches = (() => {
+  const result: { match: Match; pool: PoolMember }[] = []
+  for (const match of matches) {
+    const pools = myPools.filter(m => {
+      if (m.pool?.competition !== match.competition) return false
+      const roundFilter = (m.pool as any)?.round_filter
+      if (roundFilter && match.round !== roundFilter) return false
+      return true
+    })
+    for (const pool of pools) {
+      result.push({ match, pool })
+    }
+  }
+  const seen = new Set<string>()
+  return result.filter(({ match, pool }) => {
+    const key = `${pool.pool_id}-${match.id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+})()
 
-  const predictedCount = activeFilter === 'todos' || activeFilter === 'pendientes'
-    ? new Set(predictions.map(p => p.match_id)).size
-    : predictions.filter(p => p.pool_id === activeFilter).length
+const totalMatches = activeFilter === 'todos' || activeFilter === 'pendientes'
+  ? allFilteredMatches.length
+  : allFilteredMatches.filter(({ pool }) => pool.pool_id === activeFilter).length
+
+const predictedCount = activeFilter === 'todos' || activeFilter === 'pendientes'
+  ? allFilteredMatches.filter(({ match, pool }) =>
+      predictions.some(p => p.match_id === match.id && p.pool_id === pool.pool_id)
+    ).length
+  : predictions.filter(p => p.pool_id === activeFilter).length
 
   const filteredMatches = getFilteredMatches()
   const activePool = myPools.find(m => m.pool_id === activeFilter)

@@ -80,6 +80,8 @@ export default function Predecir() {
       const isAdminUser = adminCheck?.is_admin === true
 
       let memberQuery = supabase
+      const { data: memberData } = await memberQuery
+      const members = ((memberData as any) || []).filter((m: any) => m.pool?.status !== 'finished')
         .from('pool_members')
         .select('id, pool_id, points, rank, payment_status, pool:pools(id, name, competition, status, round_filter)')
         .eq('user_id', session.user.id)
@@ -89,7 +91,7 @@ export default function Predecir() {
       }
 
       const { data: memberData } = await memberQuery
-        const members = (memberData as any) || []
+        const members = ((memberData as any) || []).filter((m: any) => m.pool?.status !== 'finished')
       
         setMyPools(members)
       if (members.length === 0) { setLoading(false); return }

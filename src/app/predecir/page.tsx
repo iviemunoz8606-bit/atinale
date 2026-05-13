@@ -193,14 +193,17 @@ export default function Predecir() {
   if (loading) return <Loading />
   if (!user) return null
 
-  const totalMatches = filteredMatches.length
-  const filteredMatches = getFilteredMatches()
-  const validMatchIds = new Set(filteredMatches.map(({ match }) => match.id))
-  const activePool = myPools.find(m => m.pool_id === activeFilter)
+  const totalMatches = activeFilter === 'todos' || activeFilter === 'pendientes'
+    ? getFilteredMatches().length
+    : matches.filter(m => myPools.find(p => p.pool_id === activeFilter)?.pool?.competition === m.competition).length
 
+  const validMatchIds = new Set(filteredMatches.map(({ match }) => match.id))
   const predictedCount = activeFilter === 'todos' || activeFilter === 'pendientes'
     ? predictions.filter(p => validMatchIds.has(p.match_id)).length
     : predictions.filter(p => p.pool_id === activeFilter).length
+
+  const filteredMatches = getFilteredMatches()
+  const activePool = myPools.find(m => m.pool_id === activeFilter)
 
   function groupByDate(items: { match: Match; pool: PoolMember }[]) {
     const groups: Record<string, { match: Match; pool: PoolMember }[]> = {}

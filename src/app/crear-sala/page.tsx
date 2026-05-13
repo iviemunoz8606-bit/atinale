@@ -213,7 +213,7 @@ export default function CrearSala() {
           <div style={styles.compGrid}>
             {[
               { id: 'Jornada 17', icon: '📅', name: 'Jornada 17', sub: 'Fase regular' },
-              { id: 'Liguilla', icon: '🏆', name: 'Liguilla', sub: 'Fase final' },
+              { id: 'Semifinales y Final', icon: '🏆', name: 'Semifinales y Final', sub: 'Liguilla 2026' },
             ].map(r => (
               <div
                 key={r.id}

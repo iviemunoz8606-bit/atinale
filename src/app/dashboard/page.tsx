@@ -139,7 +139,7 @@ export default function Dashboard() {
         .select('id, pool_id, points, rank, payment_status, pool:pools(*)')
         .eq('user_id', session.user.id)
         .neq('payment_status', 'rejected')
-      const members = (memberData as any) || []
+      const members = ((memberData as any) || []).filter((m: any) => m.pool?.status !== 'finished')
       setMyPools(members)
 
       // Próximo partido por quiniela con predicción del usuario

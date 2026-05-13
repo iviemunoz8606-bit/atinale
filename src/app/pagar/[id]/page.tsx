@@ -12,6 +12,14 @@ const supabase = createBrowserClient(
 
 const WA_LINK = 'https://wa.me/523315445450'
 
+function getCompTheme(comp) {
+  switch (comp) {
+    case 'FIFA_2026': return { accent: '#00C46A', accentBg: 'rgba(0,196,106,0.10)', accentBorder: 'rgba(0,196,106,0.25)', leftBorder: '#00C46A', icon: '🌍', label: 'Mundial FIFA 2026' }
+    case 'LIGA_MX':   return { accent: '#E8192C', accentBg: 'rgba(232,25,44,0.10)', accentBorder: 'rgba(232,25,44,0.25)', leftBorder: '#E8192C', icon: '🦅', label: 'Liga MX' }
+    default:          return { accent: '#F5B731', accentBg: 'rgba(245,183,49,0.10)', accentBorder: 'rgba(245,183,49,0.25)', leftBorder: '#F5B731', icon: '🏆', label: 'Quiniela' }
+  }
+}
+
 export default function PagarPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -76,22 +84,24 @@ export default function PagarPage() {
 
   if (!pool) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: '#080C16', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style>
-        <div style={{ width: 32, height: 32, border: '3px solid #FFD700', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 36, height: 36, border: '3px solid rgba(245,183,49,0.3)', borderTopColor: '#F5B731', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       </div>
     )
   }
 
-  if (membership?.payment_status === 'paid') {
+  const theme = getCompTheme(pool.competition)
+
+  if (membership?.payment_status === 'approved') {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>{'✅'}</div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{'¡Ya estas dentro!'}</h2>
-          <p style={{ color: '#888', fontSize: 14, marginBottom: 24 }}>{'Tu pago fue aprobado. Ya puedes predecir.'}</p>
-          <button onClick={() => router.push('/quiniela/' + id)} style={{ background: '#FFD700', color: '#000', border: 'none', borderRadius: 12, padding: '14px 24px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
-            {'Ir a predecir'}
+      <div style={{ minHeight: '100vh', background: '#080C16', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: "'Outfit', sans-serif" }}>
+        <div style={{ textAlign: 'center', maxWidth: 400, width: '100%' }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: '#00C46A', marginBottom: 8 }}>¡YA ESTÁS DENTRO!</div>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>Tu pago fue aprobado. Ya puedes predecir.</p>
+          <button onClick={() => router.push('/predecir')} style={{ width: '100%', padding: 15, borderRadius: 14, background: 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+            Ir a predecir →
           </button>
         </div>
       </div>
@@ -100,86 +110,108 @@ export default function PagarPage() {
 
   if (submitted || membership?.payment_status === 'pending') {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>{'⏳'}</div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{'Comprobante recibido'}</h2>
-          <p style={{ color: '#888', fontSize: 14, marginBottom: 20 }}>{'Estamos revisando tu pago. Te avisamos cuando se apruebe.'}</p>
-          <a href={WA_LINK} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: '#25D366', color: '#fff', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-            {'Escribir al WhatsApp'}
-          </a>
+      <div style={{ minHeight: '100vh', background: '#080C16', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: "'Outfit', sans-serif" }}>
+        <div style={{ textAlign: 'center', maxWidth: 400, width: '100%' }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>⏳</div>
+          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: '#F5B731', marginBottom: 8 }}>COMPROBANTE RECIBIDO</div>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
+            Estamos revisando tu pago.<br />Te avisamos cuando se apruebe.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <a href={WA_LINK} target="_blank" rel="noreferrer" style={{ display: 'block', background: '#25D366', color: '#fff', borderRadius: 14, padding: '14px 24px', fontSize: 15, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
+              Escribir al WhatsApp
+            </a>
+            <button onClick={() => router.push('/dashboard')} style={{ width: '100%', padding: 14, borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+              Ir al dashboard
+            </button>
+          </div>
         </div>
-        <p style={{ color: '#666', fontSize: 13, marginBottom: 20 }}>{'Estamos revisando tu pago. Te avisamos cuando se apruebe.'}</p>
-        <a href={WA_LINK} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: '#25D366', color: '#fff', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-          {'Escribir al WhatsApp'}
-        </a>
-        <br /><br />
-        <a href="/dashboard" style={{ display: 'inline-block', background: '#1a1a1a', color: '#FFD700', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, textDecoration: 'none', border: '1px solid #333' }}>
-          {'Ir al dashboard'}
-        </a>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', padding: '24px 16px 80px', display: 'flex', justifyContent: 'center' }}>
-      <style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style>
-      <div style={{ width: '100%', maxWidth: 480, marginTop: 16 }}>
+    <div style={{ minHeight: '100vh', background: '#080C16', fontFamily: "'Outfit', sans-serif", color: '#F0F2F8' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        .copy-btn:hover { opacity: 0.85; }
+        .upload-area:hover { border-color: rgba(245,183,49,0.5) !important; background: rgba(245,183,49,0.04) !important; }
+      `}</style>
 
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontSize: 13, color: '#FFD700', fontWeight: 700, letterSpacing: 2, marginBottom: 8 }}>{'UNETE A LA QUINIELA'}</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>{pool.name}</h1>
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px 12px', background: 'rgba(8,12,22,0.96)', backdropFilter: 'blur(20px)', borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
+        <button onClick={() => router.back()} style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#fff', cursor: 'pointer' }}>←</button>
+        <div>
+          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 3, background: 'linear-gradient(90deg,#C9930A,#F5B731)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>ÚNETE A LA QUINIELA</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>{pool.name}</div>
         </div>
+      </div>
 
-        <div style={{ background: '#111', border: '1px solid #222', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <span style={{ color: '#888', fontSize: 13 }}>{'Costo de entrada'}</span>
-          <span style={{ color: '#FFD700', fontSize: 28, fontWeight: 800 }}>${pool.entry_fee} MXN</span>
-        </div>
+      <div style={{ maxWidth: 480, margin: '0 auto', padding: '16px 16px 80px', animation: 'fadeUp 0.3s ease both' }}>
 
-        <p style={{ color: '#aaa', fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{'PASO 1 - Transfiere a esta cuenta'}</p>
-
-        {[
-          { label: 'CLABE', value: '722969020127909548' },
-          { label: 'Beneficiario', value: 'Ivie Eduardo Munoz Garcia' },
-          { label: 'Institucion', value: 'Mercado Pago' },
-        ].map(({ label, value }) => (
-          <div key={label} style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 10, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ background: '#111520', borderRadius: 14, border: `0.5px solid ${theme.accentBorder}`, borderLeft: `3px solid ${theme.leftBorder}`, padding: '14px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: theme.accentBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{theme.icon}</div>
             <div>
-              <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>{label}</div>
-              <div style={{ fontSize: 15, color: '#fff', fontWeight: 600 }}>{value}</div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{pool.name}</div>
+              <div style={{ fontSize: 10, color: theme.accent, fontWeight: 700, letterSpacing: 1, marginTop: 2 }}>{theme.label.toUpperCase()}</div>
             </div>
-            <button onClick={() => copy(value, label)} style={{ background: copied === label ? '#FFD700' : '#1e1e1e', color: copied === label ? '#000' : '#FFD700', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              {copied === label ? '✓' : 'Copiar'}
-            </button>
           </div>
-        ))}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
-          <div style={{ flex: 1, height: 1, background: '#222' }} />
-          <span style={{ color: '#555', fontSize: 12 }}>{'PASO 2'}</span>
-          <div style={{ flex: 1, height: 1, background: '#222' }} />
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>Entrada</div>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: '#F5B731', lineHeight: 1 }}>${pool.entry_fee}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>MXN</div>
+          </div>
         </div>
 
-        <p style={{ color: '#aaa', fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{'Sube tu comprobante'}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(245,183,49,0.15)', border: '0.5px solid rgba(245,183,49,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#F5B731', fontWeight: 700, flexShrink: 0 }}>1</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 2 }}>Transfiere a esta cuenta</div>
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="comprobante" style={{ display: 'block', border: '2px dashed #333', borderRadius: 12, padding: '28px 20px', textAlign: 'center', cursor: 'pointer', marginBottom: 16, background: '#111' }}>
-            <input id="comprobante" type="file" accept="image/*,.pdf" ref={fileRef} onChange={(e) => setFileName(e.target.files?.[0]?.name || '')} style={{ display: 'none' }} />
-            <div style={{ color: '#ccc', fontSize: 14 }}>{fileName || 'Toca para seleccionar foto o PDF'}</div>
-            <div style={{ color: '#555', fontSize: 12, marginTop: 4 }}>{'JPG, PNG o PDF'}</div>
-          </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+          {[
+            { label: 'CLABE', value: '722969020127909548' },
+            { label: 'Beneficiario', value: 'Ivie Eduardo Muñoz Garcia' },
+            { label: 'Institución', value: 'Mercado Pago' },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ background: '#111520', borderRadius: 12, border: '0.5px solid rgba(255,255,255,0.07)', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>{label}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#F0F2F8', wordBreak: 'break-all' }}>{value}</div>
+              </div>
+              <button className="copy-btn" onClick={() => copy(value, label)} style={{ flexShrink: 0, background: copied === label ? 'rgba(0,196,106,0.15)' : 'rgba(245,183,49,0.12)', border: `0.5px solid ${copied === label ? 'rgba(0,196,106,0.4)' : 'rgba(245,183,49,0.3)'}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: copied === label ? '#00C46A' : '#F5B731', cursor: 'pointer' }}>
+                {copied === label ? '✓' : 'Copiar'}
+              </button>
+            </div>
+          ))}
+        </div>
 
-          {error && <p style={{ color: '#ff4444', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>{error}</p>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(245,183,49,0.15)', border: '0.5px solid rgba(245,183,49,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#F5B731', fontWeight: 700, flexShrink: 0 }}>2</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 2 }}>Sube tu comprobante</div>
+        </div>
 
-          <button type="submit" disabled={uploading} style={{ background: '#FFD700', color: '#000', border: 'none', borderRadius: 12, padding: '14px 24px', fontSize: 15, fontWeight: 800, cursor: 'pointer', width: '100%', opacity: uploading ? 0.7 : 1 }}>
-            {uploading ? 'Subiendo...' : 'Enviar comprobante'}
-          </button>
-        </form>
+        <label htmlFor="comprobante" className="upload-area" style={{ display: 'block', background: '#111520', borderRadius: 14, border: '1.5px dashed rgba(245,183,49,0.25)', padding: '28px 20px', textAlign: 'center', cursor: 'pointer', marginBottom: 14, transition: 'all 0.2s' }}>
+          <input id="comprobante" type="file" accept="image/*,.pdf" ref={fileRef} onChange={(e) => setFileName(e.target.files?.[0]?.name || '')} style={{ display: 'none' }} />
+          <div style={{ fontSize: 28, marginBottom: 8 }}>📎</div>
+          <div style={{ fontSize: 14, color: fileName ? '#F5B731' : 'rgba(255,255,255,0.5)', fontWeight: fileName ? 600 : 400 }}>
+            {fileName || 'Toca para seleccionar foto o PDF'}
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', marginTop: 4 }}>JPG, PNG o PDF</div>
+        </label>
 
-        <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #1a1a1a', textAlign: 'center' }}>
-          <p style={{ color: '#555', fontSize: 12, marginBottom: 10 }}>{'Prefieres mandarlo por WhatsApp?'}</p>
-          <a href={WA_LINK} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: '#25D366', color: '#fff', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-            {'Mandar al WhatsApp'}
+        {error && <p style={{ color: '#FF4D6D', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>{error}</p>}
+
+        <button onClick={handleSubmit} disabled={uploading} style={{ width: '100%', padding: 15, borderRadius: 14, background: uploading ? 'rgba(245,183,49,0.4)' : 'linear-gradient(135deg,#F5B731,#C9930A)', color: '#080C16', fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', marginBottom: 16 }}>
+          {uploading ? 'Subiendo...' : 'Enviar comprobante →'}
+        </button>
+
+        <div style={{ background: 'rgba(37,211,102,0.06)', border: '0.5px solid rgba(37,211,102,0.2)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>¿Prefieres mandarlo por WhatsApp?</div>
+          <a href={WA_LINK} target="_blank" rel="noreferrer" style={{ flexShrink: 0, background: '#25D366', color: '#fff', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            WhatsApp
           </a>
         </div>
 

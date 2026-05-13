@@ -197,8 +197,9 @@ export default function Predecir() {
     ? getFilteredMatches().length
     : matches.filter(m => myPools.find(p => p.pool_id === activeFilter)?.pool?.competition === m.competition).length
 
+  const validMatchIds = new Set(filteredMatches.map(({ match }) => match.id))
   const predictedCount = activeFilter === 'todos' || activeFilter === 'pendientes'
-    ? new Set(predictions.map(p => p.match_id)).size
+    ? predictions.filter(p => validMatchIds.has(p.match_id)).length
     : predictions.filter(p => p.pool_id === activeFilter).length
 
   const filteredMatches = getFilteredMatches()
